@@ -106,21 +106,26 @@
     }
     $appVersion = (string) config('geoflow.app_version', '2.0');
 @endphp
-<aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 -translate-x-full transform flex-col border-r border-gray-200 bg-white transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0">
-    <div class="flex h-16 shrink-0 items-center gap-2 border-b border-gray-100 px-5">
-        <a href="{{ route('admin.dashboard') }}" class="truncate text-lg font-semibold text-gray-900">{{ $adminBrandName }}</a>
+<aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 -translate-x-full transform flex-col border-r border-slate-800 bg-slate-900 text-slate-300 transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0">
+    <div class="flex h-16 shrink-0 items-center gap-2 border-b border-slate-800 px-5">
+        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 truncate text-lg font-semibold text-white">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white">
+                <i data-lucide="sparkles" class="h-4 w-4"></i>
+            </span>
+            <span class="truncate">{{ $adminBrandName }}</span>
+        </a>
     </div>
-    <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4 [scrollbar-width:thin]">
+    <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         @foreach ($menu as $key => $item)
             <a href="{{ route($item['route']) }}"
-               class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-200 @if($resolvedActive === $key) bg-blue-50 text-blue-600 font-medium @else text-gray-600 hover:bg-gray-50 hover:text-gray-900 @endif">
-                <i data-lucide="{{ $menuIcons[$key] ?? 'circle' }}" class="h-5 w-5 shrink-0"></i>
+               class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-200 @if($resolvedActive === $key) bg-indigo-600 font-medium text-white shadow-sm @else text-slate-300 hover:bg-slate-800 hover:text-white @endif">
+                <i data-lucide="{{ $menuIcons[$key] ?? 'circle' }}" class="h-5 w-5 shrink-0 @if($resolvedActive === $key) text-white @else text-slate-400 group-hover:text-slate-200 @endif"></i>
                 <span class="truncate">{{ $item['name'] }}</span>
             </a>
         @endforeach
     </nav>
-    <div class="shrink-0 border-t border-gray-100 px-5 py-3 text-xs text-gray-400">
+    <div class="shrink-0 border-t border-slate-800 px-5 py-3 text-xs text-slate-500">
         {{ __('admin.footer.version', ['version' => $appVersion]) }}
     </div>
 </aside>
-<div id="admin-sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 z-30 hidden bg-black/30 lg:hidden"></div>
+<div id="admin-sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 z-30 hidden bg-slate-900/50 lg:hidden"></div>

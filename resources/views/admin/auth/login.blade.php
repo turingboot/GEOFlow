@@ -5,25 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ __('admin.login.title') }} — {{ $adminSiteName }}</title>
     <script src="{{ asset('js/tailwindcss.play-cdn.js') }}"></script>
+    <script>
+        tailwind.config = { theme: { extend: {
+            colors: {
+                blue: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81', 950: '#1e1b4b' },
+                gray: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617' },
+            },
+            fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'] },
+            borderRadius: { DEFAULT: '0.5rem', md: '0.625rem', lg: '0.75rem', xl: '1rem', '2xl': '1.25rem' },
+        } } };
+    </script>
     <script src="{{ asset('js/lucide.min.js') }}"></script>
     <style>
         body {
-            background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 32%),
-                radial-gradient(circle at bottom right, rgba(229, 231, 235, 0.72), rgba(229, 231, 235, 0) 30%),
-                linear-gradient(180deg, #f5f5f7 0%, #e5e7eb 100%);
+            background:
+                radial-gradient(900px circle at 15% 8%, rgba(79, 70, 229, 0.30), transparent 45%),
+                radial-gradient(720px circle at 85% 92%, rgba(99, 102, 241, 0.18), transparent 45%),
+                linear-gradient(180deg, #0f172a 0%, #020617 100%);
             min-height: 100vh;
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
         }
         .login-form {
-            background: rgba(255, 255, 255, 0.82);
-            backdrop-filter: blur(24px) saturate(180%);
-            border: 1px solid rgba(209, 213, 219, 0.9);
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+            background: rgba(255, 255, 255, 0.97);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 30px 70px rgba(2, 6, 23, 0.45);
         }
         .login-badge {
-            background: linear-gradient(180deg, #6b7280 0%, #374151 100%);
+            background: linear-gradient(180deg, #6366f1 0%, #4338ca 100%);
         }
         .initial-admin-hint {
-            background: linear-gradient(180deg, rgba(239, 246, 255, 0.96) 0%, rgba(255, 255, 255, 0.9) 100%);
+            background: linear-gradient(180deg, rgba(238, 242, 255, 0.98) 0%, rgba(255, 255, 255, 0.94) 100%);
         }
     </style>
 </head>
@@ -121,7 +132,7 @@
         </form>
     </div>
     <div class="text-center mt-6">
-        <a href="{{ url('/') }}" class="text-gray-600 hover:text-gray-900 text-sm">{{ __('admin.login.back_home') }}</a>
+        <a href="{{ url('/') }}" class="text-slate-300 hover:text-white text-sm">{{ __('admin.login.back_home') }}</a>
     </div>
 </div>
 <script>

@@ -4,6 +4,11 @@ This document tracks user-facing updates in the public repository. For future Gi
 
 ## 2026-06-18
 
+### New admin look (dark-sidebar SaaS)
+
+- The admin backend adopts a brand-new design language: **a dark (slate-900) sidebar + light content + indigo primary + slate neutrals + Inter font + rounder corners + softer shadows**; the login page matches the dark SaaS style.
+- Implemented by overriding the Tailwind theme tokens at runtime in the admin layout (blue→indigo, gray→slate, font, radius, shadow), restyling the whole backend consistently **without changing any page functionality, form fields, routes or permission logic (1:1 feature parity)**; the public site is unaffected.
+
 ### Admin & public UI
 
 - Reworked the admin backend into a standard admin layout:

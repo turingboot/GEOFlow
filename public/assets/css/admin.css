@@ -1,0 +1,86 @@
+/* GEOFlow admin — global finishing layer for the dark-sidebar SaaS redesign.
+   Pairs with the runtime tailwind.config token override in admin.layouts.app.
+   Intentionally light-touch: no broad !important overrides of utility classes. */
+
+:root {
+    --admin-accent: #4f46e5;          /* indigo-600 */
+    --admin-accent-strong: #4338ca;   /* indigo-700 */
+    --admin-surface: #f8fafc;         /* slate-50 */
+    --admin-ink: #0f172a;             /* slate-900 */
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background-color: var(--admin-surface);
+    color: var(--admin-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Consistent indigo focus ring for interactive controls. */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--admin-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* Smooth, subtle interactions on links/buttons. */
+a,
+button {
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Content-area scrollbars (slim, neutral). */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Dark sidebar scrollbar (muted, fits slate-900). */
+#admin-sidebar {
+    scrollbar-color: #334155 transparent;
+}
+
+#admin-sidebar *::-webkit-scrollbar-thumb,
+#admin-sidebar::-webkit-scrollbar-thumb {
+    background-color: #334155;
+}
+
+#admin-sidebar *::-webkit-scrollbar-thumb:hover,
+#admin-sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: #475569;
+}
+
+/* Subtle row hover for data tables across modules. */
+table tbody tr {
+    transition: background-color 0.12s ease;
+}

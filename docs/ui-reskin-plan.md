@@ -119,3 +119,12 @@
 
 - **改动**:`resources/views/admin/**`(layouts/partials)、`resources/views/theme/<新主题>/**`、`public/themes/<新主题>/theme.css`、必要时 `public/assets/css/*`。**不动 `vite.config.js`、不需 build**。
 - **不改**:`app/Http/Controllers/**`、`app/Services/**`、`routes/**`、`app/Http/Middleware/**`、`lang/**`(翻译 key 不变;如需新增文案才追加)、`database/**`、既有测试(只在必要时新增)。
+
+## 8. 全新视觉:深色侧栏 SaaS(2026-06-18 已实现)
+
+在「换皮」之上进一步做了**完整视觉重设计**(用户要求「整体风格全变、功能接口 1:1」),核心是**运行时覆盖 Tailwind 主题令牌**,而非逐视图改类名:
+
+- 关键事实:后台 Tailwind 是 `public/js/tailwindcss.play-cdn.js`(标准 v3.4.17 Play CDN),从 `window.tailwind.config` 读配置。**在 `admin.layouts.app` 的 CDN script 之后注入 `tailwind.config`,把 `blue`→indigo、`gray`→slate、`fontFamily.sans`→Inter、`borderRadius` 变圆润、`boxShadow` 变柔和** —— 既有工具类(`bg-blue-600`/`text-gray-900`/...)整体重渲染,**~70 个视图零 Blade 改动换肤,类名不变故测试不破**。
+- 配套:`partials/sidebar.blade.php` 重设计为深色(`bg-slate-900` + indigo active);新增 `public/assets/css/admin.css`(字体平滑、滚动条、indigo focus、过渡、表格 hover);`auth/login.blade.php` 同注入令牌并改深色 SaaS。topbar/各模块 body 不改。
+- 前台站点用独立 layout、不设此 config,**不受影响**。
+- 唯一需同步的测试:`AdminAnalyticsPageTest` 对「激活导航项」的字面类断言由旧 `text-blue-600 font-medium` 更新为新激活样式 `bg-indigo-600 font-medium text-white`(意图不变,非弱化)。全后台 + 前台回归 258 passed。
