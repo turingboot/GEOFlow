@@ -15,7 +15,7 @@
         </div>
 
         <div class="space-y-8">
-            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="admin-card">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -52,7 +52,7 @@
                 </div>
             </div>
 
-            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="admin-card">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">

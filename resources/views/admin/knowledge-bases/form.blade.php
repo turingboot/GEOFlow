@@ -61,7 +61,7 @@
             @endif
 
             @if ($isEdit)
-                <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                <div class="admin-card">
                     <div class="px-6 py-6 space-y-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.knowledge_bases.field_name') }}</label>
@@ -146,7 +146,7 @@
 
                 <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
                     <div class="space-y-6">
-                        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                        <div class="admin-card">
                             <div class="border-b border-gray-200 px-6 py-5">
                                 <h2 class="text-lg font-semibold text-gray-900">{{ __('admin.knowledge_bases.import_basic_title') }}</h2>
                                 <p class="mt-1 text-sm text-gray-600">{{ __('admin.knowledge_bases.import_basic_desc') }}</p>
@@ -212,7 +212,7 @@
                             </div>
                         </div>
 
-                        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                        <div class="admin-card">
                             <div class="border-b border-gray-200 px-6 py-5">
                                 <h2 class="text-lg font-semibold text-gray-900">{{ __('admin.knowledge_bases.import_sources_title') }}</h2>
                                 <p class="mt-1 text-sm text-gray-600">{{ __('admin.knowledge_bases.import_sources_desc') }}</p>
@@ -252,7 +252,7 @@
                     </div>
 
                     <aside class="space-y-6">
-                        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                        <div class="admin-card">
                             <div class="border-b border-gray-200 px-5 py-4">
                                 <h3 class="text-base font-semibold text-gray-900">{{ __('admin.knowledge_bases.import_pipeline_title') }}</h3>
                             </div>
@@ -278,7 +278,7 @@
                             </div>
                         </div>
 
-                        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                        <div class="admin-card">
                             <div class="border-b border-gray-200 px-5 py-4">
                                 <h3 class="text-base font-semibold text-gray-900">{{ __('admin.knowledge_bases.import_rules_title') }}</h3>
                             </div>

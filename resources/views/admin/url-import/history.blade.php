@@ -20,14 +20,14 @@
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             @foreach (['total', 'completed', 'running', 'failed'] as $statKey)
-                <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 p-5">
+                <div class="admin-card p-5">
                     <div class="text-sm text-gray-500">{{ __('admin.url_import_history.stats.' . $statKey) }}</div>
                     <div class="mt-2 text-2xl font-semibold text-gray-900">{{ (int) $stats[$statKey] }}</div>
                 </div>
             @endforeach
         </div>
 
-        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden">
+        <div class="admin-card overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h2 class="text-lg font-medium text-gray-900">{{ __('admin.url_import_history.section.records') }}</h2>
             </div>

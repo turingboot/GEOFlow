@@ -21,7 +21,7 @@
             </a>
         </div>
 
-        <details class="mb-6 rounded-xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden group">
+        <details class="mb-6 admin-card overflow-hidden group">
             <summary class="px-6 py-4 border-b border-gray-200 flex items-center justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                 <div>
                     <h3 class="text-lg font-medium text-gray-900">{{ __('admin.site_settings.section_basic') }}</h3>
@@ -222,7 +222,7 @@
             </div>
         </details>
 
-        <details class="mb-6 rounded-xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden group">
+        <details class="mb-6 admin-card overflow-hidden group">
             <summary class="px-6 py-4 border-b border-gray-200 flex items-center justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                 <div>
                     <h3 class="text-lg font-medium text-gray-900">{{ __('admin.site_settings.theme.section_title') }}</h3>
@@ -330,7 +330,7 @@
             </div>
         </details>
 
-        <details class="mb-6 rounded-xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden group">
+        <details class="mb-6 admin-card overflow-hidden group">
             <summary class="px-6 py-4 border-b border-gray-200 flex items-center justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                 <div>
                     <h3 class="text-lg font-medium text-gray-900">{{ __('admin.site_settings.ads.section_title') }}</h3>

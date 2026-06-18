@@ -18,7 +18,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+        <div class="admin-card">
             <div class="px-6 py-6">
                 <form method="POST" action="{{ $formAction }}" class="space-y-6">
                     @csrf

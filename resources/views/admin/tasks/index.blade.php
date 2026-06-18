@@ -80,7 +80,7 @@
             </div>
         @endif
 
-        <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+        <div class="overflow-hidden admin-card">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-medium text-gray-900">{{ __('admin.tasks.list_title') }}</h3>
             </div>
@@ -238,7 +238,7 @@
         </div>
 
         <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -251,7 +251,7 @@
                     </div>
                 </div>
             </div>
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -264,7 +264,7 @@
                     </div>
                 </div>
             </div>
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -277,7 +277,7 @@
                     </div>
                 </div>
             </div>
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -293,7 +293,7 @@
         </div>
 
         <div class="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="px-5 py-4 border-b border-gray-200">
                     <h3 class="text-base font-medium text-gray-900">{{ __('admin.tasks.worker.title') }}</h3>
                 </div>
@@ -323,7 +323,7 @@
                 </div>
             </div>
 
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="px-5 py-4 border-b border-gray-200">
                     <h3 class="text-base font-medium text-gray-900">{{ __('admin.tasks.queue.title') }}</h3>
                 </div>
@@ -349,7 +349,7 @@
                 </div>
             </div>
 
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="px-5 py-4 border-b border-gray-200">
                     <h3 class="text-base font-medium text-gray-900">{{ __('admin.tasks.jobs.recent') }}</h3>
                 </div>

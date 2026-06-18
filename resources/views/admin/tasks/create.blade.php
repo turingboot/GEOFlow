@@ -46,7 +46,7 @@
                     @method('PUT')
                 @endif
 
-                <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 xl:col-span-12">
+                <div class="admin-card xl:col-span-12">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">{{ $t('task_create.section.basic_title') }}</h3>
                         <p class="mt-1 text-sm text-gray-600">{{ $t('task_create.section.basic_desc') }}</p>
@@ -81,7 +81,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 xl:col-span-12">
+                <div class="admin-card xl:col-span-12">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">{{ $t('task_create.section.content_title') }}</h3>
                         <p class="mt-1 text-sm text-gray-600">{{ $t('task_create.section.content_desc') }}</p>
@@ -136,7 +136,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 xl:col-span-6">
+                <div class="admin-card xl:col-span-6">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">{{ $t('task_create.section.image_title') }}</h3>
                         <p class="mt-1 text-sm text-gray-600">{{ $t('task_create.section.image_desc') }}</p>
@@ -171,7 +171,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 xl:col-span-6">
+                <div class="admin-card xl:col-span-6">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">{{ $t('task_create.section.publish_title') }}</h3>
                         <p class="mt-1 text-sm text-gray-600">{{ $t('task_create.section.publish_desc') }}</p>
@@ -196,7 +196,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 xl:col-span-12">
+                <div class="admin-card xl:col-span-12">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">{{ $t('task_create.section.distribution_title') }}</h3>
                         <p class="mt-1 text-sm text-gray-600">{{ $t('task_create.section.distribution_desc') }}</p>
@@ -258,7 +258,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 xl:col-span-12">
+                <div class="admin-card xl:col-span-12">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">{{ $t('task_create.section.seo_title') }}</h3>
                         <p class="mt-1 text-sm text-gray-600">{{ $t('task_create.section.seo_desc') }}</p>
@@ -285,7 +285,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 xl:col-span-8">
+                <div class="admin-card xl:col-span-8">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">{{ $t('task_create.section.category_title') }}</h3>
                         <p class="mt-1 text-sm text-gray-600">{{ $t('task_create.section.category_desc') }}</p>
@@ -353,7 +353,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 xl:col-span-4">
+                <div class="admin-card xl:col-span-4">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">{{ $t('task_create.section.advanced_title') }}</h3>
                         <p class="mt-1 text-sm text-gray-600">{{ $t('task_create.section.advanced_desc') }}</p>

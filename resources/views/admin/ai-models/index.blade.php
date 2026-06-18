@@ -19,7 +19,7 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="admin-card">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900">{{ __('admin.ai_models.vector_title') }}</h3>
                     <p class="mt-1 text-sm text-gray-600">{{ __('admin.ai_models.vector_desc') }}</p>
@@ -55,7 +55,7 @@
                 </div>
             </div>
 
-            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="admin-card">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900">{{ __('admin.ai_models.type_title') }}</h3>
                     <p class="mt-1 text-sm text-gray-600">{{ __('admin.ai_models.type_desc') }}</p>
@@ -68,7 +68,7 @@
                 </div>
             </div>
 
-            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="admin-card">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900">{{ __('admin.ai_models.chunking_title') }}</h3>
                     <p class="mt-1 text-sm text-gray-600">{{ __('admin.ai_models.chunking_desc') }}</p>
@@ -107,7 +107,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+        <div class="admin-card">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-medium text-gray-900">{{ __('admin.ai_models.list_title') }}</h3>
                 <p class="mt-1 text-sm text-gray-600">{{ __('admin.ai_models.list_desc') }}</p>

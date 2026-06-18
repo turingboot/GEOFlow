@@ -74,7 +74,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div class="lg:col-span-3 space-y-6">
-                    <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                    <div class="admin-card">
                         <div class="px-6 py-4 border-b border-gray-200">
                             <h3 class="text-lg font-medium text-gray-900">{{ __($i18nRoot.'.section.basic_title') }}</h3>
                         </div>
@@ -90,7 +90,7 @@
                         </div>
                     </div>
 
-                    <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                    <div class="admin-card">
                         <div class="px-6 py-4 border-b border-gray-200">
                             <div class="flex flex-wrap items-center justify-between gap-3">
                                 <h3 class="text-lg font-medium text-gray-900">{{ __($i18nRoot.'.section.content_title') }}</h3>
@@ -157,7 +157,7 @@
                         </div>
                     </div>
 
-                    <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                    <div class="admin-card">
                         <div class="px-6 py-4 border-b border-gray-200">
                             <h3 class="text-lg font-medium text-gray-900">{{ __($i18nRoot.'.section.seo_title') }}</h3>
                         </div>
@@ -175,7 +175,7 @@
                 </div>
 
                 <div class="space-y-6">
-                    <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                    <div class="admin-card">
                         <div class="px-6 py-4 border-b border-gray-200">
                             <h3 class="text-lg font-medium text-gray-900">{{ __($i18nRoot.'.section.publish_title') }}</h3>
                         </div>
@@ -221,7 +221,7 @@
                         </div>
                     </div>
 
-                    <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                    <div class="admin-card">
                         <div class="px-6 py-4 border-b border-gray-200">
                             <h3 class="text-lg font-medium text-gray-900">{{ __($i18nRoot.'.section.category_author_title') }}</h3>
                         </div>
@@ -248,7 +248,7 @@
                     </div>
 
                     @if($isEdit)
-                        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                        <div class="admin-card">
                             <div class="px-6 py-4 border-b border-gray-200">
                                 <h3 class="text-lg font-medium text-gray-900">{{ __('admin.article_edit.section.info_title') }}</h3>
                             </div>

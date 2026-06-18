@@ -25,7 +25,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -40,7 +40,7 @@
                     </div>
                 </div>
             </div>
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -55,7 +55,7 @@
                     </div>
                 </div>
             </div>
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -70,7 +70,7 @@
                     </div>
                 </div>
             </div>
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="overflow-hidden admin-card">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -87,7 +87,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+        <div class="admin-card">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-medium text-gray-900">{{ __('admin.knowledge_bases.list_title') }}</h3>
             </div>
