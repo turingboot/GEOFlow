@@ -2,27 +2,36 @@
 
 @section('content')
     <div class="px-4 sm:px-0 space-y-8">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="admin-hero">
             <div class="flex items-start gap-4">
-                <a href="{{ route('admin.url-import') }}" class="mt-1 text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.url-import') }}" class="mt-1 text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.url_import_history.page_heading') }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('admin.url_import_history.page_subtitle') }}</p>
+                    <h1 class="admin-hero-title">{{ __('admin.url_import_history.page_heading') }}</h1>
+                    <p class="admin-hero-sub">{{ __('admin.url_import_history.page_subtitle') }}</p>
                 </div>
             </div>
-            <a href="{{ route('admin.url-import') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-                {{ __('admin.url_import_history.button.new_job') }}
-            </a>
+            <div class="admin-hero-actions">
+                <a href="{{ route('admin.url-import') }}" class="admin-btn admin-btn-primary">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    {{ __('admin.url_import_history.button.new_job') }}
+                </a>
+            </div>
         </div>
 
+        @php
+            $statGradients = ['total' => 'grad-indigo', 'completed' => 'grad-emerald', 'running' => 'grad-amber', 'failed' => 'grad-rose'];
+            $statIcons = ['total' => 'list', 'completed' => 'check-circle', 'running' => 'loader', 'failed' => 'x-circle'];
+        @endphp
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             @foreach (['total', 'completed', 'running', 'failed'] as $statKey)
-                <div class="admin-card p-5">
-                    <div class="text-sm text-gray-500">{{ __('admin.url_import_history.stats.' . $statKey) }}</div>
-                    <div class="mt-2 text-2xl font-semibold text-gray-900">{{ (int) $stats[$statKey] }}</div>
+                <div class="admin-vstat {{ $statGradients[$statKey] }}">
+                    <span class="admin-vstat-icon"><i data-lucide="{{ $statIcons[$statKey] }}" class="h-6 w-6"></i></span>
+                    <div class="min-w-0">
+                        <div class="admin-vstat-label">{{ __('admin.url_import_history.stats.' . $statKey) }}</div>
+                        <div class="admin-vstat-value">{{ (int) $stats[$statKey] }}</div>
+                    </div>
                 </div>
             @endforeach
         </div>

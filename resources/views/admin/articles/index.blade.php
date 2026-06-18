@@ -26,41 +26,41 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="mb-8 flex items-center justify-between">
+        <div class="admin-hero">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ $pageTitle }}</h1>
-                <p class="mt-1 text-sm text-gray-600">{{ $isTrashView ? __('admin.articles.trash.subtitle') : __('admin.articles.page_subtitle') }}</p>
+                <h1 class="admin-hero-title">{{ $pageTitle }}</h1>
+                <p class="admin-hero-sub">{{ $isTrashView ? __('admin.articles.trash.subtitle') : __('admin.articles.page_subtitle') }}</p>
             </div>
-            <div class="flex flex-wrap gap-2 justify-end">
+            <div class="admin-hero-actions">
                 @if($isTrashView)
-                    <a href="{{ $articlesIndexUrl }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+                    <a href="{{ $articlesIndexUrl }}" class="admin-btn admin-btn-secondary">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
                         {{ __('admin.articles.trash.back') }}
                     </a>
-                    <button type="button" onclick="submitEmptyTrash()" class="inline-flex items-center px-4 py-2 border border-red-200 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
-                        <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+                    <button type="button" onclick="submitEmptyTrash()" class="admin-btn admin-btn-secondary">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                         {{ __('admin.articles.trash.empty') }}
                     </button>
                 @else
-                    <a href="{{ route('admin.articles.create') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                    <a href="{{ route('admin.articles.create') }}" class="admin-btn admin-btn-primary">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
                         {{ __('admin.button.create_article') }}
                     </a>
-                    <a href="{{ $categoryManageUrl }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        <i data-lucide="folder" class="w-4 h-4 mr-2"></i>
+                    <a href="{{ $categoryManageUrl }}" class="admin-btn admin-btn-secondary">
+                        <i data-lucide="folder" class="w-4 h-4"></i>
                         {{ __('admin.button.category_manage') }}
                     </a>
-                    <a href="{{ $reviewCenterUrl }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50">
-                        <i data-lucide="eye" class="w-4 h-4 mr-1"></i>
+                    <a href="{{ $reviewCenterUrl }}" class="admin-btn admin-btn-secondary">
+                        <i data-lucide="eye" class="w-4 h-4"></i>
                         {{ __('admin.button.review_center') }}
                     </a>
                 @endif
-                <a href="{{ $isTrashView ? $articlesIndexUrl : $trashUrl }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50">
-                    <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i>
+                <a href="{{ $isTrashView ? $articlesIndexUrl : $trashUrl }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
                     {{ $isTrashView ? __('admin.articles.page_title') : __('admin.button.trash') }}
                 </a>
-                <button type="button" onclick="toggleBatchActions()" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50">
-                    <i data-lucide="check-square" class="w-4 h-4 mr-1"></i>
+                <button type="button" onclick="toggleBatchActions()" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="check-square" class="w-4 h-4"></i>
                     {{ __('admin.button.bulk_actions') }}
                 </button>
             </div>
@@ -68,73 +68,49 @@
 
         @if($isTrashView)
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="overflow-hidden admin-card md:col-span-1">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <i data-lucide="archive" class="h-6 w-6 text-orange-600"></i>
-                        <div class="ml-5">
-                            <div class="text-sm text-gray-500">{{ __('admin.articles.trash.stats_total') }}</div>
-                            <div class="text-2xl font-semibold text-gray-900">{{ (int) ($stats['trashed_total'] ?? 0) }}</div>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-indigo md:col-span-1">
+                <span class="admin-vstat-icon"><i data-lucide="archive" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.articles.trash.stats_total') }}</div>
+                    <div class="admin-vstat-value">{{ (int) ($stats['trashed_total'] ?? 0) }}</div>
                 </div>
             </div>
         </div>
         @else
         <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <i data-lucide="file-text" class="h-6 w-6 text-blue-600"></i>
-                        <div class="ml-5">
-                            <div class="text-sm text-gray-500">{{ __('admin.articles.stats.total') }}</div>
-                            <div class="text-2xl font-semibold text-gray-900">{{ (int) ($stats['total'] ?? 0) }}</div>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-indigo">
+                <span class="admin-vstat-icon"><i data-lucide="file-text" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.articles.stats.total') }}</div>
+                    <div class="admin-vstat-value">{{ (int) ($stats['total'] ?? 0) }}</div>
                 </div>
             </div>
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <i data-lucide="globe" class="h-6 w-6 text-green-600"></i>
-                        <div class="ml-5">
-                            <div class="text-sm text-gray-500">{{ __('admin.articles.stats.published') }}</div>
-                            <div class="text-2xl font-semibold text-gray-900">{{ (int) ($stats['published'] ?? 0) }}</div>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-emerald">
+                <span class="admin-vstat-icon"><i data-lucide="globe" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.articles.stats.published') }}</div>
+                    <div class="admin-vstat-value">{{ (int) ($stats['published'] ?? 0) }}</div>
                 </div>
             </div>
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <i data-lucide="edit" class="h-6 w-6 text-yellow-600"></i>
-                        <div class="ml-5">
-                            <div class="text-sm text-gray-500">{{ __('admin.articles.stats.draft') }}</div>
-                            <div class="text-2xl font-semibold text-gray-900">{{ (int) ($stats['draft'] ?? 0) }}</div>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-amber">
+                <span class="admin-vstat-icon"><i data-lucide="edit" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.articles.stats.draft') }}</div>
+                    <div class="admin-vstat-value">{{ (int) ($stats['draft'] ?? 0) }}</div>
                 </div>
             </div>
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <i data-lucide="eye" class="h-6 w-6 text-purple-600"></i>
-                        <div class="ml-5">
-                            <div class="text-sm text-gray-500">{{ __('admin.articles.stats.pending_review') }}</div>
-                            <div class="text-2xl font-semibold text-gray-900">{{ (int) ($stats['pending_review'] ?? 0) }}</div>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-sky">
+                <span class="admin-vstat-icon"><i data-lucide="eye" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.articles.stats.pending_review') }}</div>
+                    <div class="admin-vstat-value">{{ (int) ($stats['pending_review'] ?? 0) }}</div>
                 </div>
             </div>
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <i data-lucide="calendar" class="h-6 w-6 text-orange-600"></i>
-                        <div class="ml-5">
-                            <div class="text-sm text-gray-500">{{ __('admin.articles.stats.today') }}</div>
-                            <div class="text-2xl font-semibold text-gray-900">{{ (int) ($stats['today'] ?? 0) }}</div>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-violet">
+                <span class="admin-vstat-icon"><i data-lucide="calendar" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.articles.stats.today') }}</div>
+                    <div class="admin-vstat-value">{{ (int) ($stats['today'] ?? 0) }}</div>
                 </div>
             </div>
         </div>

@@ -2,10 +2,10 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="flex items-center justify-between mb-8">
+        <div class="admin-hero">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.ai_configurator.heading') }}</h1>
-                <p class="mt-1 text-sm text-gray-600">{{ __('admin.ai_configurator.subtitle') }}</p>
+                <h1 class="admin-hero-title">{{ __('admin.ai_configurator.heading') }}</h1>
+                <p class="admin-hero-sub">{{ __('admin.ai_configurator.subtitle') }}</p>
             </div>
         </div>
 

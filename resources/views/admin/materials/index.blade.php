@@ -75,9 +75,11 @@
     @endphp
 
     <div class="px-4 sm:px-0">
-        <div class="mb-8">
-            <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.materials.heading') }}</h1>
-            <p class="mt-1 text-sm text-gray-600">{{ __('admin.materials.subtitle') }}</p>
+        <div class="admin-hero">
+            <div>
+                <h1 class="admin-hero-title">{{ __('admin.materials.heading') }}</h1>
+                <p class="admin-hero-sub">{{ __('admin.materials.subtitle') }}</p>
+            </div>
         </div>
 
         <section class="mb-8 overflow-hidden rounded-lg border border-orange-100 bg-white shadow">

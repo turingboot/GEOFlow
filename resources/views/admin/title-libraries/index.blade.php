@@ -2,84 +2,62 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="mb-8 flex items-center justify-between">
+        <div class="admin-hero">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('admin.materials.index') }}" class="text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.materials.index') }}" class="text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.title_libraries.heading') }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('admin.title_libraries.subtitle') }}</p>
+                    <h1 class="admin-hero-title">{{ __('admin.title_libraries.heading') }}</h1>
+                    <p class="admin-hero-sub">{{ __('admin.title_libraries.subtitle') }}</p>
                 </div>
             </div>
-            <button type="button" onclick="showCreateModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-                {{ __('admin.title_libraries.create') }}
-            </button>
+            <div class="admin-hero-actions">
+                <button type="button" onclick="showCreateModal()" class="admin-btn admin-btn-primary">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    {{ __('admin.title_libraries.create') }}
+                </button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="folder" class="h-6 w-6 text-green-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.title_libraries.total') }}</dt>
-                                <dd class="text-lg font-medium text-gray-900">{{ (int) ($stats['total_libraries'] ?? 0) }}</dd>
-                            </dl>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-indigo">
+                <span class="admin-vstat-icon"><i data-lucide="folder" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <dl>
+                        <dt class="admin-vstat-label">{{ __('admin.title_libraries.total') }}</dt>
+                        <dd class="admin-vstat-value">{{ (int) ($stats['total_libraries'] ?? 0) }}</dd>
+                    </dl>
                 </div>
             </div>
 
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="type" class="h-6 w-6 text-blue-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.title_libraries.total_titles') }}</dt>
-                                <dd class="text-lg font-medium text-gray-900">{{ (int) ($stats['total_titles'] ?? 0) }}</dd>
-                            </dl>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-emerald">
+                <span class="admin-vstat-icon"><i data-lucide="type" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <dl>
+                        <dt class="admin-vstat-label">{{ __('admin.title_libraries.total_titles') }}</dt>
+                        <dd class="admin-vstat-value">{{ (int) ($stats['total_titles'] ?? 0) }}</dd>
+                    </dl>
                 </div>
             </div>
 
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="zap" class="h-6 w-6 text-purple-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.title_libraries.ai_generated') }}</dt>
-                                <dd class="text-lg font-medium text-gray-900">{{ (int) ($stats['ai_titles'] ?? 0) }}</dd>
-                            </dl>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-amber">
+                <span class="admin-vstat-icon"><i data-lucide="zap" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <dl>
+                        <dt class="admin-vstat-label">{{ __('admin.title_libraries.ai_generated') }}</dt>
+                        <dd class="admin-vstat-value">{{ (int) ($stats['ai_titles'] ?? 0) }}</dd>
+                    </dl>
                 </div>
             </div>
 
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="trending-up" class="h-6 w-6 text-orange-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.common.avg_per_library') }}</dt>
-                                <dd class="text-lg font-medium text-gray-900">{{ (float) ($stats['avg_titles'] ?? 0) }}</dd>
-                            </dl>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-sky">
+                <span class="admin-vstat-icon"><i data-lucide="trending-up" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <dl>
+                        <dt class="admin-vstat-label">{{ __('admin.common.avg_per_library') }}</dt>
+                        <dd class="admin-vstat-value">{{ (float) ($stats['avg_titles'] ?? 0) }}</dd>
+                    </dl>
                 </div>
             </div>
         </div>

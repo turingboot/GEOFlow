@@ -5,58 +5,40 @@
         /** @var \Illuminate\Pagination\LengthAwarePaginator $logs */
     @endphp
     <div class="px-4 sm:px-0">
-        <div class="flex items-center justify-between mb-8">
+        <div class="admin-hero">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('admin.admin-users.index') }}" class="text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.admin-users.index') }}" class="text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.activity_logs.heading') }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('admin.activity_logs.subtitle') }}</p>
+                    <h1 class="admin-hero-title">{{ __('admin.activity_logs.heading') }}</h1>
+                    <p class="admin-hero-sub">{{ __('admin.activity_logs.subtitle') }}</p>
                 </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="clipboard-list" class="h-6 w-6 text-indigo-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.activity_logs.total_logs') }}</dt>
-                            <dd class="text-lg font-medium text-gray-900">{{ $stats['total_logs'] }}</dd>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-indigo">
+                <span class="admin-vstat-icon"><i data-lucide="clipboard-list" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.activity_logs.total_logs') }}</div>
+                    <div class="admin-vstat-value">{{ $stats['total_logs'] }}</div>
                 </div>
             </div>
 
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="calendar-clock" class="h-6 w-6 text-green-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.activity_logs.today_logs') }}</dt>
-                            <dd class="text-lg font-medium text-gray-900">{{ $stats['today_logs'] }}</dd>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-emerald">
+                <span class="admin-vstat-icon"><i data-lucide="calendar-clock" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.activity_logs.today_logs') }}</div>
+                    <div class="admin-vstat-value">{{ $stats['today_logs'] }}</div>
                 </div>
             </div>
 
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="users" class="h-6 w-6 text-amber-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.activity_logs.active_admins') }}</dt>
-                            <dd class="text-lg font-medium text-gray-900">{{ $stats['active_admins'] }}</dd>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-amber">
+                <span class="admin-vstat-icon"><i data-lucide="users" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.activity_logs.active_admins') }}</div>
+                    <div class="admin-vstat-value">{{ $stats['active_admins'] }}</div>
                 </div>
             </div>
         </div>

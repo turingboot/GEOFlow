@@ -2,31 +2,25 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="admin-hero mb-8">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.security.page_title') }}</h1>
-                <p class="mt-1 text-sm text-gray-600">{{ __('admin.security.page_subtitle') }}</p>
+                <h1 class="admin-hero-title">{{ __('admin.security.page_title') }}</h1>
+                <p class="admin-hero-sub">{{ __('admin.security.page_subtitle') }}</p>
             </div>
-            <a href="{{ route('admin.site-settings.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
-                {{ __('admin.security.back_to_site_settings') }}
-            </a>
+            <div class="admin-hero-actions">
+                <a href="{{ route('admin.site-settings.index') }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    {{ __('admin.security.back_to_site_settings') }}
+                </a>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="shield-alert" class="h-8 w-8 text-red-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.security.total_sensitive_words') }}</dt>
-                                <dd class="text-2xl font-bold text-gray-900">{{ count($sensitiveWords) }}</dd>
-                            </dl>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-rose">
+                <span class="admin-vstat-icon"><i data-lucide="shield-alert" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.security.total_sensitive_words') }}</div>
+                    <div class="admin-vstat-value">{{ count($sensitiveWords) }}</div>
                 </div>
             </div>
 

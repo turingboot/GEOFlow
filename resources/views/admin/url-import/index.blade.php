@@ -2,40 +2,49 @@
 
 @section('content')
     <div class="px-4 sm:px-0 space-y-8">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="admin-hero">
             <div class="flex items-start gap-4">
-                <a href="{{ route('admin.materials.index') }}" class="mt-1 text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.materials.index') }}" class="mt-1 text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.url_import.page_heading') }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('admin.url_import.page_subtitle') }}</p>
+                    <h1 class="admin-hero-title">{{ __('admin.url_import.page_heading') }}</h1>
+                    <p class="admin-hero-sub">{{ __('admin.url_import.page_subtitle') }}</p>
                 </div>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <a href="{{ route('admin.url-import.history') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    <i data-lucide="history" class="w-4 h-4 mr-2"></i>
+            <div class="admin-hero-actions">
+                <a href="{{ route('admin.url-import.history') }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="history" class="w-4 h-4"></i>
                     {{ __('admin.url_import.button.view_history') }}
                 </a>
-                <a href="{{ route('admin.materials.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+                <a href="{{ route('admin.materials.index') }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     {{ __('admin.url_import.button.back_to_materials') }}
                 </a>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="admin-card p-5">
-                <div class="text-sm text-gray-500">{{ __('admin.url_import.stats.knowledge_bases') }}</div>
-                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ __('admin.url_import.value.count_units', ['count' => (int) $stats['knowledge_bases']]) }}</div>
+            <div class="admin-vstat grad-indigo">
+                <span class="admin-vstat-icon"><i data-lucide="database" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.url_import.stats.knowledge_bases') }}</div>
+                    <div class="admin-vstat-value">{{ __('admin.url_import.value.count_units', ['count' => (int) $stats['knowledge_bases']]) }}</div>
+                </div>
             </div>
-            <div class="admin-card p-5">
-                <div class="text-sm text-gray-500">{{ __('admin.url_import.stats.keyword_libraries') }}</div>
-                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ __('admin.url_import.value.count_units', ['count' => (int) $stats['keyword_libraries']]) }}</div>
+            <div class="admin-vstat grad-emerald">
+                <span class="admin-vstat-icon"><i data-lucide="tags" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.url_import.stats.keyword_libraries') }}</div>
+                    <div class="admin-vstat-value">{{ __('admin.url_import.value.count_units', ['count' => (int) $stats['keyword_libraries']]) }}</div>
+                </div>
             </div>
-            <div class="admin-card p-5">
-                <div class="text-sm text-gray-500">{{ __('admin.url_import.stats.title_libraries') }}</div>
-                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ __('admin.url_import.value.count_units', ['count' => (int) $stats['title_libraries']]) }}</div>
+            <div class="admin-vstat grad-amber">
+                <span class="admin-vstat-icon"><i data-lucide="heading" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.url_import.stats.title_libraries') }}</div>
+                    <div class="admin-vstat-value">{{ __('admin.url_import.value.count_units', ['count' => (int) $stats['title_libraries']]) }}</div>
+                </div>
             </div>
         </div>
 

@@ -2,20 +2,22 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="flex items-center justify-between mb-8">
+        <div class="admin-hero">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('admin.ai.configurator') }}" class="text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.ai.configurator') }}" class="text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.ai_prompts.heading') }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('admin.ai_prompts.subtitle') }}</p>
+                    <h1 class="admin-hero-title">{{ __('admin.ai_prompts.heading') }}</h1>
+                    <p class="admin-hero-sub">{{ __('admin.ai_prompts.subtitle') }}</p>
                 </div>
             </div>
-            <button type="button" onclick="showCreatePromptModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-                {{ __('admin.ai_prompts.add') }}
-            </button>
+            <div class="admin-hero-actions">
+                <button type="button" onclick="showCreatePromptModal()" class="admin-btn admin-btn-primary">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    {{ __('admin.ai_prompts.add') }}
+                </button>
+            </div>
         </div>
 
         <div class="mb-6 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
