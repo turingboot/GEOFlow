@@ -37,7 +37,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/admin.css') }}?v={{ @filemtime(public_path('assets/css/admin.css')) ?: config('geoflow.app_version', '2.0') }}">
     @stack('styles')
 </head>
-<body class="bg-gray-50">
+<body class="admin-shell">
 <div class="flex h-screen overflow-hidden">
     @include('admin.partials.sidebar', [
         'adminBrandName' => $adminBrandName,

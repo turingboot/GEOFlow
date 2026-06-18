@@ -344,12 +344,12 @@
     @endphp
 
     <div>
-        <div class="admin-page-head">
+        <div class="admin-hero">
             <div>
-                <h1 class="admin-page-title">{{ __('admin.dashboard.navigation.heading') }}</h1>
-                <p class="admin-page-sub">{{ __('admin.dashboard.navigation.subtitle') }}</p>
+                <h1 class="admin-hero-title">{{ __('admin.dashboard.navigation.heading') }}</h1>
+                <p class="admin-hero-sub">{{ __('admin.dashboard.navigation.subtitle') }}</p>
             </div>
-            <div class="admin-page-actions">
+            <div class="admin-hero-actions">
                 <a href="{{ route('admin.dashboard') }}" class="admin-btn admin-btn-secondary">
                     <i data-lucide="refresh-cw" class="h-4 w-4"></i>
                     {{ __('admin.dashboard.refresh') }}
@@ -361,7 +361,7 @@
             </div>
         </div>
 
-        <section class="mb-8 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+        <section class="admin-card mb-8 overflow-hidden">
             <div class="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">{{ __('admin.dashboard.quick_start.eyebrow') }}</p>
@@ -422,7 +422,7 @@
             </div>
         </section>
 
-        <section class="mb-8 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+        <section class="admin-card mb-8 overflow-hidden">
             <div class="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900">{{ __('admin.dashboard.automation.title') }}</h2>
@@ -458,7 +458,7 @@
                         @foreach ($flowNodes as $node)
                             @php($statusClass = $statusStyles[$node['status']] ?? $statusStyles['ready'])
                             @php($toneClass = $toneStyles[$node['tone']] ?? $toneStyles['slate'])
-                            <article class="relative z-10 flex min-h-[178px] flex-col rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                            <article class="relative z-10 flex min-h-[178px] flex-col admin-card p-4">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg {{ $toneClass }}">
                                         <i data-lucide="{{ $node['icon'] }}" class="h-5 w-5"></i>
@@ -522,14 +522,15 @@
 
         <section class="mb-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
             @foreach ($healthCards as $card)
-                <div class="admin-stat">
-                    <span class="admin-stat-icon">
+                @php($vGrad = ['red' => 'grad-rose', 'amber' => 'grad-amber', 'blue' => 'grad-indigo', 'green' => 'grad-emerald', 'emerald' => 'grad-emerald', 'violet' => 'grad-violet', 'slate' => 'grad-sky'][$card['tone']] ?? 'grad-indigo')
+                <div class="admin-vstat {{ $vGrad }}">
+                    <span class="admin-vstat-icon">
                         <i data-lucide="{{ $card['icon'] }}" class="h-5 w-5"></i>
                     </span>
                     <div class="min-w-0">
-                        <div class="admin-stat-label">{{ $card['title'] }}</div>
-                        <div class="admin-stat-value">{{ $card['value'] }}</div>
-                        <div class="mt-1 truncate text-xs text-gray-500">{{ $card['meta'] }}</div>
+                        <div class="admin-vstat-label">{{ $card['title'] }}</div>
+                        <div class="admin-vstat-value">{{ $card['value'] }}</div>
+                        <div class="admin-vstat-meta truncate">{{ $card['meta'] }}</div>
                     </div>
                 </div>
             @endforeach
@@ -537,7 +538,7 @@
 
         <section class="mb-8 grid grid-cols-1 gap-5 xl:grid-cols-3">
             @foreach ($lanes as $lane)
-                <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <div class="admin-card p-5">
                     <h2 class="text-xl font-semibold text-gray-900">{{ $lane['title'] }}</h2>
                     <p class="mt-2 text-sm leading-6 text-gray-500">{{ $lane['desc'] }}</p>
                     <div class="mt-5 grid gap-3">
@@ -566,7 +567,7 @@
             <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
                 @foreach ($skillResourceCards as $card)
                     @php($toneClass = $toneStyles[$card['tone']] ?? $toneStyles['slate'])
-                    <a href="{{ $card['href'] }}" target="_blank" rel="noopener noreferrer" class="rounded-lg bg-white p-5 shadow-sm ring-1 ring-gray-200 transition hover:-translate-y-0.5 hover:shadow-md">
+                    <a href="{{ $card['href'] }}" target="_blank" rel="noopener noreferrer" class="admin-card p-5 transition hover:-translate-y-0.5 hover:shadow-lg">
                         <div class="flex items-start gap-4">
                             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg {{ $toneClass }}">
                                 <i data-lucide="{{ $card['icon'] }}" class="h-5 w-5"></i>
