@@ -2,68 +2,48 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="flex items-center justify-between mb-8">
+        <div class="admin-hero">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('admin.site-settings.index') }}" class="text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.site-settings.index') }}" class="text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.admin_users.page_title') }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('admin.admin_users.page_subtitle') }}</p>
+                    <h1 class="admin-hero-title">{{ __('admin.admin_users.page_title') }}</h1>
+                    <p class="admin-hero-sub">{{ __('admin.admin_users.page_subtitle') }}</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.admin-activity-logs') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    <i data-lucide="clipboard-list" class="w-4 h-4 mr-2"></i>
+            <div class="admin-hero-actions">
+                <a href="{{ route('admin.admin-activity-logs') }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="clipboard-list" class="w-4 h-4"></i>
                     {{ __('admin.admin_users.view_logs') }}
                 </a>
-                <button type="button" onclick="showCreateAdminModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                    <i data-lucide="user-plus" class="w-4 h-4 mr-2"></i>
+                <button type="button" onclick="showCreateAdminModal()" class="admin-btn admin-btn-primary">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
                     {{ __('admin.admin_users.add_admin') }}
                 </button>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="users" class="h-6 w-6 text-indigo-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.admin_users.total_admins') }}</dt>
-                            <dd class="text-lg font-medium text-gray-900">{{ $stats['total_admins'] }}</dd>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-indigo">
+                <span class="admin-vstat-icon"><i data-lucide="users" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <dt class="admin-vstat-label">{{ __('admin.admin_users.total_admins') }}</dt>
+                    <dd class="admin-vstat-value">{{ $stats['total_admins'] }}</dd>
                 </div>
             </div>
-
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="badge-check" class="h-6 w-6 text-green-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.admin_users.active_admins') }}</dt>
-                            <dd class="text-lg font-medium text-gray-900">{{ $stats['active_admins'] }}</dd>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-emerald">
+                <span class="admin-vstat-icon"><i data-lucide="badge-check" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <dt class="admin-vstat-label">{{ __('admin.admin_users.active_admins') }}</dt>
+                    <dd class="admin-vstat-value">{{ $stats['active_admins'] }}</dd>
                 </div>
             </div>
-
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="shield-check" class="h-6 w-6 text-amber-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.admin_users.super_admins') }}</dt>
-                            <dd class="text-lg font-medium text-gray-900">{{ $stats['super_admins'] }}</dd>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-amber">
+                <span class="admin-vstat-icon"><i data-lucide="shield-check" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <dt class="admin-vstat-label">{{ __('admin.admin_users.super_admins') }}</dt>
+                    <dd class="admin-vstat-value">{{ $stats['super_admins'] }}</dd>
                 </div>
             </div>
         </div>

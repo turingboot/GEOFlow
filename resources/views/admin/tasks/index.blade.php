@@ -57,18 +57,18 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="mb-8 flex items-center justify-between">
+        <div class="admin-hero">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.tasks.page_title') }}</h1>
-                <p class="mt-1 text-sm text-gray-600">{{ __('admin.tasks.page_subtitle') }}</p>
+                <h1 class="admin-hero-title">{{ __('admin.tasks.page_title') }}</h1>
+                <p class="admin-hero-sub">{{ __('admin.tasks.page_subtitle') }}</p>
             </div>
-            <div class="flex space-x-3">
-                <a href="{{ route('admin.tasks.create') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                    <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+            <div class="admin-hero-actions">
+                <a href="{{ route('admin.tasks.create') }}" class="admin-btn admin-btn-primary">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
                     {{ __('admin.button.create_task') }}
                 </a>
-                <button onclick="executeAllActiveTasks()" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    <i data-lucide="play" class="w-4 h-4 mr-2"></i>
+                <button onclick="executeAllActiveTasks()" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="play" class="w-4 h-4"></i>
                     {{ __('admin.button.run_all_tasks') }}
                 </button>
             </div>
@@ -238,56 +238,32 @@
         </div>
 
         <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="zap" class="h-6 w-6 text-blue-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <div class="text-sm text-gray-500">{{ __('admin.tasks.stats.total_tasks') }}</div>
-                            <div id="stats-total-tasks" class="text-2xl font-semibold text-gray-900">{{ count($tasks) }}</div>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-indigo">
+                <span class="admin-vstat-icon"><i data-lucide="zap" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.tasks.stats.total_tasks') }}</div>
+                    <div id="stats-total-tasks" class="admin-vstat-value">{{ count($tasks) }}</div>
                 </div>
             </div>
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="play" class="h-6 w-6 text-green-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <div class="text-sm text-gray-500">{{ __('admin.tasks.stats.enabled') }}</div>
-                            <div id="stats-enabled-tasks" class="text-2xl font-semibold text-gray-900">{{ count(array_filter($tasks, static fn (array $row): bool => ($row['status'] ?? '') === 'active')) }}</div>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-emerald">
+                <span class="admin-vstat-icon"><i data-lucide="play" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.tasks.stats.enabled') }}</div>
+                    <div id="stats-enabled-tasks" class="admin-vstat-value">{{ count(array_filter($tasks, static fn (array $row): bool => ($row['status'] ?? '') === 'active')) }}</div>
                 </div>
             </div>
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="file-text" class="h-6 w-6 text-purple-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <div class="text-sm text-gray-500">{{ __('admin.tasks.stats.total_articles') }}</div>
-                            <div id="stats-total-articles" class="text-2xl font-semibold text-gray-900">{{ array_sum(array_map(static fn (array $row): int => (int) ($row['total_articles'] ?? 0), $tasks)) }}</div>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-violet">
+                <span class="admin-vstat-icon"><i data-lucide="file-text" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.tasks.stats.total_articles') }}</div>
+                    <div id="stats-total-articles" class="admin-vstat-value">{{ array_sum(array_map(static fn (array $row): int => (int) ($row['total_articles'] ?? 0), $tasks)) }}</div>
                 </div>
             </div>
-            <div class="overflow-hidden admin-card">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i data-lucide="globe" class="h-6 w-6 text-orange-600"></i>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <div class="text-sm text-gray-500">{{ __('admin.tasks.stats.total_published') }}</div>
-                            <div id="stats-total-published" class="text-2xl font-semibold text-gray-900">{{ array_sum(array_map(static fn (array $row): int => (int) ($row['published_articles'] ?? 0), $tasks)) }}</div>
-                        </div>
-                    </div>
+            <div class="admin-vstat grad-amber">
+                <span class="admin-vstat-icon"><i data-lucide="globe" class="h-6 w-6"></i></span>
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.tasks.stats.total_published') }}</div>
+                    <div id="stats-total-published" class="admin-vstat-value">{{ array_sum(array_map(static fn (array $row): int => (int) ($row['published_articles'] ?? 0), $tasks)) }}</div>
                 </div>
             </div>
         </div>

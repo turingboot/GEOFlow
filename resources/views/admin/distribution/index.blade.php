@@ -2,18 +2,18 @@
 
 @section('content')
     <div class="space-y-8 px-4 sm:px-0">
-        <div class="flex items-center justify-between">
+        <div class="admin-hero">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.distribution.page_heading') }}</h1>
-                <p class="mt-1 text-sm text-gray-600">{{ __('admin.distribution.page_subtitle') }}</p>
+                <h1 class="admin-hero-title">{{ __('admin.distribution.page_heading') }}</h1>
+                <p class="admin-hero-sub">{{ __('admin.distribution.page_subtitle') }}</p>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.distribution.jobs') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                    <i data-lucide="list-checks" class="mr-2 h-4 w-4"></i>
+            <div class="admin-hero-actions">
+                <a href="{{ route('admin.distribution.jobs') }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="list-checks" class="h-4 w-4"></i>
                     {{ __('admin.distribution.button.jobs') }}
                 </a>
-                <a href="{{ route('admin.distribution.create') }}" class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                    <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+                <a href="{{ route('admin.distribution.create') }}" class="admin-btn admin-btn-primary">
+                    <i data-lucide="plus" class="h-4 w-4"></i>
                     {{ __('admin.distribution.button.create') }}
                 </a>
             </div>
@@ -42,25 +42,33 @@
         @endif
 
         <div class="grid grid-cols-1 gap-6 md:grid-cols-4">
-            <div class="rounded-lg bg-white p-5 shadow">
-                <div class="text-sm font-medium text-gray-500">{{ __('admin.distribution.stats.total') }}</div>
-                <div class="mt-2 text-2xl font-semibold text-gray-900">{{ (int) ($stats['total'] ?? 0) }}</div>
+            <div class="admin-vstat grad-indigo">
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.distribution.stats.total') }}</div>
+                    <div class="admin-vstat-value">{{ (int) ($stats['total'] ?? 0) }}</div>
+                </div>
             </div>
-            <div class="rounded-lg bg-white p-5 shadow">
-                <div class="text-sm font-medium text-gray-500">{{ __('admin.distribution.stats.active') }}</div>
-                <div class="mt-2 text-2xl font-semibold text-green-700">{{ (int) ($stats['active'] ?? 0) }}</div>
+            <div class="admin-vstat grad-emerald">
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.distribution.stats.active') }}</div>
+                    <div class="admin-vstat-value">{{ (int) ($stats['active'] ?? 0) }}</div>
+                </div>
             </div>
-            <div class="rounded-lg bg-white p-5 shadow">
-                <div class="text-sm font-medium text-gray-500">{{ __('admin.distribution.stats.pending') }}</div>
-                <div class="mt-2 text-2xl font-semibold text-blue-700">{{ (int) ($stats['pending'] ?? 0) }}</div>
+            <div class="admin-vstat grad-sky">
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.distribution.stats.pending') }}</div>
+                    <div class="admin-vstat-value">{{ (int) ($stats['pending'] ?? 0) }}</div>
+                </div>
             </div>
-            <div class="rounded-lg bg-white p-5 shadow">
-                <div class="text-sm font-medium text-gray-500">{{ __('admin.distribution.stats.failed') }}</div>
-                <div class="mt-2 text-2xl font-semibold text-red-700">{{ (int) ($stats['failed'] ?? 0) }}</div>
+            <div class="admin-vstat grad-rose">
+                <div class="min-w-0">
+                    <div class="admin-vstat-label">{{ __('admin.distribution.stats.failed') }}</div>
+                    <div class="admin-vstat-value">{{ (int) ($stats['failed'] ?? 0) }}</div>
+                </div>
             </div>
         </div>
 
-        <div class="rounded-lg bg-white shadow">
+        <div class="admin-card">
             <div class="border-b border-gray-200 px-6 py-4">
                 <h2 class="text-lg font-medium text-gray-900">{{ __('admin.distribution.channels_title') }}</h2>
             </div>
@@ -114,7 +122,7 @@
             @endif
         </div>
 
-        <div class="rounded-lg bg-white shadow">
+        <div class="admin-card">
             <div class="border-b border-gray-200 px-6 py-4">
                 <h2 class="text-lg font-medium text-gray-900">{{ __('admin.distribution.recent_logs_title') }}</h2>
             </div>
