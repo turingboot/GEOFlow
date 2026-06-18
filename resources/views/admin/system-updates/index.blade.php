@@ -106,21 +106,21 @@
     @endphp
 
     <div class="px-4 sm:px-0">
-        <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div class="admin-hero">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">{{ __('admin.system_updates.page_title') }}</h1>
-                <p class="mt-2 text-sm text-gray-600">{{ __('admin.system_updates.page_subtitle') }}</p>
+                <h1 class="admin-hero-title">{{ __('admin.system_updates.page_title') }}</h1>
+                <p class="admin-hero-sub">{{ __('admin.system_updates.page_subtitle') }}</p>
             </div>
-            <div class="flex flex-wrap gap-3">
+            <div class="admin-hero-actions flex-wrap">
                 <form method="POST" action="{{ route('admin.system-updates.check') }}">
                     @csrf
-                    <button type="submit" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-                        <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+                    <button type="submit" class="admin-btn admin-btn-secondary">
+                        <i data-lucide="refresh-cw" class="h-4 w-4"></i>
                         {{ __('admin.system_updates.button.check') }}
                     </button>
                 </form>
-                <a href="{{ $githubUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-                    <i data-lucide="github" class="mr-2 h-4 w-4"></i>
+                <a href="{{ $githubUrl }}" target="_blank" rel="noopener noreferrer" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="github" class="h-4 w-4"></i>
                     {{ __('admin.system_updates.button.open_github') }}
                 </a>
             </div>

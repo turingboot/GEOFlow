@@ -2,27 +2,25 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <a href="{{ route('admin.keyword-libraries.index') }}" class="text-gray-400 hover:text-gray-600">
-                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                    </a>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900">{{ $library->name }}</h1>
-                        <p class="mt-1 text-sm text-gray-600">{{ $library->description !== '' ? $library->description : __('admin.keyword_detail.no_description') }}</p>
-                    </div>
+        <div class="admin-hero">
+            <div class="flex items-center space-x-4">
+                <a href="{{ route('admin.keyword-libraries.index') }}" class="text-white/70 hover:text-white">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                <div>
+                    <h1 class="admin-hero-title">{{ $library->name }}</h1>
+                    <p class="admin-hero-sub">{{ $library->description !== '' ? $library->description : __('admin.keyword_detail.no_description') }}</p>
                 </div>
-                <div class="flex space-x-2">
-                    <button type="button" onclick="showEditModal()" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50">
-                        <i data-lucide="edit" class="w-4 h-4 mr-1"></i>
-                        {{ __('admin.keyword_detail.edit_info') }}
-                    </button>
-                    <button type="button" onclick="showAddModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-                        {{ __('admin.keyword_detail.add_keyword') }}
-                    </button>
-                </div>
+            </div>
+            <div class="admin-hero-actions">
+                <button type="button" onclick="showEditModal()" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="edit" class="w-4 h-4"></i>
+                    {{ __('admin.keyword_detail.edit_info') }}
+                </button>
+                <button type="button" onclick="showAddModal()" class="admin-btn admin-btn-primary">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    {{ __('admin.keyword_detail.add_keyword') }}
+                </button>
             </div>
         </div>
 

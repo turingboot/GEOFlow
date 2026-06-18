@@ -2,27 +2,27 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="mb-8 flex items-center justify-between">
+        <div class="admin-hero">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('admin.title-libraries.index') }}" class="text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.title-libraries.index') }}" class="text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ $library->name }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('admin.title_detail.subtitle') }}</p>
+                    <h1 class="admin-hero-title">{{ $library->name }}</h1>
+                    <p class="admin-hero-sub">{{ __('admin.title_detail.subtitle') }}</p>
                 </div>
             </div>
-            <div class="flex space-x-2">
-                <button type="button" onclick="showImportModal()" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    <i data-lucide="upload" class="w-4 h-4 mr-2"></i>
+            <div class="admin-hero-actions">
+                <button type="button" onclick="showImportModal()" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="upload" class="w-4 h-4"></i>
                     {{ __('admin.title_detail.import_batch') }}
                 </button>
-                <button type="button" onclick="showAddModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                    <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                <button type="button" onclick="showAddModal()" class="admin-btn admin-btn-primary">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
                     {{ __('admin.title_detail.add_title') }}
                 </button>
-                <a href="{{ route('admin.title-libraries.ai-generate', ['libraryId' => (int) $library->id]) }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                    <i data-lucide="zap" class="w-4 h-4 mr-2"></i>
+                <a href="{{ route('admin.title-libraries.ai-generate', ['libraryId' => (int) $library->id]) }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
                     {{ __('admin.title_detail.ai_generate') }}
                 </a>
             </div>

@@ -2,9 +2,11 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="mb-8">
-            <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.site_settings.page_title') }}</h1>
-            <p class="mt-1 text-sm text-gray-600">{{ __('admin.site_settings.page_subtitle') }}</p>
+        <div class="admin-hero">
+            <div>
+                <h1 class="admin-hero-title">{{ __('admin.site_settings.page_title') }}</h1>
+                <p class="admin-hero-sub">{{ __('admin.site_settings.page_subtitle') }}</p>
+            </div>
         </div>
 
         <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">

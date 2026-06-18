@@ -2,14 +2,14 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="mb-8 flex items-center justify-between">
+        <div class="admin-hero">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('admin.knowledge-bases.index') }}" class="text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.knowledge-bases.index') }}" class="text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.knowledge_detail.heading') }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ $knowledgeBase->name }}</p>
+                    <h1 class="admin-hero-title">{{ __('admin.knowledge_detail.heading') }}</h1>
+                    <p class="admin-hero-sub">{{ $knowledgeBase->name }}</p>
                 </div>
             </div>
         </div>

@@ -2,13 +2,13 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="mb-8 flex items-center space-x-4">
-            <a href="{{ route('admin.site-settings.index') }}" class="text-gray-400 hover:text-gray-600">
+        <div class="admin-hero">
+            <a href="{{ route('admin.site-settings.index') }}" class="text-white/70 hover:text-white">
                 <i data-lucide="arrow-left" class="h-5 w-5"></i>
             </a>
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.theme_replication.create_heading') }}</h1>
-                <p class="mt-1 text-sm text-gray-600">{{ __('admin.theme_replication.create_subtitle') }}</p>
+                <h1 class="admin-hero-title">{{ __('admin.theme_replication.create_heading') }}</h1>
+                <p class="admin-hero-sub">{{ __('admin.theme_replication.create_subtitle') }}</p>
             </div>
         </div>
 

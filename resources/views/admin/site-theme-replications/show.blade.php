@@ -32,32 +32,32 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="admin-hero">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('admin.site-settings.index') }}" class="text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.site-settings.index') }}" class="text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="h-5 w-5"></i>
                 </a>
                 <div>
                     <div class="flex flex-wrap items-center gap-3">
-                        <h1 class="text-2xl font-bold text-gray-900">{{ $replication->name }}</h1>
+                        <h1 class="admin-hero-title">{{ $replication->name }}</h1>
                         <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset {{ $statusClass }}">
                             {{ __('admin.theme_replication.status.'.$replication->status) }}
                         </span>
                     </div>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('admin.theme_replication.detail_subtitle', ['theme' => $replication->theme_id]) }}</p>
+                    <p class="admin-hero-sub">{{ __('admin.theme_replication.detail_subtitle', ['theme' => $replication->theme_id]) }}</p>
                 </div>
             </div>
 
-            <div class="flex flex-wrap gap-3">
-                <a href="{{ route('admin.site-settings.theme-replications.create') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                    <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+            <div class="admin-hero-actions flex-wrap">
+                <a href="{{ route('admin.site-settings.theme-replications.create') }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="plus" class="h-4 w-4"></i>
                     {{ __('admin.theme_replication.button.create_another') }}
                 </a>
                 @if ($replication->status === \App\Models\SiteThemeReplication::STATUS_FAILED)
                     <form method="POST" action="{{ route('admin.site-settings.theme-replications.retry', ['replicationId' => (int) $replication->id]) }}">
                         @csrf
-                        <button type="submit" class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                            <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+                        <button type="submit" class="admin-btn admin-btn-primary">
+                            <i data-lucide="refresh-cw" class="h-4 w-4"></i>
                             {{ __('admin.theme_replication.button.retry') }}
                         </button>
                     </form>

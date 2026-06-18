@@ -37,23 +37,23 @@
         data-status-url="{{ route('admin.url-import.status', ['jobId' => $job->id], false) }}"
         data-ai-config-url="{{ route('admin.ai-models.index') }}"
     >
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="admin-hero">
             <div class="flex items-start gap-4">
-                <a href="{{ route('admin.url-import') }}" class="mt-1 text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.url-import') }}" class="mt-1 text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ __('admin.url_import.section.progress') }}</h1>
-                    <p class="mt-1 text-sm text-gray-600 break-all">{{ $job->normalized_url ?: $job->url }}</p>
+                    <h1 class="admin-hero-title">{{ __('admin.url_import.section.progress') }}</h1>
+                    <p class="admin-hero-sub break-all">{{ $job->normalized_url ?: $job->url }}</p>
                 </div>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <a href="{{ route('admin.url-import.history') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    <i data-lucide="history" class="w-4 h-4 mr-2"></i>
+            <div class="admin-hero-actions flex-wrap">
+                <a href="{{ route('admin.url-import.history') }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="history" class="w-4 h-4"></i>
                     {{ __('admin.url_import.button.view_history') }}
                 </a>
-                <a href="{{ route('admin.url-import') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                <a href="{{ route('admin.url-import') }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
                     {{ __('admin.url_import_history.button.new_job') }}
                 </a>
             </div>

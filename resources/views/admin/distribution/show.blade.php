@@ -40,17 +40,17 @@
 
 @section('content')
     <div class="space-y-8 px-4 sm:px-0">
-        <div class="flex items-center justify-between">
+        <div class="admin-hero">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('admin.distribution.index') }}" class="text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.distribution.index') }}" class="text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="h-5 w-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ $channel->name }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ $channel->domain }}</p>
+                    <h1 class="admin-hero-title">{{ $channel->name }}</h1>
+                    <p class="admin-hero-sub">{{ $channel->domain }}</p>
                 </div>
             </div>
-            <div class="flex flex-wrap items-center justify-end gap-3">
+            <div class="admin-hero-actions flex-wrap">
                 <a href="{{ route('admin.distribution.edit', ['channelId' => (int) $channel->id]) }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                     <i data-lucide="pencil" class="mr-2 h-4 w-4"></i>
                     {{ __('admin.button.edit') }}

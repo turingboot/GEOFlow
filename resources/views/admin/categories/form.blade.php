@@ -9,14 +9,14 @@
 @section('content')
     <div class="px-4 sm:px-0">
         <div class="mb-8">
-            <div class="flex items-center justify-between">
+            <div class="admin-hero">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ $isEdit ? __('admin.categories.edit_form') : __('admin.categories.add_form') }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('admin.categories.subtitle') }}</p>
+                    <h1 class="admin-hero-title">{{ $isEdit ? __('admin.categories.edit_form') : __('admin.categories.add_form') }}</h1>
+                    <p class="admin-hero-sub">{{ __('admin.categories.subtitle') }}</p>
                 </div>
-                <div class="flex space-x-3">
-                    <a href="{{ route('admin.articles.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+                <div class="admin-hero-actions">
+                    <a href="{{ route('admin.articles.index') }}" class="admin-btn admin-btn-secondary">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
                         {{ __('admin.categories.back_to_articles') }}
                     </a>
                 </div>

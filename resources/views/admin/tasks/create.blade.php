@@ -15,14 +15,14 @@
 
 @section('content')
     <div class="px-4 sm:px-0">
-        <div class="flex items-center justify-between mb-6">
+        <div class="admin-hero">
             <div class="flex items-center space-x-4">
-                <a href="{{ route('admin.tasks.index') }}" class="text-gray-400 hover:text-gray-600">
+                <a href="{{ route('admin.tasks.index') }}" class="text-white/70 hover:text-white">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ $isEdit ? $t('task_edit.page_heading') : $t('task_create.page_heading') }}</h1>
-                    <p class="mt-1 text-sm text-gray-600">{{ $t('task_create.page_subtitle') }}</p>
+                    <h1 class="admin-hero-title">{{ $isEdit ? $t('task_edit.page_heading') : $t('task_create.page_heading') }}</h1>
+                    <p class="admin-hero-sub">{{ $t('task_create.page_subtitle') }}</p>
                 </div>
             </div>
         </div>
