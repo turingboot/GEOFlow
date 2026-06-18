@@ -34,11 +34,11 @@
         };
     </script>
     <script src="{{ asset('js/lucide.min.js') }}"></script>
-    <link rel="stylesheet" href="{{ asset('assets/css/admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/admin.css') }}?v={{ @filemtime(public_path('assets/css/admin.css')) ?: config('geoflow.app_version', '2.0') }}">
     @stack('styles')
 </head>
 <body class="bg-gray-50">
-<div class="flex min-h-screen">
+<div class="flex h-screen overflow-hidden">
     @include('admin.partials.sidebar', [
         'adminBrandName' => $adminBrandName,
         'activeMenu' => $activeMenu ?? '',
@@ -49,7 +49,7 @@
             'adminSiteName' => $adminSiteName ?? $adminBrandName,
             'pageTitle' => $pageTitle ?? '',
         ])
-        <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main class="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
             <div class="mx-auto w-full max-w-[1600px]">
                 @if (session('message'))
                     <div class="admin-flash-alert mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">

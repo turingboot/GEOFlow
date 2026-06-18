@@ -9,7 +9,7 @@
         ? 'https://github.com/yaojingang/GEOFlow/wiki/Home-English'
         : 'https://github.com/yaojingang/GEOFlow/wiki';
 @endphp
-<footer class="bg-white border-t border-gray-200 mt-12">
+<footer class="shrink-0 bg-white border-t border-gray-200">
     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col md:flex-row md:flex-wrap justify-center items-center gap-3 md:gap-4 text-sm text-gray-500 text-center">
             <span>{{ __('admin.footer.copyright') }}</span>

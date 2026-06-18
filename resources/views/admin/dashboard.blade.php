@@ -343,19 +343,19 @@
         ];
     @endphp
 
-    <div class="px-4 sm:px-0">
-        <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div>
+        <div class="admin-page-head">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">{{ __('admin.dashboard.navigation.heading') }}</h1>
-                <p class="mt-1 text-sm leading-6 text-gray-600">{{ __('admin.dashboard.navigation.subtitle') }}</p>
+                <h1 class="admin-page-title">{{ __('admin.dashboard.navigation.heading') }}</h1>
+                <p class="admin-page-sub">{{ __('admin.dashboard.navigation.subtitle') }}</p>
             </div>
-            <div class="flex flex-wrap gap-2">
-                <a href="{{ route('admin.dashboard') }}" class="inline-flex h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
-                    <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+            <div class="admin-page-actions">
+                <a href="{{ route('admin.dashboard') }}" class="admin-btn admin-btn-secondary">
+                    <i data-lucide="refresh-cw" class="h-4 w-4"></i>
                     {{ __('admin.dashboard.refresh') }}
                 </a>
-                <a href="{{ route('admin.tasks.create') }}" class="inline-flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
-                    <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+                <a href="{{ route('admin.tasks.create') }}" class="admin-btn admin-btn-primary">
+                    <i data-lucide="plus" class="h-4 w-4"></i>
                     {{ __('admin.dashboard.quick_start.task_button') }}
                 </a>
             </div>
@@ -522,14 +522,15 @@
 
         <section class="mb-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
             @foreach ($healthCards as $card)
-                @php($toneClass = $toneStyles[$card['tone']] ?? $toneStyles['slate'])
-                <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="flex items-center justify-between gap-3">
-                        <h3 class="text-base font-semibold text-gray-900">{{ $card['title'] }}</h3>
-                        <i data-lucide="{{ $card['icon'] }}" class="h-5 w-5 {{ str_replace('bg-', 'text-', explode(' ', $toneClass)[1] ?? 'text-gray-600') }}"></i>
+                <div class="admin-stat">
+                    <span class="admin-stat-icon">
+                        <i data-lucide="{{ $card['icon'] }}" class="h-5 w-5"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <div class="admin-stat-label">{{ $card['title'] }}</div>
+                        <div class="admin-stat-value">{{ $card['value'] }}</div>
+                        <div class="mt-1 truncate text-xs text-gray-500">{{ $card['meta'] }}</div>
                     </div>
-                    <div class="mt-5 text-3xl font-bold text-gray-900">{{ $card['value'] }}</div>
-                    <div class="mt-2 text-sm font-medium text-gray-500">{{ $card['meta'] }}</div>
                 </div>
             @endforeach
         </section>
@@ -541,13 +542,13 @@
                     <p class="mt-2 text-sm leading-6 text-gray-500">{{ $lane['desc'] }}</p>
                     <div class="mt-5 grid gap-3">
                         @foreach ($lane['rows'] as $row)
-                            <a href="{{ $row['href'] }}" class="grid grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 transition hover:border-blue-100 hover:bg-blue-50">
-                                <span class="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500">
+                            <a href="{{ $row['href'] }}" class="admin-tile">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 ring-1 ring-slate-200">
                                     <i data-lucide="{{ $row['icon'] }}" class="h-4 w-4"></i>
                                 </span>
-                                <span class="min-w-0">
+                                <span class="min-w-0 flex-1">
                                     <span class="block truncate text-sm font-semibold text-gray-900">{{ $row['title'] }}</span>
-                                    <span class="mt-1 block truncate text-xs text-gray-500">{{ $row['desc'] }}</span>
+                                    <span class="mt-0.5 block truncate text-xs text-gray-500">{{ $row['desc'] }}</span>
                                 </span>
                                 <span class="whitespace-nowrap text-sm font-bold text-gray-900">{{ $row['count'] }}</span>
                             </a>
