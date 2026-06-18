@@ -25,15 +25,15 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-white shadow rounded-lg p-5">
+            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 p-5">
                 <div class="text-sm text-gray-500">{{ __('admin.url_import.stats.knowledge_bases') }}</div>
                 <div class="mt-2 text-2xl font-semibold text-gray-900">{{ __('admin.url_import.value.count_units', ['count' => (int) $stats['knowledge_bases']]) }}</div>
             </div>
-            <div class="bg-white shadow rounded-lg p-5">
+            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 p-5">
                 <div class="text-sm text-gray-500">{{ __('admin.url_import.stats.keyword_libraries') }}</div>
                 <div class="mt-2 text-2xl font-semibold text-gray-900">{{ __('admin.url_import.value.count_units', ['count' => (int) $stats['keyword_libraries']]) }}</div>
             </div>
-            <div class="bg-white shadow rounded-lg p-5">
+            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 p-5">
                 <div class="text-sm text-gray-500">{{ __('admin.url_import.stats.title_libraries') }}</div>
                 <div class="mt-2 text-2xl font-semibold text-gray-900">{{ __('admin.url_import.value.count_units', ['count' => (int) $stats['title_libraries']]) }}</div>
             </div>

@@ -68,7 +68,7 @@
 
         @if($isTrashView)
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white overflow-hidden shadow rounded-lg md:col-span-1">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200 md:col-span-1">
                 <div class="p-5">
                     <div class="flex items-center">
                         <i data-lucide="archive" class="h-6 w-6 text-orange-600"></i>
@@ -82,7 +82,7 @@
         </div>
         @else
         <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="p-5">
                     <div class="flex items-center">
                         <i data-lucide="file-text" class="h-6 w-6 text-blue-600"></i>
@@ -93,7 +93,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="p-5">
                     <div class="flex items-center">
                         <i data-lucide="globe" class="h-6 w-6 text-green-600"></i>
@@ -104,7 +104,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="p-5">
                     <div class="flex items-center">
                         <i data-lucide="edit" class="h-6 w-6 text-yellow-600"></i>
@@ -115,7 +115,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="p-5">
                     <div class="flex items-center">
                         <i data-lucide="eye" class="h-6 w-6 text-purple-600"></i>
@@ -126,7 +126,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="p-5">
                     <div class="flex items-center">
                         <i data-lucide="calendar" class="h-6 w-6 text-orange-600"></i>
@@ -140,7 +140,7 @@
         </div>
         @endif
 
-        <div class="bg-white shadow rounded-lg mb-6">
+        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 mb-6">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-medium text-gray-900">{{ __('admin.articles.filters.title') }}</h3>
             </div>
@@ -230,7 +230,7 @@
             </div>
         </div>
 
-        <div class="bg-white shadow rounded-lg">
+        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
             <div class="px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <h3 class="text-lg font-medium text-gray-900">

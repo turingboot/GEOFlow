@@ -27,7 +27,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -42,7 +42,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -57,7 +57,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -72,7 +72,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -89,7 +89,7 @@
             </div>
         </div>
 
-        <div class="bg-white shadow rounded-lg mb-6">
+        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 mb-6">
             <div class="px-6 py-4">
                 <div class="flex items-center justify-between">
                     <form method="GET" class="flex items-center space-x-4">
@@ -117,7 +117,7 @@
             </div>
         </div>
 
-        <div class="bg-white shadow rounded-lg">
+        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
             <div class="px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <h3 class="text-lg font-medium text-gray-900">

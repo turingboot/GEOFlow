@@ -25,19 +25,21 @@
             'pageTitle' => $pageTitle ?? '',
         ])
         <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-            @if (session('message'))
-                <div class="admin-flash-alert mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
-                    <span class="block sm:inline">{{ session('message') }}</span>
-                </div>
-            @endif
-            @if ($errors->any())
-                <div class="admin-flash-alert mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-                    @foreach ($errors->all() as $err)
-                        <div>{{ $err }}</div>
-                    @endforeach
-                </div>
-            @endif
-            @yield('content')
+            <div class="mx-auto w-full max-w-[1600px]">
+                @if (session('message'))
+                    <div class="admin-flash-alert mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+                        <span class="block sm:inline">{{ session('message') }}</span>
+                    </div>
+                @endif
+                @if ($errors->any())
+                    <div class="admin-flash-alert mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                        @foreach ($errors->all() as $err)
+                            <div>{{ $err }}</div>
+                        @endforeach
+                    </div>
+                @endif
+                @yield('content')
+            </div>
         </main>
         @include('admin.partials.footer')
     </div>

@@ -9,7 +9,9 @@ This document tracks user-facing updates in the public repository. For future Gi
 - Reworked the admin backend into a standard admin layout:
   - A fixed left navigation sidebar (with icons) and a right operation area (top bar + main content); on narrow screens the sidebar collapses into a toggleable drawer.
   - The top bar centralizes the page title, version-update notification, language switch, and the admin menu (System settings, plus super-admin entries — admin management / activity logs / API tokens — shown by permission).
-  - Only the shared layout and navigation chrome changed; all controllers, routes, forms, permission-gated actions, and existing page logic are unchanged, with one-to-one parity to the previous top-bar navigation.
+  - The operation area is now centered with a max width so it no longer stretches edge-to-edge on ultrawide screens, matching a standard admin feel.
+  - Unified module card styling (rounded corners + thin ring + soft shadow) so the dashboard, tasks, articles, distribution and other pages look consistent.
+  - Only the shared layout and navigation/card chrome changed; all controllers, routes, forms, permission-gated actions, and existing page logic are unchanged, with one-to-one parity to the previous top-bar navigation.
 - Added a new public theme "GEOFlow Clean" (`geoflow-clean-20260618`):
   - A clean, modern card-based content stream and a reading-first article page with an indigo accent; includes home, category, archive, and article templates.
   - Activate it under Site Settings → Theme; uncovered pages fall back automatically to the built-in `site.*` templates.

@@ -14,7 +14,7 @@
             </div>
         </div>
 
-        <div class="bg-white shadow rounded-lg mb-6">
+        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 mb-6">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-medium text-gray-900">{{ __('admin.knowledge_detail.content_title') }}</h3>
             </div>
@@ -53,21 +53,21 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div class="bg-white shadow rounded-lg p-5">
+            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 p-5">
                 <div class="text-sm text-gray-500">{{ __('admin.knowledge_detail.chunk_count') }}</div>
                 <div class="mt-2 text-2xl font-semibold text-gray-900">{{ number_format((int) ($chunkStats['chunk_count'] ?? 0)) }}</div>
             </div>
-            <div class="bg-white shadow rounded-lg p-5">
+            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 p-5">
                 <div class="text-sm text-gray-500">{{ __('admin.knowledge_detail.vectorized_count') }}</div>
                 <div class="mt-2 text-2xl font-semibold text-gray-900">{{ number_format((int) ($chunkStats['vectorized_count'] ?? 0)) }}</div>
             </div>
-            <div class="bg-white shadow rounded-lg p-5">
+            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 p-5">
                 <div class="text-sm text-gray-500">{{ __('admin.knowledge_detail.updated_at') }}</div>
                 <div class="mt-2 text-sm font-medium text-gray-900">{{ optional($knowledgeBase->updated_at)->format('Y-m-d H:i:s') ?? '-' }}</div>
             </div>
         </div>
 
-        <div class="bg-white shadow rounded-lg mb-6">
+        <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 mb-6">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-medium text-gray-900">{{ __('admin.common.related_tasks') }}</h3>
             </div>
@@ -85,7 +85,7 @@
             @endif
         </div>
 
-        <div id="chunk-preview" class="bg-white shadow rounded-lg overflow-hidden">
+        <div id="chunk-preview" class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-medium text-gray-900">{{ __('admin.knowledge_detail.chunk_preview_title') }}</h3>
                 <p class="mt-1 text-sm text-gray-500">{{ __('admin.knowledge_detail.chunk_preview_desc') }}</p>
