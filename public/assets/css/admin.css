@@ -293,8 +293,8 @@ body.admin-shell {
     padding: 1.6rem 1.85rem;
     margin-bottom: 1.75rem;
     color: #fff;
-    background: linear-gradient(120deg, #4f46e5 0%, #7c3aed 52%, #9333ea 100%);
-    box-shadow: 0 18px 40px -18px rgb(79 70 229 / 0.55);
+    background: linear-gradient(120deg, #1e293b 0%, #27355b 52%, #313d7a 100%);
+    box-shadow: 0 16px 38px -20px rgb(15 23 42 / 0.5);
 }
 @media (min-width: 1024px) {
     .admin-hero { flex-direction: row; align-items: flex-start; justify-content: space-between; }
@@ -332,9 +332,9 @@ body.admin-shell {
 .admin-vstat-value { font-size: 2rem; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; }
 .admin-vstat-label { font-size: 0.82rem; color: rgb(255 255 255 / 0.9); }
 .admin-vstat-meta { margin-top: 0.15rem; font-size: 0.72rem; color: rgb(255 255 255 / 0.78); }
-.grad-indigo  { background: linear-gradient(135deg, #6366f1, #4338ca); }
-.grad-emerald { background: linear-gradient(135deg, #10b981, #047857); }
-.grad-amber   { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.grad-sky     { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
-.grad-violet  { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
-.grad-rose    { background: linear-gradient(135deg, #fb7185, #be123c); }
+.grad-indigo  { background: linear-gradient(135deg, #34457f, #283565); }
+.grad-emerald { background: linear-gradient(135deg, #0f766e, #115e59); }
+.grad-amber   { background: linear-gradient(135deg, #b45309, #92400e); }
+.grad-sky     { background: linear-gradient(135deg, #0369a1, #075985); }
+.grad-violet  { background: linear-gradient(135deg, #475569, #334155); }
+.grad-rose    { background: linear-gradient(135deg, #9f1239, #7f1d3a); }
