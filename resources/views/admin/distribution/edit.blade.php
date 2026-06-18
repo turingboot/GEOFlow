@@ -8,6 +8,7 @@
     $channelType = $channel->channelType();
     $channelConfig = $channel->resolvedChannelConfig();
     $genericConfig = $channel->resolvedGenericHttpConfig();
+    $shopifyConfig = $channel->resolvedShopifyConfig();
     $genericEndpointMethods = [
         'health' => ['GET', 'POST'],
         'publish' => ['POST', 'PUT', 'PATCH'],
@@ -232,6 +233,103 @@
                                 </div>
                             </div>
                         </div>
+                    @elseif ($channel->isShopifyBlog())
+                        <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-5">
+                            <div class="mb-5">
+                                <h2 class="text-lg font-medium text-gray-900">{{ __('admin.distribution.shopify.section_title') }}</h2>
+                                <p class="mt-1 text-sm leading-6 text-gray-600">{{ __('admin.distribution.shopify.edit_section_desc') }}</p>
+                            </div>
+                            @php($shopifyAuthMode = old('shopify_auth_mode', $shopifyConfig['shopify_auth_mode']))
+                            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <div>
+                                    <label for="shopify_auth_mode" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.auth_mode') }}</label>
+                                    <select id="shopify_auth_mode" name="shopify_auth_mode" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="client_credentials" @selected($shopifyAuthMode === 'client_credentials')>{{ __('admin.distribution.shopify.auth_client_credentials') }}</option>
+                                        <option value="access_token" @selected($shopifyAuthMode === 'access_token')>{{ __('admin.distribution.shopify.auth_access_token') }}</option>
+                                    </select>
+                                    <p class="mt-1 text-xs text-gray-500">{{ __('admin.distribution.shopify.auth_mode_help') }}</p>
+                                </div>
+                                <div>
+                                    <label for="shopify_api_version" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.api_version') }}</label>
+                                    <input id="shopify_api_version" name="shopify_api_version" type="text" value="{{ old('shopify_api_version', $shopifyConfig['shopify_api_version']) }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="2025-10">
+                                    <p class="mt-1 text-xs text-gray-500">{{ __('admin.distribution.shopify.api_version_help') }}</p>
+                                </div>
+                            </div>
+                            <div data-shopify-auth="client_credentials" @class(['mt-6 grid grid-cols-1 gap-6 md:grid-cols-2', 'hidden' => $shopifyAuthMode !== 'client_credentials'])>
+                                <div>
+                                    <label for="shopify_client_id" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.client_id') }}</label>
+                                    <input id="shopify_client_id" name="shopify_client_id" type="text" value="{{ old('shopify_client_id', $shopifyConfig['shopify_client_id']) }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" autocomplete="off">
+                                </div>
+                                <div>
+                                    <label for="shopify_client_secret" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.client_secret') }}</label>
+                                    <input id="shopify_client_secret" name="shopify_client_secret" type="password" value="{{ old('shopify_client_secret') }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" autocomplete="new-password" placeholder="{{ __('admin.distribution.shopify.access_token_placeholder') }}">
+                                    <p class="mt-1 text-xs text-gray-500">{{ __('admin.distribution.shopify.client_secret_update_help') }}</p>
+                                </div>
+                            </div>
+                            <div data-shopify-auth="access_token" @class(['mt-6', 'hidden' => $shopifyAuthMode !== 'access_token'])>
+                                <label for="shopify_access_token" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.access_token') }}</label>
+                                <input id="shopify_access_token" name="shopify_access_token" type="password" value="{{ old('shopify_access_token') }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" autocomplete="new-password" placeholder="{{ __('admin.distribution.shopify.access_token_placeholder') }}">
+                                <p class="mt-1 text-xs text-gray-500">{{ __('admin.distribution.shopify.access_token_update_help') }}</p>
+                            </div>
+                            <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
+                                <div>
+                                    <label for="shopify_blog_strategy" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.blog_strategy') }}</label>
+                                    <select id="shopify_blog_strategy" name="shopify_blog_strategy" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="first_blog" @selected(old('shopify_blog_strategy', $shopifyConfig['shopify_blog_strategy']) === 'first_blog')>{{ __('admin.distribution.shopify.blog_first') }}</option>
+                                        <option value="match_handle" @selected(old('shopify_blog_strategy', $shopifyConfig['shopify_blog_strategy']) === 'match_handle')>{{ __('admin.distribution.shopify.blog_match_handle') }}</option>
+                                        <option value="fixed" @selected(old('shopify_blog_strategy', $shopifyConfig['shopify_blog_strategy']) === 'fixed')>{{ __('admin.distribution.shopify.blog_fixed') }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="shopify_blog_handle" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.blog_handle') }}</label>
+                                    <input id="shopify_blog_handle" name="shopify_blog_handle" type="text" value="{{ old('shopify_blog_handle', $shopifyConfig['shopify_blog_handle']) }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="news">
+                                </div>
+                                <div>
+                                    <label for="shopify_blog_id" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.blog_id') }}</label>
+                                    <input id="shopify_blog_id" name="shopify_blog_id" type="text" value="{{ old('shopify_blog_id', $shopifyConfig['shopify_blog_id']) }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="123456789">
+                                </div>
+                            </div>
+                            <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
+                                <div>
+                                    <label for="shopify_author" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.author') }}</label>
+                                    <input id="shopify_author" name="shopify_author" type="text" value="{{ old('shopify_author', $shopifyConfig['shopify_author']) }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="{{ __('admin.distribution.shopify.author_placeholder') }}">
+                                </div>
+                                <div>
+                                    <label for="shopify_tag_strategy" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.tag_strategy') }}</label>
+                                    <select id="shopify_tag_strategy" name="shopify_tag_strategy" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="keywords_to_tags" @selected(old('shopify_tag_strategy', $shopifyConfig['shopify_tag_strategy']) === 'keywords_to_tags')>{{ __('admin.distribution.shopify.tag_keywords_to_tags') }}</option>
+                                        <option value="disabled" @selected(old('shopify_tag_strategy', $shopifyConfig['shopify_tag_strategy']) === 'disabled')>{{ __('admin.distribution.shopify.tag_disabled') }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="shopify_summary_strategy" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.summary_strategy') }}</label>
+                                    <select id="shopify_summary_strategy" name="shopify_summary_strategy" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="excerpt" @selected(old('shopify_summary_strategy', $shopifyConfig['shopify_summary_strategy']) === 'excerpt')>{{ __('admin.distribution.shopify.summary_excerpt') }}</option>
+                                        <option value="meta_description" @selected(old('shopify_summary_strategy', $shopifyConfig['shopify_summary_strategy']) === 'meta_description')>{{ __('admin.distribution.shopify.summary_meta_description') }}</option>
+                                        <option value="disabled" @selected(old('shopify_summary_strategy', $shopifyConfig['shopify_summary_strategy']) === 'disabled')>{{ __('admin.distribution.shopify.summary_disabled') }}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <div>
+                                    <label for="shopify_image_strategy" class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.image_strategy') }}</label>
+                                    <select id="shopify_image_strategy" name="shopify_image_strategy" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="hero_as_featured" @selected(old('shopify_image_strategy', $shopifyConfig['shopify_image_strategy']) === 'hero_as_featured')>{{ __('admin.distribution.shopify.image_hero_as_featured') }}</option>
+                                        <option value="disabled" @selected(old('shopify_image_strategy', $shopifyConfig['shopify_image_strategy']) === 'disabled')>{{ __('admin.distribution.shopify.image_disabled') }}</option>
+                                    </select>
+                                    <p class="mt-1 text-xs text-gray-500">{{ __('admin.distribution.shopify.image_help') }}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">{{ __('admin.distribution.shopify.published') }}</label>
+                                    <label class="mt-2 inline-flex items-center gap-2 text-sm text-gray-700">
+                                        <input type="hidden" name="shopify_published" value="0">
+                                        <input type="checkbox" name="shopify_published" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" @checked(filter_var(old('shopify_published', $shopifyConfig['shopify_published']), FILTER_VALIDATE_BOOLEAN))>
+                                        <span>{{ __('admin.distribution.shopify.published_label') }}</span>
+                                    </label>
+                                    <p class="mt-1 text-xs text-gray-500">{{ __('admin.distribution.shopify.published_help') }}</p>
+                                </div>
+                            </div>
+                        </div>
                     @elseif ($channel->isGeoFlowAgent())
                         <fieldset class="rounded-lg border border-gray-200 bg-gray-50 p-4">
                             <legend class="text-sm font-medium text-gray-900">{{ __('admin.distribution.field.front_mode') }}</legend>
@@ -390,11 +488,24 @@
                 field.classList.toggle('hidden', authType === 'none');
             });
         }
+        function toggleShopifyAuthFields() {
+            var select = document.getElementById('shopify_auth_mode');
+            if (!select) {
+                return;
+            }
+            document.querySelectorAll('[data-shopify-auth]').forEach(function (field) {
+                field.classList.toggle('hidden', field.dataset.shopifyAuth !== select.value);
+            });
+        }
         document.addEventListener('change', function (event) {
             if (event.target.matches('#generic_auth_type')) {
                 toggleGenericAuthFields();
             }
+            if (event.target.matches('#shopify_auth_mode')) {
+                toggleShopifyAuthFields();
+            }
         });
         toggleGenericAuthFields();
+        toggleShopifyAuthFields();
     </script>
 @endsection

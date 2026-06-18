@@ -99,7 +99,7 @@ class DistributionChannel extends Model
     {
         $type = (string) ($this->channel_type ?? 'geoflow_agent');
 
-        return in_array($type, ['geoflow_agent', 'wordpress_rest', 'generic_http_api'], true) ? $type : 'geoflow_agent';
+        return in_array($type, ['geoflow_agent', 'wordpress_rest', 'generic_http_api', 'shopify_blog'], true) ? $type : 'geoflow_agent';
     }
 
     public function isGeoFlowAgent(): bool
@@ -115,6 +115,11 @@ class DistributionChannel extends Model
     public function isGenericHttpApi(): bool
     {
         return $this->channelType() === 'generic_http_api';
+    }
+
+    public function isShopifyBlog(): bool
+    {
+        return $this->channelType() === 'shopify_blog';
     }
 
     /**
@@ -208,7 +213,6 @@ class DistributionChannel extends Model
     }
 
     /**
-     * @param  mixed  $value
      * @return list<int>
      */
     private function genericSuccessStatuses(mixed $value): array
@@ -243,6 +247,86 @@ class DistributionChannel extends Model
         }
 
         return str_starts_with($path, '/') ? $path : '/'.$path;
+    }
+
+    /**
+     * Shopify 博客渠道配置（存于 channel_config，缺省时给安全默认值）。
+     *
+     * @return array{
+     *   shopify_api_version:string,
+     *   shopify_auth_mode:string,
+     *   shopify_client_id:string,
+     *   shopify_blog_strategy:string,
+     *   shopify_blog_id:string,
+     *   shopify_blog_handle:string,
+     *   shopify_published:bool,
+     *   shopify_author:string,
+     *   shopify_tag_strategy:string,
+     *   shopify_image_strategy:string,
+     *   shopify_summary_strategy:string
+     * }
+     */
+    public function resolvedShopifyConfig(): array
+    {
+        $stored = is_array($this->channel_config) ? $this->channel_config : [];
+        $authMode = (string) ($stored['shopify_auth_mode'] ?? 'access_token');
+        $blogStrategy = (string) ($stored['shopify_blog_strategy'] ?? 'first_blog');
+        $tagStrategy = (string) ($stored['shopify_tag_strategy'] ?? 'keywords_to_tags');
+        $imageStrategy = (string) ($stored['shopify_image_strategy'] ?? 'hero_as_featured');
+        $summaryStrategy = (string) ($stored['shopify_summary_strategy'] ?? 'excerpt');
+
+        return [
+            'shopify_api_version' => $this->normalizeShopifyApiVersion($stored['shopify_api_version'] ?? null),
+            'shopify_auth_mode' => in_array($authMode, ['access_token', 'client_credentials'], true) ? $authMode : 'access_token',
+            'shopify_client_id' => trim((string) ($stored['shopify_client_id'] ?? '')),
+            'shopify_blog_strategy' => in_array($blogStrategy, ['fixed', 'match_handle', 'first_blog'], true) ? $blogStrategy : 'first_blog',
+            'shopify_blog_id' => trim((string) ($stored['shopify_blog_id'] ?? '')),
+            'shopify_blog_handle' => trim((string) ($stored['shopify_blog_handle'] ?? '')),
+            'shopify_published' => filter_var($stored['shopify_published'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            'shopify_author' => trim((string) ($stored['shopify_author'] ?? '')),
+            'shopify_tag_strategy' => in_array($tagStrategy, ['keywords_to_tags', 'disabled'], true) ? $tagStrategy : 'keywords_to_tags',
+            'shopify_image_strategy' => in_array($imageStrategy, ['hero_as_featured', 'disabled'], true) ? $imageStrategy : 'hero_as_featured',
+            'shopify_summary_strategy' => in_array($summaryStrategy, ['excerpt', 'meta_description', 'disabled'], true) ? $summaryStrategy : 'excerpt',
+        ];
+    }
+
+    /**
+     * Shopify Admin GraphQL 端点（domain/endpoint_url + 配置版本拼接）。
+     */
+    public function shopifyGraphqlUrl(): string
+    {
+        $version = $this->resolvedShopifyConfig()['shopify_api_version'];
+
+        return 'https://'.$this->shopifyHost().'/admin/api/'.$version.'/graphql.json';
+    }
+
+    /**
+     * Shopify client credentials grant 取 token 的端点（须为 myshopify.com admin 域名）。
+     */
+    public function shopifyOAuthTokenUrl(): string
+    {
+        return 'https://'.$this->shopifyHost().'/admin/oauth/access_token';
+    }
+
+    private function shopifyHost(): string
+    {
+        $host = trim((string) $this->domain);
+        if ($host === '') {
+            $host = (string) parse_url((string) $this->endpoint_url, PHP_URL_HOST);
+        }
+        $host = preg_replace('#^https?://#i', '', $host) ?? $host;
+
+        return rtrim((string) $host, '/');
+    }
+
+    /**
+     * 规范化 Shopify API 版本（形如 YYYY-MM）；非法值回退到默认稳定版本。
+     */
+    private function normalizeShopifyApiVersion(mixed $value): string
+    {
+        $version = trim((string) ($value ?? ''));
+
+        return preg_match('/^\d{4}-\d{2}$/', $version) === 1 ? $version : '2025-10';
     }
 
     public function wordpressRestBaseUrl(): string

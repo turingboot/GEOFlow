@@ -48,6 +48,34 @@ class ArticleDistribution extends Model
         return is_numeric($postId) ? (int) $postId : null;
     }
 
+    /**
+     * Shopify 远端文章引用（GID 复合键），供 update/delete 复用；缺失时返回 null。
+     *
+     * @return array{article_gid:string, blog_gid:?string, handle:?string, blog_handle:?string}|null
+     */
+    public function shopifyArticleReference(): ?array
+    {
+        $meta = is_array($this->remote_meta) ? $this->remote_meta : [];
+        $articleGid = trim((string) ($meta['shopify_article_id'] ?? ''));
+        if ($articleGid === '' && is_string($this->remote_id) && str_starts_with((string) $this->remote_id, 'gid://shopify/Article/')) {
+            $articleGid = (string) $this->remote_id;
+        }
+        if ($articleGid === '') {
+            return null;
+        }
+
+        $blogGid = trim((string) ($meta['shopify_blog_id'] ?? ''));
+        $handle = trim((string) ($meta['shopify_handle'] ?? ''));
+        $blogHandle = trim((string) ($meta['shopify_blog_handle'] ?? ''));
+
+        return [
+            'article_gid' => $articleGid,
+            'blog_gid' => $blogGid !== '' ? $blogGid : null,
+            'handle' => $handle !== '' ? $handle : null,
+            'blog_handle' => $blogHandle !== '' ? $blogHandle : null,
+        ];
+    }
+
     public function article(): BelongsTo
     {
         return $this->belongsTo(Article::class, 'article_id');
