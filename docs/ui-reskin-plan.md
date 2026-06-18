@@ -1,12 +1,12 @@
 # UI 改版方案（路线 A:Blade 换皮,业务逻辑不变）
 
-> 目标:为后台(Admin)和前台文章站(Public)做一套全新 UI,**不改动任何业务逻辑**——controller / service / 路由 / 校验 / 鉴权 / 既有测试全部保留,只替换表现层(Blade 模板 + Tailwind 样式 + Vite 资源)。
+> 目标:为后台(Admin)和前台文章站(Public)做一套全新 UI,**不改动任何业务逻辑**——controller / service / 路由 / 校验 / 鉴权 / 既有测试全部保留,只替换表现层(Blade 模板 + Tailwind 工具类样式 + 静态 CSS)。
 
 ## 0. 硬约束(技术边界)
 
 - **只新增/替换视图层,不删改业务逻辑**。controller 继续返回相同的视图数据契约(`pageTitle` / `activeMenu` / `adminSiteName` 及各页面变量),视图按这个契约渲染。
 - 不改路由、不改 `route()` 目标、不改表单字段 `name`、不改 i18n 翻译 key、不改 `data-*` 行为钩子——这些是既有 Feature 测试和前端 JS 依赖的契约。
-- 不引入新的后端依赖;前端沿用现有 Vite + Tailwind v4 资源链路。
+- 不引入新的后端依赖;**前端不走 Vite**:Tailwind 经 `public/js/tailwindcss.play-cdn.js`(运行时 JIT)由 `asset()` 加载,全站零 `@vite`,改样式无需 build。
 - **功能必须 1:1 全部接通**:换皮只动外观,现有每个页面、每个入口、每个按钮/表单/筛选/操作都必须在新 UI 里原样存在且可用,**不允许遗漏或弱化任何功能**(详见下节强制验收标准)。
 
 ## ★ 功能 1:1 接通(强制验收标准,最高优先级)
@@ -34,7 +34,7 @@
 
 - **后台**:`resources/views/admin/` 下约 29 个模块(dashboard、tasks、articles、distribution、analytics、materials、ai-*、site-settings、knowledge-bases…),全部服务端渲染,`@extends('admin.layouts.app')` + `@section('content')`。
 - **前台**:`resources/views/site/` + 主题根目录 **`resources/views/theme/`**;`App\Support\Site\SiteThemeCatalog` 扫描 `resource_path('views/theme')` 识别主题包,后台「网站设置」可切换主题(`config('geoflow.default_theme')`,默认 `toutiao-news-20260426`)。→ **前台换 UI = 新增一个主题包目录**,是系统设计好的扩展点。
-- **资源链路**:Vite(`vite.config.js`)+ Tailwind v4(`@tailwindcss/vite`)+ vditor;`npm run build` / `npm run dev`。
+- **资源链路(实测)**:Tailwind 由 `public/js/tailwindcss.play-cdn.js`(Play CDN,运行时 JIT)经 `asset()` 加载,全站**零 `@vite`**;`resources/css/app.css`(Tailwind v4)未被任何页面加载。自定义/主题样式走 `public/assets/css/*` 与 `public/themes/{id}/theme.css`。**改 UI 无需 build 步骤。**
 
 ## 2. 后台(Admin)改版
 
@@ -79,7 +79,7 @@
 3. **交互增强(可选,不动后端)**
    - 侧栏折叠、移动端抽屉、下拉/tab/模态等用 **Alpine.js**(或 htmx)做轻量增强,**不需要改 API**。现有原生 JS 切换(如分发表单的 `data-channel-type-panel` / `data-shopify-auth`)可平滑替换为 Alpine。
 4. **资源**
-   - 新增 CSS/JS 入口纳入 `vite.config.js`;构建用 `npm run build`,开发用 `npm run dev` / `composer run dev`。
+   - 自定义样式直接写 Tailwind 工具类(Play CDN 运行时生效);如需额外 CSS 放 `public/assets/css/*` 或主题 `public/themes/{id}/theme.css`,Blade 用 `asset()` 引用。**无需 `npm run build`**。
 
 ## 3. 前台文章站(Public)改版
 
@@ -108,7 +108,7 @@
 2. **阶段 1:后台主链路** —— tasks / articles / distribution / materials。
 3. **阶段 2:后台其余模块** —— analytics / ai-* / site-settings / knowledge-bases / 系统类页面。
 4. **阶段 3:前台新主题包** —— 新建并切换主题。
-5. 每阶段结束:`vendor/bin/pint --dirty --format agent`(若动到少量 PHP)+ 相关 Feature 测试回归 + `npm run build`。
+5. 每阶段结束:`vendor/bin/pint --dirty --format agent`(若动到少量 PHP)+ 相关 Feature 测试回归(Tailwind Play CDN 运行时生效,无需 build)。
 
 ## 6. 不做什么 / 为什么不用路线 B(SPA)
 
@@ -117,5 +117,5 @@
 
 ## 7. 影响面清单(便于评审)
 
-- **改动**:`resources/views/admin/**`、`resources/views/admin/layouts/**`、`resources/views/admin/partials/**`、`resources/views/theme/<新主题>/**`、`resources/css|js/**`、`vite.config.js`(新增入口)。
+- **改动**:`resources/views/admin/**`(layouts/partials)、`resources/views/theme/<新主题>/**`、`public/themes/<新主题>/theme.css`、必要时 `public/assets/css/*`。**不动 `vite.config.js`、不需 build**。
 - **不改**:`app/Http/Controllers/**`、`app/Services/**`、`routes/**`、`app/Http/Middleware/**`、`lang/**`(翻译 key 不变;如需新增文案才追加)、`database/**`、既有测试(只在必要时新增)。
