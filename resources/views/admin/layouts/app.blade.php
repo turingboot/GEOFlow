@@ -8,31 +8,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@isset($pageTitle){{ $pageTitle }} — @endisset{{ $adminBrandName }}</title>
-    <script src="{{ asset('js/tailwindcss.play-cdn.js') }}"></script>
-    <script>
-        /* 全新后台设计令牌:主色 indigo、中性 slate、Inter 字体、圆润圆角、软阴影。
-           运行时覆盖 Play CDN 主题,使既有工具类(bg-blue-600/text-gray-900/...)整体换肤,不改任何 Blade。 */
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        blue: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81', 950: '#1e1b4b' },
-                        gray: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617' },
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
-                    },
-                    borderRadius: { DEFAULT: '0.5rem', md: '0.625rem', lg: '0.75rem', xl: '1rem', '2xl': '1.25rem' },
-                    boxShadow: {
-                        sm: '0 1px 2px 0 rgb(15 23 42 / 0.04)',
-                        DEFAULT: '0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.06)',
-                        md: '0 6px 16px -6px rgb(15 23 42 / 0.12)',
-                        lg: '0 12px 28px -10px rgb(15 23 42 / 0.16)',
-                    },
-                },
-            },
-        };
-    </script>
+    {{-- Precompiled admin Tailwind (Tavix-blue tokens baked in) — replaces the runtime Play CDN
+         so styles apply on first paint with no FOUC / sidebar flicker. Rebuild with:
+         npx tailwindcss@3.4.17 -c tailwind.admin.config.js -i resources/css/admin.tailwind.css -o public/assets/css/admin-tailwind.css --minify --}}
+    <link rel="stylesheet" href="{{ asset('assets/css/admin-tailwind.css') }}?v={{ @filemtime(public_path('assets/css/admin-tailwind.css')) ?: config('geoflow.app_version', '2.0') }}">
     <script src="{{ asset('js/lucide.min.js') }}"></script>
     <link rel="stylesheet" href="{{ asset('assets/css/admin.css') }}?v={{ @filemtime(public_path('assets/css/admin.css')) ?: config('geoflow.app_version', '2.0') }}">
     @stack('styles')

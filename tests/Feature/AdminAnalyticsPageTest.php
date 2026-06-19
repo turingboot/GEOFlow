@@ -80,8 +80,8 @@ class AdminAnalyticsPageTest extends TestCase
             strpos($html, route('admin.analytics')),
             strpos($html, route('admin.dashboard'))
         );
-        // Active sidebar nav item is highlighted with the redesigned indigo style.
-        $this->assertStringContainsString('bg-indigo-600 font-medium text-white', $html);
+        // Active sidebar nav item is highlighted with the redesigned Tavix-blue style.
+        $this->assertStringContainsString('bg-blue-600 font-medium text-white', $html);
     }
 
     public function test_analytics_page_applies_date_filters_to_content_metrics(): void

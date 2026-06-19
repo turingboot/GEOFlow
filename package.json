@@ -5,7 +5,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "admin:css": "npx tailwindcss@3.4.17 -c tailwind.admin.config.js -i resources/css/admin.tailwind.css -o public/assets/css/admin-tailwind.css --minify"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

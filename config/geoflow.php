@@ -21,6 +21,8 @@ return [
 
     // 站点展示名称（页眉、标题等）
     'site_name' => env('SITE_NAME', 'GEOFlow'),
+    // 后台品牌名（侧栏/标题展示）
+    'admin_brand_name' => env('ADMIN_BRAND_NAME', 'AI GEO 工作台'),
     // 站点完整/副标题文案
     'site_full_name' => env('SITE_FULL_NAME', 'GEOFlow'),
     // 站点根 URL，用于生成绝对链接（末尾无斜杠）

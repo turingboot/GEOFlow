@@ -4,24 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ __('admin.login.title') }} — {{ $adminSiteName }}</title>
-    <script src="{{ asset('js/tailwindcss.play-cdn.js') }}"></script>
-    <script>
-        tailwind.config = { theme: { extend: {
-            colors: {
-                blue: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81', 950: '#1e1b4b' },
-                gray: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617' },
-            },
-            fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'] },
-            borderRadius: { DEFAULT: '0.5rem', md: '0.625rem', lg: '0.75rem', xl: '1rem', '2xl': '1.25rem' },
-        } } };
-    </script>
+    <link rel="stylesheet" href="{{ asset('assets/css/admin-tailwind.css') }}?v={{ @filemtime(public_path('assets/css/admin-tailwind.css')) ?: config('geoflow.app_version', '2.0') }}">
     <script src="{{ asset('js/lucide.min.js') }}"></script>
     <style>
         body {
             background:
-                radial-gradient(900px circle at 15% 8%, rgba(79, 70, 229, 0.30), transparent 45%),
-                radial-gradient(720px circle at 85% 92%, rgba(99, 102, 241, 0.18), transparent 45%),
-                linear-gradient(180deg, #0f172a 0%, #020617 100%);
+                radial-gradient(900px circle at 15% 8%, rgba(37, 99, 235, 0.32), transparent 45%),
+                radial-gradient(720px circle at 85% 92%, rgba(59, 130, 246, 0.20), transparent 45%),
+                linear-gradient(180deg, #16244a 0%, #0b1426 100%);
             min-height: 100vh;
             font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
         }
@@ -31,10 +21,10 @@
             box-shadow: 0 30px 70px rgba(2, 6, 23, 0.45);
         }
         .login-badge {
-            background: linear-gradient(180deg, #6366f1 0%, #4338ca 100%);
+            background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
         }
         .initial-admin-hint {
-            background: linear-gradient(180deg, rgba(238, 242, 255, 0.98) 0%, rgba(255, 255, 255, 0.94) 100%);
+            background: linear-gradient(180deg, rgba(239, 246, 255, 0.98) 0%, rgba(255, 255, 255, 0.94) 100%);
         }
     </style>
 </head>
