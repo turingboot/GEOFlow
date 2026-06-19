@@ -13,14 +13,15 @@ use App\Http\Controllers\Admin\AiPromptController;
 use App\Http\Controllers\Admin\AiSpecialPromptController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\ApiTokenController;
-use App\Http\Controllers\Admin\ArticleEditorAssetController;
 use App\Http\Controllers\Admin\ArticleController;
+use App\Http\Controllers\Admin\ArticleEditorAssetController;
 use App\Http\Controllers\Admin\AuthorController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DistributionController;
 use App\Http\Controllers\Admin\ImageLibraryController;
 use App\Http\Controllers\Admin\KeywordLibraryController;
+use App\Http\Controllers\Admin\KeywordTrendController;
 use App\Http\Controllers\Admin\KnowledgeBaseController;
 use App\Http\Controllers\Admin\LegacyController;
 use App\Http\Controllers\Admin\MaterialsController;
@@ -125,6 +126,19 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
             Route::post('{channelId}/sync-settings', [DistributionController::class, 'syncSettings'])->name('sync-settings')->whereNumber('channelId');
             Route::get('{channelId}', [DistributionController::class, 'show'])->name('show')->whereNumber('channelId');
             Route::post('{channelId}/health', [DistributionController::class, 'health'])->name('health')->whereNumber('channelId');
+        });
+
+        // 关键词趋势（设定行业品类 → 抓取国外平台近期高热度关键词 → 入关键词库）
+        Route::prefix('keyword-trends')->name('keyword-trends.')->group(function () {
+            Route::get('/', [KeywordTrendController::class, 'index'])->name('index');
+            Route::get('create', [KeywordTrendController::class, 'create'])->name('create');
+            Route::post('create', [KeywordTrendController::class, 'store'])->name('store');
+            Route::get('{sourceId}/edit', [KeywordTrendController::class, 'edit'])->name('edit')->whereNumber('sourceId');
+            Route::put('{sourceId}', [KeywordTrendController::class, 'update'])->name('update')->whereNumber('sourceId');
+            Route::post('{sourceId}/fetch', [KeywordTrendController::class, 'fetch'])->name('fetch')->whereNumber('sourceId');
+            Route::post('{sourceId}/import', [KeywordTrendController::class, 'import'])->name('import')->whereNumber('sourceId');
+            Route::post('{sourceId}/reveal-secret', [KeywordTrendController::class, 'revealSecret'])->name('reveal-secret')->whereNumber('sourceId');
+            Route::get('{sourceId}', [KeywordTrendController::class, 'show'])->name('show')->whereNumber('sourceId');
         });
 
         // 文章管理（Blade 新路径）

@@ -87,8 +87,17 @@ return [
     // 默认仅让 AI/Embedding 供应商走代理，避免 WordPress REST、目标站 Agent 等站点通信被本机代理截获；如需全局代理可设为 *。
     'outbound_proxy_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env(
         'GEOFLOW_PROXY_HOSTS',
-        'generativelanguage.googleapis.com,api.openai.com,api.deepseek.com,openrouter.ai,api.anthropic.com,api.mistral.ai,api.groq.com,api.x.ai,api.minimax.io,api.minimaxi.com,api.siliconflow.cn,ark.cn-beijing.volces.com,dashscope.aliyuncs.com,open.bigmodel.cn'
+        'generativelanguage.googleapis.com,api.openai.com,api.deepseek.com,openrouter.ai,api.anthropic.com,api.mistral.ai,api.groq.com,api.x.ai,api.minimax.io,api.minimaxi.com,api.siliconflow.cn,ark.cn-beijing.volces.com,dashscope.aliyuncs.com,open.bigmodel.cn,api.dataforseo.com,serpapi.com,api.semrush.com,apiv2.ahrefs.com,api.keywordseverywhere.com,trends.google.com,googleads.googleapis.com'
     ))), static fn (string $host): bool => $host !== '')),
+    // 关键词趋势模块默认参数（设定行业品类 → 拉取国外平台关键词热度 → 近期高热度词入库）。
+    'keyword_trends' => [
+        'default_region' => (string) env('GEOFLOW_TRENDS_REGION', 'US'),
+        'default_language' => (string) env('GEOFLOW_TRENDS_LANGUAGE', 'en'),
+        'default_timeframe' => (string) env('GEOFLOW_TRENDS_TIMEFRAME', 'past_month'),
+        'heat_threshold' => max(0, min(100, (int) env('GEOFLOW_TRENDS_HEAT_THRESHOLD', 60))),
+        'top_n' => max(1, (int) env('GEOFLOW_TRENDS_TOP_N', 50)),
+        'http_timeout' => max(5, (int) env('GEOFLOW_TRENDS_HTTP_TIMEOUT', 30)),
+    ],
     // 为 true 时记录知识库「查询向量」是否由默认 embedding 接口生成（便于对照 bak 验证；默认关闭）
     'debug_knowledge_query_embedding' => filter_var(env('GEOFLOW_DEBUG_KNOWLEDGE_QUERY_EMBEDDING', false), FILTER_VALIDATE_BOOLEAN),
     // 语义切片规划 prompt 最大字符数；超过后直接走结构化规则回退，避免长知识库拖慢或超上下文。

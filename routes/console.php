@@ -21,3 +21,8 @@ Schedule::command('horizon:snapshot')->everyFiveMinutes();
  * GeoFlow 任务调度：每分钟扫描一次可执行任务并入队（对齐 bak cron 逻辑）。
  */
 Schedule::command('geoflow:schedule-tasks')->everyMinute();
+
+/**
+ * 关键词趋势：每小时扫描一次到期的趋势数据源，入队抓取近期高热度关键词。
+ */
+Schedule::command('geoflow:fetch-keyword-trends')->hourly();

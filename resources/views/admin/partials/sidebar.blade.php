@@ -9,6 +9,7 @@
         'distribution' => ['route' => 'admin.distribution.index', 'name' => __('admin.nav.distribution')],
         'articles' => ['route' => 'admin.articles.index', 'name' => __('admin.nav.articles')],
         'materials' => ['route' => 'admin.materials.index', 'name' => __('admin.nav.materials')],
+        'keyword_trends' => ['route' => 'admin.keyword-trends.index', 'name' => __('admin.nav.keyword_trends')],
         'ai_config' => ['route' => 'admin.ai.configurator', 'name' => __('admin.nav.ai_config')],
         'site_settings' => ['route' => 'admin.site-settings.index', 'name' => __('admin.nav.site_settings')],
     ];
@@ -22,12 +23,17 @@
         'distribution' => 'share-2',
         'articles' => 'file-text',
         'materials' => 'folder',
+        'keyword_trends' => 'trending-up',
         'ai_config' => 'bot',
         'site_settings' => 'settings',
         'admin_users' => 'users',
     ];
     $subMap = [
         'admin.analytics' => 'analytics',
+        'admin.keyword-trends.index' => 'keyword_trends',
+        'admin.keyword-trends.create' => 'keyword_trends',
+        'admin.keyword-trends.edit' => 'keyword_trends',
+        'admin.keyword-trends.show' => 'keyword_trends',
         'admin.system-updates.index' => 'dashboard',
         'admin.system-updates.check' => 'dashboard',
         'admin.system-updates.plan' => 'dashboard',
