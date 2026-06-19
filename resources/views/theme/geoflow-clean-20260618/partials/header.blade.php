@@ -14,7 +14,7 @@
         </a>
 
         <nav class="gc-nav">
-            <a href="{{ route('site.home') }}" class="gc-nav-link {{ $isHome ? 'is-active' : '' }}">
+            <a href="{{ route('site.home') }}" data-nav-item="home" class="gc-nav-link {{ $isHome ? 'is-active' : '' }}">
                 <i data-lucide="home" class="w-4 h-4"></i>
                 {{ __('front.nav.home') }}
             </a>
@@ -47,7 +47,7 @@
 
     <div id="gcMobileMenu" class="gc-mobile-menu hidden md:hidden">
         <div class="gc-container py-3 space-y-1">
-            <a href="{{ route('site.home') }}" class="gc-mobile-link {{ $isHome ? 'is-active' : '' }}">
+            <a href="{{ route('site.home') }}" data-nav-item="home" class="gc-mobile-link {{ $isHome ? 'is-active' : '' }}">
                 <i data-lucide="home" class="w-4 h-4"></i>
                 {{ __('front.nav.home') }}
             </a>
