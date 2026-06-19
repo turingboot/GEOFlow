@@ -34,6 +34,46 @@
             </div>
         @endif
 
+        @if ($trends->isNotEmpty())
+            @php
+                $risingCount = $trends->where('trend_direction', 'rising')->count();
+                $flatCount = $trends->where('trend_direction', 'flat')->count();
+                $fallingCount = $trends->where('trend_direction', 'falling')->count();
+                $distTotal = max(1, $trends->count());
+                $risingKeywords = $trends->where('trend_direction', 'rising')->sortByDesc(fn ($t) => (int) $t->delta)->take(24);
+                $avgHeat = (int) round((float) $trends->avg('heat'));
+            @endphp
+            <div class="admin-card mb-8">
+                <div class="admin-card-head">
+                    <span class="admin-card-title">{{ __('admin.keyword_trends.analysis.title') }}</span>
+                    <span class="text-xs text-gray-500">{{ __('admin.keyword_trends.snapshot.kept') }} {{ $trends->count() }} · {{ __('admin.keyword_trends.trend.rising') }} {{ $risingCount }} · {{ __('admin.keyword_trends.analysis.avg_heat') }} {{ $avgHeat }}</span>
+                </div>
+                <div class="admin-card-body space-y-6">
+                    <div>
+                        <div class="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+                            <span>{{ __('admin.keyword_trends.analysis.distribution') }}</span>
+                            <span>{{ __('admin.keyword_trends.trend.rising') }} {{ $risingCount }} · {{ __('admin.keyword_trends.trend.flat') }} {{ $flatCount }} · {{ __('admin.keyword_trends.trend.falling') }} {{ $fallingCount }}</span>
+                        </div>
+                        <div class="flex h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div class="bg-emerald-500" style="width: {{ round($risingCount / $distTotal * 100) }}%"></div>
+                            <div class="bg-slate-300" style="width: {{ round($flatCount / $distTotal * 100) }}%"></div>
+                            <div class="bg-rose-500" style="width: {{ round($fallingCount / $distTotal * 100) }}%"></div>
+                        </div>
+                    </div>
+                    @if ($risingKeywords->isNotEmpty())
+                        <div>
+                            <div class="mb-2 text-xs text-gray-500">{{ __('admin.keyword_trends.analysis.rising_now') }}</div>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach ($risingKeywords as $t)
+                                    <span class="admin-badge is-success">↑ {{ $t->keyword }}@if ((int) $t->delta > 0) · +{{ (int) $t->delta }}%@endif</span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
+
         @if ($trends->isEmpty())
             <div class="admin-empty">
                 <div class="admin-empty-icon"><i data-lucide="search" class="h-7 w-7"></i></div>
@@ -48,6 +88,7 @@
                             <th>{{ __('admin.keyword_trends.table.heat') }}</th>
                             <th>{{ __('admin.keyword_trends.table.volume') }}</th>
                             <th>{{ __('admin.keyword_trends.table.trend') }}</th>
+                            <th>{{ __('admin.keyword_trends.table.delta') }}</th>
                             <th>{{ __('admin.keyword_trends.table.imported') }}</th>
                         </tr>
                     </thead>
@@ -63,6 +104,7 @@
                                 </td>
                                 <td>{{ $t->search_volume !== null ? number_format($t->search_volume) : '—' }}</td>
                                 <td><span class="admin-badge {{ $t->trend_direction === 'rising' ? 'is-success' : ($t->trend_direction === 'falling' ? 'is-danger' : 'is-neutral') }}">{{ __('admin.keyword_trends.trend.'.($t->trend_direction ?: 'flat')) }}</span></td>
+                                <td>@if ($t->delta !== null)<span class="{{ $t->delta > 0 ? 'text-emerald-600' : ($t->delta < 0 ? 'text-rose-600' : 'text-gray-500') }}">{{ $t->delta > 0 ? '+' : '' }}{{ $t->delta }}%</span>@else<span class="text-gray-300">—</span>@endif</td>
                                 <td>@if ($t->imported)<span class="admin-badge is-info">✓</span>@else<span class="text-gray-300">—</span>@endif</td>
                             </tr>
                         @endforeach

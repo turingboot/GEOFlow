@@ -4310,8 +4310,16 @@ return array_replace_recursive($base, [
             'heat' => 'Popularidade',
             'volume' => 'Volume',
             'trend' => 'Tendência',
+            'delta' => 'Variação',
             'region' => 'Região',
             'imported' => 'Importada',
+        ],
+        'analysis' => [
+            'title' => 'Análise visual',
+            'distribution' => 'Distribuição de tendência',
+            'top_heat' => 'Top 10 por popularidade',
+            'rising_now' => 'Em alta agora',
+            'avg_heat' => 'Popularidade média',
         ],
         'snapshot' => [
             'title' => 'Última busca',

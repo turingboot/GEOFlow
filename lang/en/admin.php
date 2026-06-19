@@ -4302,8 +4302,16 @@ return [
             'heat' => 'Heat',
             'volume' => 'Volume',
             'trend' => 'Trend',
+            'delta' => 'Change',
             'region' => 'Region',
             'imported' => 'Imported',
+        ],
+        'analysis' => [
+            'title' => 'Visual Analysis',
+            'distribution' => 'Trend Distribution',
+            'top_heat' => 'Top 10 by Heat',
+            'rising_now' => 'Rising Now',
+            'avg_heat' => 'Avg Heat',
         ],
         'snapshot' => [
             'title' => 'Latest Fetch',

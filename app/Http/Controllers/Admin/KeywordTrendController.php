@@ -223,7 +223,7 @@ class KeywordTrendController extends Controller
     private function mapAttributes(array $data): array
     {
         $seeds = array_values(array_filter(
-            array_map('trim', preg_split('/[\r\n,]+/', (string) ($data['seed_keywords'] ?? '')) ?: []),
+            array_map('trim', preg_split('/[\r\n,;，；]+/u', (string) ($data['seed_keywords'] ?? '')) ?: []),
             static fn (string $s): bool => $s !== '',
         ));
 

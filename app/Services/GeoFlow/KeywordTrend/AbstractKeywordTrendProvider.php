@@ -37,16 +37,24 @@ abstract class AbstractKeywordTrendProvider implements KeywordTrendProviderInter
      */
     protected function seeds(KeywordTrendSource $source): array
     {
-        $seeds = is_array($source->seed_keywords) ? $source->seed_keywords : [];
-        $seeds = array_values(array_filter(
-            array_map(static fn ($s): string => trim((string) $s), $seeds),
-            static fn (string $s): bool => $s !== '',
-        ));
+        $raw = is_array($source->seed_keywords) ? $source->seed_keywords : [];
+
+        // Split each stored item on newlines / commas / semicolons (ASCII + fullwidth)
+        // so semicolon- or comma-joined lists are robustly broken into individual seeds.
+        $seeds = [];
+        foreach ($raw as $item) {
+            foreach (preg_split('/[\r\n,;，；]+/u', (string) $item) ?: [] as $part) {
+                $part = trim($part);
+                if ($part !== '') {
+                    $seeds[] = $part;
+                }
+            }
+        }
 
         if ($seeds === [] && trim((string) $source->category) !== '') {
             $seeds = [trim((string) $source->category)];
         }
 
-        return $seeds;
+        return array_values(array_unique($seeds));
     }
 }

@@ -4302,8 +4302,16 @@ return [
             'heat' => '热度',
             'volume' => '搜索量',
             'trend' => '趋势',
+            'delta' => '增长',
             'region' => '地区',
             'imported' => '已入库',
+        ],
+        'analysis' => [
+            'title' => '可视化分析',
+            'distribution' => '趋势分布',
+            'top_heat' => '热度 Top 10',
+            'rising_now' => '近期上升词',
+            'avg_heat' => '平均热度',
         ],
         'snapshot' => [
             'title' => '最近一次抓取',
