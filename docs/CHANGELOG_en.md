@@ -26,6 +26,7 @@ This document tracks user-facing updates in the public repository. For future Gi
 ### v2.0.4
 
 - Fixed stale admin versions after code updates in deployed environments: the admin version now defaults to local `version.json`, and environment examples no longer write `GEOFLOW_APP_VERSION`.
+- Reworked Docker first-install behavior: added `php artisan geoflow:install` and a system installation marker, so default install seeders only run on an empty database; existing deployments are marked as installed without re-seeding default categories, articles, site settings, ads, or prompts.
 - Updated the admin version to `2.0.4`, including `version.json` and default admin version display values.
 
 ### v2.0.3
@@ -190,9 +191,9 @@ This document tracks user-facing updates in the public repository. For future Gi
   - Application code reads `config('geoflow.url_import_allow_mixed_dns')`, so it is compatible with Laravel config caching
 - Added coverage for model driver resolution and URL normalization.
 - Fixed default admin initialization for production Docker first-time deployment:
-  - `docker/entrypoint.prod.sh` now supports `AUTO_SEED`
-  - `docker-compose.prod.yml` enables seeding only for the one-shot `init` service
-  - The default admin account is created after first-time migrations, and repeated runs do not overwrite an existing `admin` user
+  - The one-shot `init` service runs `geoflow:install` after migrations
+  - The default admin account is created only for an empty first install; existing deployments are marked as initialized
+  - Long-running services do not receive initialization environment variables, so restarts do not repeat install seeders
 
 ## 2026-05-08
 

@@ -16,13 +16,16 @@ use App\Models\DistributionLog;
 use App\Models\Image;
 use App\Models\ImageLibrary;
 use App\Models\Prompt;
+use App\Models\SiteSetting;
 use App\Models\Task;
 use App\Models\TitleLibrary;
 use App\Services\GeoFlow\DistributionOrchestrator;
 use App\Services\GeoFlow\DistributionPayloadBuilder;
 use App\Services\GeoFlow\DistributionRetryPolicy;
 use App\Services\GeoFlow\DistributionSigningService;
+use App\Services\GeoFlow\TaskDistributionChannelSelector;
 use App\Support\GeoFlow\ApiKeyCrypto;
+use App\Support\Site\SiteSettingsBag;
 use App\Support\Site\SiteThemeCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -252,6 +255,98 @@ class AdminDistributionPageTest extends TestCase
 
         $this->assertSame(3, substr_count($html, 'data-distribution-theme-collapsed="true"'));
         $this->assertMatchesRegularExpression('/class="[^"]*hidden[^"]*"[^>]*data-distribution-theme-card[^>]*data-distribution-theme-collapsed="true"[^>]*>\\s*<input[^>]+value="theme-06"/s', $html);
+    }
+
+    public function test_distribution_channel_edit_form_collapses_template_choices_after_two_rows(): void
+    {
+        $this->app->instance(SiteThemeCatalog::class, new class extends SiteThemeCatalog
+        {
+            public function all(): array
+            {
+                return collect(range(1, 8))
+                    ->map(fn (int $index): array => [
+                        'id' => sprintf('theme-%02d', $index),
+                        'name' => sprintf('Theme %02d', $index),
+                        'version' => '1.0.0',
+                        'description' => sprintf('Theme %02d description', $index),
+                    ])
+                    ->all();
+            }
+        });
+
+        $channel = DistributionChannel::query()->create([
+            'name' => '模板折叠渠道',
+            'domain' => 'theme-collapse.example.com',
+            'endpoint_url' => 'https://theme-collapse.example.com',
+            'template_key' => 'theme-08',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($this->admin(), 'admin')
+            ->get(route('admin.distribution.edit', ['channelId' => (int) $channel->id]))
+            ->assertOk()
+            ->assertSee(__('admin.site_settings.theme.section_title'))
+            ->assertSee('name="template_key" value=""', false)
+            ->assertSee('name="template_key" value="theme-08"', false)
+            ->assertSee(__('admin.distribution.remote_site.template_expand_more', ['count' => 2]));
+
+        $html = (string) $response->getContent();
+
+        $this->assertSame(3, substr_count($html, 'data-distribution-theme-collapsed="true"'));
+        $this->assertMatchesRegularExpression('/class="[^"]*hidden[^"]*"[^>]*data-distribution-theme-card[^>]*data-distribution-theme-collapsed="true"[^>]*>\\s*<input[^>]+value="theme-06"/s', $html);
+        $this->assertDoesNotMatchRegularExpression('/class="[^"]*hidden[^"]*"[^>]*data-distribution-theme-card[^>]*data-distribution-theme-collapsed="true"[^>]*>\\s*<input[^>]+value="theme-08"/s', $html);
+    }
+
+    public function test_distribution_channel_edit_custom_text_ads_render_localized_fields(): void
+    {
+        $channel = DistributionChannel::query()->create([
+            'name' => '自定义广告编辑渠道',
+            'domain' => 'custom-ad-edit.example.com',
+            'endpoint_url' => 'https://custom-ad-edit.example.com',
+            'status' => 'active',
+            'channel_config' => [
+                'article_text_ad_policy' => [
+                    'content_top' => [
+                        'mode' => 'custom',
+                        'custom_modules' => [
+                            [
+                                'id' => 'channel-module-1',
+                                'name' => '渠道顶部广告',
+                                'placement' => 'content_top',
+                                'enabled' => true,
+                                'sort_order' => 10,
+                                'links' => [
+                                    [
+                                        'text' => '渠道文字链',
+                                        'url' => 'https://example.com/landing',
+                                        'text_color' => '#2563eb',
+                                        'open_new_tab' => true,
+                                        'tracking_enabled' => true,
+                                        'tracking_param' => 'utm_source=channel',
+                                        'enabled' => true,
+                                        'sort_order' => 10,
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'content_bottom' => [
+                        'mode' => 'inherit',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->actingAs($this->admin(), 'admin')
+            ->get(route('admin.distribution.edit', ['channelId' => (int) $channel->id]))
+            ->assertOk()
+            ->assertSee(__('admin.site_settings.ads.text_field_name'))
+            ->assertSee(__('admin.site_settings.ads.text_link_section'))
+            ->assertSee(__('admin.site_settings.ads.text_add_link'))
+            ->assertSee('name="article_text_ad_policy[content_top][custom_modules][0][links][0][text]"', false)
+            ->assertSee('渠道文字链')
+            ->assertDontSee('admin.site_settings.article_detail_ads')
+            ->assertDontSee('admin.site_settings.ads.');
     }
 
     public function test_wordpress_distribution_channel_form_shows_wordpress_fields(): void
@@ -775,6 +870,230 @@ class AdminDistributionPageTest extends TestCase
         ], $channel->site_settings);
     }
 
+    public function test_distribution_channel_article_text_ad_policy_is_saved_and_reflected_in_payload(): void
+    {
+        SiteSetting::query()->updateOrCreate(
+            ['setting_key' => 'article_detail_text_ads'],
+            ['setting_value' => json_encode([
+                [
+                    'id' => 'sync-top',
+                    'name' => 'Top Sync',
+                    'placement' => 'content_top',
+                    'text' => 'Top Sync CTA',
+                    'url' => '/top-sync',
+                    'text_color' => '#2563eb',
+                    'open_new_tab' => false,
+                    'tracking_enabled' => false,
+                    'tracking_param' => '',
+                    'enabled' => true,
+                    'sort_order' => 10,
+                ],
+                [
+                    'id' => 'sync-bottom',
+                    'name' => 'Bottom Sync',
+                    'placement' => 'content_bottom',
+                    'text' => 'Bottom Sync CTA',
+                    'url' => '/bottom-sync',
+                    'text_color' => '#16a34a',
+                    'open_new_tab' => true,
+                    'tracking_enabled' => true,
+                    'tracking_param' => 'utm_source=geoflow',
+                    'enabled' => true,
+                    'sort_order' => 20,
+                ],
+            ], JSON_UNESCAPED_UNICODE)]
+        );
+        SiteSettingsBag::forget();
+
+        $admin = $this->admin();
+        $channel = DistributionChannel::query()->create([
+            'name' => '文本广告渠道',
+            'domain' => 'ads.example.com',
+            'endpoint_url' => 'https://ads.example.com',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.distribution.update', ['channelId' => (int) $channel->id]), [
+                'name' => '文本广告渠道',
+                'domain' => 'ads.example.com',
+                'endpoint_url' => 'https://ads.example.com',
+                'front_mode' => 'static',
+                'template_key' => 'default',
+                'status' => 'active',
+                'description' => '',
+                'site_name' => '广告目标站',
+                'site_subtitle' => '',
+                'site_description' => '广告目标站描述',
+                'site_keywords' => '',
+                'copyright_info' => '© 2026 广告目标站',
+                'site_logo' => '',
+                'site_favicon' => '',
+                'seo_title_template' => '{title} - {site_name}',
+                'seo_description_template' => '{description}',
+                'featured_limit' => 6,
+                'per_page' => 12,
+                'article_text_ad_policy' => [
+                    'content_top' => [
+                        'mode' => 'selected',
+                        'module_ids' => ['sync-top'],
+                    ],
+                    'content_bottom' => [
+                        'mode' => 'disabled',
+                        'ad_ids' => ['sync-bottom'],
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.distribution.show', ['channelId' => (int) $channel->id]));
+
+        $channel->refresh();
+        $policy = $channel->resolvedArticleTextAdPolicy();
+        $this->assertSame('selected', $policy['content_top']['mode']);
+        $this->assertSame(['sync-top'], $policy['content_top']['module_ids']);
+        $this->assertSame('disabled', $policy['content_bottom']['mode']);
+
+        $payload = $channel->targetSiteSettingsPayload();
+        $this->assertArrayHasKey('article_text_ads', $payload);
+        $this->assertCount(1, $payload['article_text_ads']);
+        $this->assertSame('sync-top', $payload['article_text_ads'][0]['id']);
+        $this->assertSame('Top Sync CTA', $payload['article_text_ads'][0]['links'][0]['text']);
+    }
+
+    public function test_distribution_channel_can_use_custom_article_text_ad_modules(): void
+    {
+        $admin = $this->admin();
+        $channel = DistributionChannel::query()->create([
+            'name' => '自定义文本广告渠道',
+            'domain' => 'custom-ads.example.com',
+            'endpoint_url' => 'https://custom-ads.example.com',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.distribution.update', ['channelId' => (int) $channel->id]), [
+                'name' => '自定义文本广告渠道',
+                'domain' => 'custom-ads.example.com',
+                'endpoint_url' => 'https://custom-ads.example.com',
+                'front_mode' => 'static',
+                'template_key' => 'default',
+                'status' => 'active',
+                'description' => '',
+                'site_name' => '自定义广告站',
+                'site_subtitle' => '',
+                'site_description' => '自定义广告站描述',
+                'site_keywords' => '',
+                'copyright_info' => '© 2026 自定义广告站',
+                'site_logo' => '',
+                'site_favicon' => '',
+                'seo_title_template' => '{title} - {site_name}',
+                'seo_description_template' => '{description}',
+                'featured_limit' => 6,
+                'per_page' => 12,
+                'article_text_ad_policy' => [
+                    'content_top' => [
+                        'mode' => 'custom',
+                        'custom_modules' => [
+                            [
+                                'name' => '渠道顶部推荐',
+                                'placement' => 'content_top',
+                                'enabled' => '1',
+                                'sort_order' => 10,
+                                'links' => [
+                                    [
+                                        'text' => '渠道独立统计链接',
+                                        'url' => 'https://custom.example.com/landing',
+                                        'text_color' => '#dc2626',
+                                        'open_new_tab' => '1',
+                                        'tracking_enabled' => '1',
+                                        'tracking_param' => 'utm_source=custom_channel',
+                                        'enabled' => '1',
+                                        'sort_order' => 10,
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'content_bottom' => [
+                        'mode' => 'disabled',
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.distribution.show', ['channelId' => (int) $channel->id]));
+
+        $channel->refresh();
+        $policy = $channel->resolvedArticleTextAdPolicy();
+        $this->assertSame('custom', $policy['content_top']['mode']);
+        $this->assertCount(1, $policy['content_top']['custom_modules']);
+        $this->assertSame('渠道顶部推荐', $policy['content_top']['custom_modules'][0]['name']);
+
+        $payload = $channel->targetSiteSettingsPayload();
+        $this->assertCount(1, $payload['article_text_ads']);
+        $this->assertSame('渠道顶部推荐', $payload['article_text_ads'][0]['name']);
+        $this->assertSame('渠道独立统计链接', $payload['article_text_ads'][0]['links'][0]['text']);
+    }
+
+    public function test_distribution_channel_rejects_invalid_custom_article_text_ad_modules(): void
+    {
+        $admin = $this->admin();
+        $channel = DistributionChannel::query()->create([
+            'name' => '非法文本广告渠道',
+            'domain' => 'invalid-ads.example.com',
+            'endpoint_url' => 'https://invalid-ads.example.com',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->from(route('admin.distribution.edit', ['channelId' => (int) $channel->id]))
+            ->put(route('admin.distribution.update', ['channelId' => (int) $channel->id]), [
+                'name' => '非法文本广告渠道',
+                'domain' => 'invalid-ads.example.com',
+                'endpoint_url' => 'https://invalid-ads.example.com',
+                'front_mode' => 'static',
+                'template_key' => 'default',
+                'status' => 'active',
+                'description' => '',
+                'site_name' => '非法广告站',
+                'site_subtitle' => '',
+                'site_description' => '非法广告站描述',
+                'site_keywords' => '',
+                'copyright_info' => '© 2026 非法广告站',
+                'site_logo' => '',
+                'site_favicon' => '',
+                'seo_title_template' => '{title} - {site_name}',
+                'seo_description_template' => '{description}',
+                'featured_limit' => 6,
+                'per_page' => 12,
+                'article_text_ad_policy' => [
+                    'content_top' => [
+                        'mode' => 'custom',
+                        'custom_modules' => [
+                            [
+                                'name' => '非法渠道模块',
+                                'placement' => 'content_top',
+                                'enabled' => '1',
+                                'links' => [
+                                    [
+                                        'text' => '危险链接',
+                                        'url' => 'javascript:alert(1)',
+                                        'text_color' => '#2563eb',
+                                        'enabled' => '1',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'content_bottom' => [
+                        'mode' => 'disabled',
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.distribution.edit', ['channelId' => (int) $channel->id]))
+            ->assertSessionHasErrors('article_text_ad_policy');
+
+        $channel->refresh();
+        $this->assertSame([], $channel->channel_config ?? []);
+    }
+
     public function test_admin_update_distribution_channel_syncs_remote_site_settings_when_secret_exists(): void
     {
         Http::fake([
@@ -1204,6 +1523,26 @@ class AdminDistributionPageTest extends TestCase
 
     public function test_super_admin_can_download_channel_target_site_package_with_current_password(): void
     {
+        SiteSetting::query()->updateOrCreate(
+            ['setting_key' => 'article_detail_text_ads'],
+            ['setting_value' => json_encode([
+                [
+                    'id' => 'package-text-ad',
+                    'name' => 'Package Text Ad',
+                    'placement' => 'content_top',
+                    'text' => 'Package CTA',
+                    'url' => '/package-offer',
+                    'text_color' => '#2563eb',
+                    'open_new_tab' => false,
+                    'tracking_enabled' => false,
+                    'tracking_param' => '',
+                    'enabled' => true,
+                    'sort_order' => 10,
+                ],
+            ], JSON_UNESCAPED_UNICODE)]
+        );
+        SiteSettingsBag::forget();
+
         $channel = DistributionChannel::query()->create([
             'name' => '官网主站',
             'domain' => 'example.com',
@@ -1259,6 +1598,8 @@ class AdminDistributionPageTest extends TestCase
         $this->assertStringContainsString("'copyright_info' => '© 2026 远程门户'", $config);
         $this->assertStringContainsString("'active_theme' => 'toutiao-news-20260426'", $config);
         $this->assertStringContainsString("'per_page' => 14", $config);
+        $this->assertStringContainsString("'article_text_ads' =>", $config);
+        $this->assertStringContainsString("'Package CTA'", $config);
 
         $rootIndex = (string) $zip->getFromName('index.php');
         $this->assertStringContainsString("require __DIR__.'/public/index.php';", $rootIndex);
@@ -1336,8 +1677,17 @@ class AdminDistributionPageTest extends TestCase
         $this->assertStringContainsString('article-table-wrap', $frontController);
         $this->assertStringContainsString('class="tags"', $frontController);
         $this->assertStringContainsString('.content h2', $siteCss);
+        $this->assertStringContainsString('.article-text-ads', $siteCss);
+        $this->assertStringContainsString('.article-text-ad-module', $siteCss);
         $this->assertStringContainsString('function activeTheme', $frontController);
         $this->assertStringContainsString('function themeClass', $frontController);
+        $this->assertStringContainsString('function normalizeArticleTextAds', $frontController);
+        $this->assertStringContainsString('function normalizeArticleTextAdLinks', $frontController);
+        $this->assertStringContainsString('function renderArticleTextAds', $frontController);
+        $this->assertStringContainsString('data-module-id', $frontController);
+        $this->assertStringContainsString("str_ends_with(\$baseUrl, '?')", $frontController);
+        $this->assertStringContainsString("renderArticleTextAds(\$settings, 'content_top')", $frontController);
+        $this->assertStringContainsString("renderArticleTextAds(\$settings, 'content_bottom')", $frontController);
         $this->assertStringNotContainsString('function themeStyles', $frontController);
         $this->assertStringContainsString('target-theme-toutiao', $frontController);
         $this->assertStringContainsString('activeTheme($settings)', $frontController);
@@ -1529,7 +1879,7 @@ class AdminDistributionPageTest extends TestCase
 
         $frontController = (string) $zip->getFromName('public/index.php');
         $this->assertStringContainsString('function frontVersionedAssetPath', $frontController);
-        $this->assertStringNotContainsString("foreach (array_slice(siteCategories(\$config), 0, 7)", $frontController);
+        $this->assertStringNotContainsString('foreach (array_slice(siteCategories($config), 0, 7)', $frontController);
         $this->assertStringNotContainsString("frontSitePath(\$config, '/')\">'.h((string) \$category['name'])", $frontController);
 
         $zip->close();
@@ -1746,16 +2096,27 @@ class AdminDistributionPageTest extends TestCase
             ->assertSee('example.com')
             ->assertSee('本地和渠道站点同时发布')
             ->assertSee('仅发布到渠道站点')
-            ->assertSee('仅发布到本站');
+            ->assertSee('仅发布到本站')
+            ->assertSee(__('admin.task_create.distribution.strategy_broadcast'))
+            ->assertSee(__('admin.task_create.distribution.strategy_round_robin'))
+            ->assertSee(__('admin.task_create.distribution.strategy_random_balanced'))
+            ->assertSee(__('admin.task_create.button.distribution_channel_select_all'));
     }
 
     public function test_task_creation_persists_selected_distribution_channels(): void
     {
         $fixtures = $this->taskFixtures();
-        $channel = DistributionChannel::query()->create([
+        $channelOne = DistributionChannel::query()->create([
             'name' => '官网主站',
             'domain' => 'example.com',
             'endpoint_url' => 'https://example.com',
+            'template_key' => 'default',
+            'status' => 'active',
+        ]);
+        $channelTwo = DistributionChannel::query()->create([
+            'name' => '备用站点',
+            'domain' => 'backup.example.com',
+            'endpoint_url' => 'https://backup.example.com',
             'template_key' => 'default',
             'status' => 'active',
         ]);
@@ -1775,15 +2136,24 @@ class AdminDistributionPageTest extends TestCase
                 'publish_interval' => 60,
                 'category_mode' => 'fixed',
                 'model_selection_mode' => 'fixed',
-                'distribution_channel_ids' => [(string) $channel->id],
+                'distribution_strategy' => TaskDistributionChannelSelector::STRATEGY_ROUND_ROBIN,
+                'distribution_channel_ids' => [(string) $channelTwo->id, (string) $channelOne->id, (string) $channelTwo->id],
             ])
             ->assertRedirect(route('admin.tasks.index'));
 
         $task = Task::query()->where('name', '分发任务')->firstOrFail();
         $this->assertSame('distribution_only', (string) $task->publish_scope);
+        $this->assertSame(TaskDistributionChannelSelector::STRATEGY_ROUND_ROBIN, (string) $task->distribution_strategy);
+        $this->assertSame(2, $task->distributionChannels()->count());
         $this->assertDatabaseHas('task_distribution_channels', [
             'task_id' => (int) $task->id,
-            'distribution_channel_id' => (int) $channel->id,
+            'distribution_channel_id' => (int) $channelTwo->id,
+            'sort_order' => 0,
+        ]);
+        $this->assertDatabaseHas('task_distribution_channels', [
+            'task_id' => (int) $task->id,
+            'distribution_channel_id' => (int) $channelOne->id,
+            'sort_order' => 1,
         ]);
     }
 
@@ -1877,6 +2247,271 @@ class AdminDistributionPageTest extends TestCase
             'status' => 'queued',
         ]);
         Queue::assertPushed(ProcessArticleDistributionJob::class);
+    }
+
+    public function test_broadcast_distribution_backfills_newly_selected_channels_for_existing_article(): void
+    {
+        Queue::fake();
+
+        $fixtures = $this->taskFixtures();
+        $channelOne = DistributionChannel::query()->create([
+            'name' => '广播站点 1',
+            'domain' => 'broadcast-1.example.com',
+            'endpoint_url' => 'https://broadcast-1.example.com',
+            'status' => 'active',
+        ]);
+        $channelTwo = DistributionChannel::query()->create([
+            'name' => '广播站点 2',
+            'domain' => 'broadcast-2.example.com',
+            'endpoint_url' => 'https://broadcast-2.example.com',
+            'status' => 'active',
+        ]);
+        $task = Task::query()->create([
+            'name' => '广播补发任务',
+            'title_library_id' => $fixtures['title_library']->id,
+            'prompt_id' => $fixtures['prompt']->id,
+            'ai_model_id' => $fixtures['ai_model']->id,
+            'status' => 'active',
+            'schedule_enabled' => 1,
+            'publish_scope' => 'distribution_only',
+            'distribution_strategy' => TaskDistributionChannelSelector::STRATEGY_BROADCAST,
+            'publish_interval' => 3600,
+            'draft_limit' => 5,
+            'article_limit' => 10,
+        ]);
+        $article = Article::query()->create([
+            'title' => '广播补发文章',
+            'slug' => 'broadcast-backfill-article',
+            'excerpt' => '摘要',
+            'content' => '正文',
+            'category_id' => $fixtures['category']->id,
+            'author_id' => $fixtures['author']->id,
+            'task_id' => (int) $task->id,
+            'status' => 'published',
+            'review_status' => 'approved',
+            'published_at' => now(),
+        ]);
+
+        $orchestrator = app(DistributionOrchestrator::class);
+        $orchestrator->syncTaskChannels($task, [(int) $channelOne->id]);
+        $orchestrator->enqueueForArticle($article);
+
+        $orchestrator->syncTaskChannels($task->fresh(), [(int) $channelOne->id, (int) $channelTwo->id]);
+        $orchestrator->enqueueForArticle($article);
+
+        $this->assertSame(
+            [(int) $channelOne->id, (int) $channelTwo->id],
+            ArticleDistribution::query()
+                ->where('article_id', (int) $article->id)
+                ->orderBy('distribution_channel_id')
+                ->pluck('distribution_channel_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all()
+        );
+    }
+
+    public function test_round_robin_distribution_sends_each_article_to_one_channel_in_order(): void
+    {
+        Queue::fake();
+
+        $fixtures = $this->taskFixtures();
+        $channels = collect(range(1, 3))->map(fn (int $index): DistributionChannel => DistributionChannel::query()->create([
+            'name' => '轮询站点 '.$index,
+            'domain' => 'round-robin-'.$index.'.example.com',
+            'endpoint_url' => 'https://round-robin-'.$index.'.example.com',
+            'status' => 'active',
+        ]));
+        $task = Task::query()->create([
+            'name' => '轮询分发任务',
+            'title_library_id' => $fixtures['title_library']->id,
+            'prompt_id' => $fixtures['prompt']->id,
+            'ai_model_id' => $fixtures['ai_model']->id,
+            'status' => 'active',
+            'schedule_enabled' => 1,
+            'publish_scope' => 'distribution_only',
+            'distribution_strategy' => TaskDistributionChannelSelector::STRATEGY_ROUND_ROBIN,
+            'publish_interval' => 3600,
+            'draft_limit' => 5,
+            'article_limit' => 10,
+        ]);
+        $task->distributionChannels()->sync($channels->values()->mapWithKeys(
+            static fn (DistributionChannel $channel, int $index): array => [(int) $channel->id => ['sort_order' => $index]]
+        )->all());
+
+        $expectedChannelIds = [
+            (int) $channels[0]->id,
+            (int) $channels[1]->id,
+            (int) $channels[2]->id,
+            (int) $channels[0]->id,
+        ];
+
+        foreach (range(1, 4) as $index) {
+            $article = Article::query()->create([
+                'title' => '轮询文章 '.$index,
+                'slug' => 'round-robin-article-'.$index,
+                'excerpt' => '摘要',
+                'content' => '正文',
+                'category_id' => $fixtures['category']->id,
+                'author_id' => $fixtures['author']->id,
+                'task_id' => (int) $task->id,
+                'status' => 'published',
+                'review_status' => 'approved',
+                'published_at' => now(),
+            ]);
+
+            app(DistributionOrchestrator::class)->enqueueForArticle($article);
+
+            $this->assertSame(
+                [$expectedChannelIds[$index - 1]],
+                ArticleDistribution::query()
+                    ->where('article_id', (int) $article->id)
+                    ->pluck('distribution_channel_id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->all()
+            );
+        }
+
+        $this->assertSame(4, (int) $task->fresh()->distribution_cursor);
+    }
+
+    public function test_random_balanced_distribution_spreads_articles_across_selected_channels(): void
+    {
+        Queue::fake();
+
+        $fixtures = $this->taskFixtures();
+        $channels = collect(range(1, 3))->map(fn (int $index): DistributionChannel => DistributionChannel::query()->create([
+            'name' => '均衡站点 '.$index,
+            'domain' => 'balanced-'.$index.'.example.com',
+            'endpoint_url' => 'https://balanced-'.$index.'.example.com',
+            'status' => 'active',
+        ]));
+        $task = Task::query()->create([
+            'name' => '随机均衡分发任务',
+            'title_library_id' => $fixtures['title_library']->id,
+            'prompt_id' => $fixtures['prompt']->id,
+            'ai_model_id' => $fixtures['ai_model']->id,
+            'status' => 'active',
+            'schedule_enabled' => 1,
+            'publish_scope' => 'distribution_only',
+            'distribution_strategy' => TaskDistributionChannelSelector::STRATEGY_RANDOM_BALANCED,
+            'publish_interval' => 3600,
+            'draft_limit' => 5,
+            'article_limit' => 10,
+        ]);
+        $task->distributionChannels()->sync($channels->values()->mapWithKeys(
+            static fn (DistributionChannel $channel, int $index): array => [(int) $channel->id => ['sort_order' => $index]]
+        )->all());
+
+        foreach (range(1, 6) as $index) {
+            $article = Article::query()->create([
+                'title' => '均衡文章 '.$index,
+                'slug' => 'balanced-article-'.$index,
+                'excerpt' => '摘要',
+                'content' => '正文',
+                'category_id' => $fixtures['category']->id,
+                'author_id' => $fixtures['author']->id,
+                'task_id' => (int) $task->id,
+                'status' => 'published',
+                'review_status' => 'approved',
+                'published_at' => now(),
+            ]);
+
+            app(DistributionOrchestrator::class)->enqueueForArticle($article);
+
+            $this->assertSame(1, ArticleDistribution::query()->where('article_id', (int) $article->id)->count());
+        }
+
+        $counts = ArticleDistribution::query()
+            ->whereIn('distribution_channel_id', $channels->pluck('id')->map(static fn ($id): int => (int) $id)->all())
+            ->selectRaw('distribution_channel_id, COUNT(*) as aggregate_count')
+            ->groupBy('distribution_channel_id')
+            ->pluck('aggregate_count', 'distribution_channel_id')
+            ->map(static fn ($count): int => (int) $count)
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame([2, 2, 2], $counts);
+    }
+
+    public function test_distribution_strategy_reuses_existing_article_channel_without_advancing_cursor(): void
+    {
+        Queue::fake();
+
+        $fixtures = $this->taskFixtures();
+        $channelOne = DistributionChannel::query()->create([
+            'name' => '复用站点 1',
+            'domain' => 'reuse-1.example.com',
+            'endpoint_url' => 'https://reuse-1.example.com',
+            'status' => 'active',
+        ]);
+        $channelTwo = DistributionChannel::query()->create([
+            'name' => '复用站点 2',
+            'domain' => 'reuse-2.example.com',
+            'endpoint_url' => 'https://reuse-2.example.com',
+            'status' => 'active',
+        ]);
+        $task = Task::query()->create([
+            'name' => '复用渠道分发任务',
+            'title_library_id' => $fixtures['title_library']->id,
+            'prompt_id' => $fixtures['prompt']->id,
+            'ai_model_id' => $fixtures['ai_model']->id,
+            'status' => 'active',
+            'schedule_enabled' => 1,
+            'publish_scope' => 'distribution_only',
+            'distribution_strategy' => TaskDistributionChannelSelector::STRATEGY_ROUND_ROBIN,
+            'publish_interval' => 3600,
+            'draft_limit' => 5,
+            'article_limit' => 10,
+        ]);
+        $task->distributionChannels()->sync([
+            (int) $channelOne->id => ['sort_order' => 0],
+            (int) $channelTwo->id => ['sort_order' => 1],
+        ]);
+
+        $firstArticle = Article::query()->create([
+            'title' => '复用文章 1',
+            'slug' => 'reuse-article-1',
+            'excerpt' => '摘要',
+            'content' => '正文',
+            'category_id' => $fixtures['category']->id,
+            'author_id' => $fixtures['author']->id,
+            'task_id' => (int) $task->id,
+            'status' => 'published',
+            'review_status' => 'approved',
+            'published_at' => now(),
+        ]);
+
+        app(DistributionOrchestrator::class)->enqueueForArticle($firstArticle);
+        app(DistributionOrchestrator::class)->enqueueForArticle($firstArticle);
+
+        $this->assertSame(1, ArticleDistribution::query()->where('article_id', (int) $firstArticle->id)->count());
+        $this->assertDatabaseHas('article_distributions', [
+            'article_id' => (int) $firstArticle->id,
+            'distribution_channel_id' => (int) $channelOne->id,
+        ]);
+        $this->assertSame(1, (int) $task->fresh()->distribution_cursor);
+
+        $secondArticle = Article::query()->create([
+            'title' => '复用文章 2',
+            'slug' => 'reuse-article-2',
+            'excerpt' => '摘要',
+            'content' => '正文',
+            'category_id' => $fixtures['category']->id,
+            'author_id' => $fixtures['author']->id,
+            'task_id' => (int) $task->id,
+            'status' => 'published',
+            'review_status' => 'approved',
+            'published_at' => now(),
+        ]);
+
+        app(DistributionOrchestrator::class)->enqueueForArticle($secondArticle);
+
+        $this->assertDatabaseHas('article_distributions', [
+            'article_id' => (int) $secondArticle->id,
+            'distribution_channel_id' => (int) $channelTwo->id,
+        ]);
+        $this->assertSame(2, (int) $task->fresh()->distribution_cursor);
     }
 
     public function test_distribution_scope_controls_remote_queue_visibility(): void

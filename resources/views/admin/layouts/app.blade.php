@@ -49,6 +49,7 @@
     </div>
 </div>
 @include('admin.partials.welcome-modal')
+@vite('resources/js/app.js')
 @stack('scripts')
 </body>
 </html>

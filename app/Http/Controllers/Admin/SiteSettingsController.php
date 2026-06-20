@@ -7,11 +7,13 @@ use App\Models\SiteSetting;
 use App\Services\Admin\SiteThemeReplicationService;
 use App\Support\AdminBasePathManager;
 use App\Support\AdminWeb;
+use App\Support\Site\ArticleTextAdPicker;
 use App\Support\Site\SiteSettingsBag;
 use App\Support\Site\SiteThemeCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -47,6 +49,7 @@ class SiteSettingsController extends Controller
             'themeReplicationDeployment' => $this->themeReplicationService->deploymentDiagnostics(),
             'homeCarouselSlides' => $this->parseHomeCarouselSlides((string) ($settings['home_carousel_slides'] ?? '[]')),
             'articleDetailAds' => $this->parseArticleDetailAds((string) ($settings['article_detail_ads'] ?? '[]')),
+            'articleDetailTextAds' => $this->parseArticleDetailTextAds((string) ($settings['article_detail_text_ads'] ?? '[]')),
         ]);
     }
 
@@ -231,6 +234,28 @@ class SiteSettingsController extends Controller
     }
 
     /**
+     * 保存文章正文顶部/底部文本广告设置。
+     */
+    public function updateArticleDetailTextAds(Request $request): RedirectResponse
+    {
+        $postedModules = $request->input('text_ad_modules');
+        if (! is_array($postedModules)) {
+            $postedModules = $this->legacyPostedTextAdsToModules($request->input('text_ads', []));
+        }
+
+        $modules = $this->normalizePostedArticleTextAdModules($postedModules);
+
+        SiteSetting::query()->updateOrCreate(
+            ['setting_key' => 'article_detail_text_ads'],
+            ['setting_value' => (string) json_encode($modules, JSON_UNESCAPED_UNICODE)]
+        );
+
+        SiteSettingsBag::forget();
+
+        return redirect()->route('admin.site-settings.index')->with('message', __('admin.site_settings.ads.text_saved'));
+    }
+
+    /**
      * @return array{
      *   site_name:string,
      *   site_subtitle:string,
@@ -247,7 +272,8 @@ class SiteSettingsController extends Controller
      *   admin_base_path:string,
      *   active_theme:string,
      *   home_carousel_slides:string,
-     *   article_detail_ads:string
+     *   article_detail_ads:string,
+     *   article_detail_text_ads:string
      * }
      */
     private function loadSettings(): array
@@ -269,6 +295,7 @@ class SiteSettingsController extends Controller
             'active_theme' => (string) config('geoflow.default_theme', ''),
             'home_carousel_slides' => '[]',
             'article_detail_ads' => '[]',
+            'article_detail_text_ads' => '[]',
         ];
 
         $stored = SiteSetting::query()
@@ -301,6 +328,7 @@ class SiteSettingsController extends Controller
             'active_theme' => (string) ($stored['active_theme'] !== '' ? $stored['active_theme'] : config('geoflow.default_theme', '')),
             'home_carousel_slides' => (string) $stored['home_carousel_slides'],
             'article_detail_ads' => (string) $stored['article_detail_ads'],
+            'article_detail_text_ads' => (string) $stored['article_detail_text_ads'],
         ];
     }
 
@@ -342,6 +370,224 @@ class SiteSettingsController extends Controller
         }
 
         return $ads;
+    }
+
+    /**
+     * @return array<int, array<string,mixed>>
+     */
+    private function parseArticleDetailTextAds(string $raw): array
+    {
+        $decoded = json_decode($raw, true);
+
+        return ArticleTextAdPicker::normalizeModules($decoded, false, ArticleTextAdPicker::MAX_GLOBAL_MODULES);
+    }
+
+    /**
+     * @return array<int, array<string,mixed>>
+     */
+    private function normalizePostedArticleTextAdModules(mixed $postedModules): array
+    {
+        if (! is_array($postedModules)) {
+            return [];
+        }
+
+        $modules = [];
+        foreach (array_values($postedModules) as $moduleIndex => $postedModule) {
+            if (! is_array($postedModule)) {
+                continue;
+            }
+
+            if (count($modules) >= ArticleTextAdPicker::MAX_GLOBAL_MODULES) {
+                throw ValidationException::withMessages([
+                    'text_ad_modules' => __('admin.site_settings.ads.text_validation_max_modules', ['max' => ArticleTextAdPicker::MAX_GLOBAL_MODULES]),
+                ]);
+            }
+
+            $moduleNumber = $moduleIndex + 1;
+            $id = trim((string) ($postedModule['id'] ?? ''));
+            $name = trim((string) ($postedModule['name'] ?? ''));
+            $placement = trim((string) ($postedModule['placement'] ?? ArticleTextAdPicker::PLACEMENT_TOP));
+            $rawLinks = is_array($postedModule['links'] ?? null) ? $postedModule['links'] : [];
+            $links = $this->normalizePostedArticleTextAdLinks($rawLinks, $moduleNumber);
+            $hasModuleData = $name !== '' || $id !== '' || $this->hasPostedArticleTextAdLinkData($rawLinks);
+
+            if (! $hasModuleData && $links === []) {
+                continue;
+            }
+
+            if (! in_array($placement, ArticleTextAdPicker::PLACEMENTS, true)) {
+                throw ValidationException::withMessages([
+                    'text_ad_modules' => __('admin.site_settings.ads.text_validation_position', ['index' => $moduleNumber]),
+                ]);
+            }
+
+            if ($links === []) {
+                throw ValidationException::withMessages([
+                    'text_ad_modules' => __('admin.site_settings.ads.text_validation_module_required', ['index' => $moduleNumber]),
+                ]);
+            }
+
+            $sortOrder = filter_var($postedModule['sort_order'] ?? null, FILTER_VALIDATE_INT);
+            if ($sortOrder === false) {
+                $sortOrder = (count($modules) + 1) * 10;
+            }
+
+            $modules[] = [
+                'schema_version' => 2,
+                'id' => $id !== '' ? $id : uniqid('article_text_module_', true),
+                'name' => $name !== '' ? $name : __('admin.site_settings.ads.text_default_name', ['index' => count($modules) + 1]),
+                'placement' => $placement,
+                'enabled' => ! empty($postedModule['enabled']),
+                'sort_order' => max(0, min(10000, (int) $sortOrder)),
+                'links' => $links,
+            ];
+        }
+
+        usort($modules, static fn (array $a, array $b): int => ((int) ($a['sort_order'] ?? 0)) <=> ((int) ($b['sort_order'] ?? 0)));
+
+        return $modules;
+    }
+
+    /**
+     * @return list<array<string,mixed>>
+     */
+    private function normalizePostedArticleTextAdLinks(array $rawLinks, int $moduleNumber): array
+    {
+        $links = [];
+        foreach (array_values($rawLinks) as $linkIndex => $postedLink) {
+            if (! is_array($postedLink)) {
+                continue;
+            }
+
+            if (count($links) >= ArticleTextAdPicker::MAX_LINKS_PER_MODULE) {
+                throw ValidationException::withMessages([
+                    'text_ad_modules' => __('admin.site_settings.ads.text_validation_max_links', [
+                        'index' => $moduleNumber,
+                        'max' => ArticleTextAdPicker::MAX_LINKS_PER_MODULE,
+                    ]),
+                ]);
+            }
+
+            $linkNumber = $moduleNumber.'.'.($linkIndex + 1);
+            $text = trim((string) ($postedLink['text'] ?? ''));
+            $rawUrl = trim((string) ($postedLink['url'] ?? ''));
+            $trackingParam = trim((string) ($postedLink['tracking_param'] ?? ''));
+            $color = trim((string) ($postedLink['text_color'] ?? ''));
+
+            if ($text === '' && $rawUrl === '' && $trackingParam === '') {
+                continue;
+            }
+
+            $url = $this->normalizeArticleTextAdUrl($rawUrl);
+            if ($rawUrl !== '' && $url === '') {
+                throw ValidationException::withMessages([
+                    'text_ad_modules' => __('admin.site_settings.ads.text_validation_url', ['index' => $linkNumber]),
+                ]);
+            }
+
+            if ($text === '' || $url === '') {
+                throw ValidationException::withMessages([
+                    'text_ad_modules' => __('admin.site_settings.ads.text_validation_required', ['index' => $linkNumber]),
+                ]);
+            }
+
+            $normalizedColor = $color !== '' ? $this->normalizeHexColor($color) : '#2563eb';
+            if ($color !== '' && $normalizedColor === '') {
+                throw ValidationException::withMessages([
+                    'text_ad_modules' => __('admin.site_settings.ads.text_validation_color', ['index' => $linkNumber]),
+                ]);
+            }
+
+            $trackingEnabled = ! empty($postedLink['tracking_enabled']);
+            if ($trackingEnabled && $trackingParam === '') {
+                $trackingParam = 'utm_source=geoflow&utm_medium=article_text_ad';
+            }
+            $trackingParam = ltrim($trackingParam, "? \t\n\r\0\x0B");
+
+            if ($trackingParam !== '' && ! $this->isValidTrackingParam($trackingParam)) {
+                throw ValidationException::withMessages([
+                    'text_ad_modules' => __('admin.site_settings.ads.text_validation_tracking', ['index' => $linkNumber]),
+                ]);
+            }
+
+            $sortOrder = filter_var($postedLink['sort_order'] ?? null, FILTER_VALIDATE_INT);
+            if ($sortOrder === false) {
+                $sortOrder = (count($links) + 1) * 10;
+            }
+
+            $links[] = [
+                'id' => trim((string) ($postedLink['id'] ?? '')) ?: uniqid('article_text_link_', true),
+                'text' => $text,
+                'url' => $url,
+                'text_color' => $normalizedColor !== '' ? $normalizedColor : '#2563eb',
+                'open_new_tab' => ! empty($postedLink['open_new_tab']),
+                'tracking_enabled' => $trackingEnabled,
+                'tracking_param' => $trackingParam,
+                'enabled' => ! empty($postedLink['enabled']),
+                'sort_order' => max(0, min(10000, (int) $sortOrder)),
+            ];
+        }
+
+        usort($links, static fn (array $a, array $b): int => ((int) ($a['sort_order'] ?? 0)) <=> ((int) ($b['sort_order'] ?? 0)));
+
+        return $links;
+    }
+
+    private function hasPostedArticleTextAdLinkData(array $rawLinks): bool
+    {
+        foreach ($rawLinks as $postedLink) {
+            if (! is_array($postedLink)) {
+                continue;
+            }
+
+            if (
+                trim((string) ($postedLink['text'] ?? '')) !== ''
+                || trim((string) ($postedLink['url'] ?? '')) !== ''
+                || trim((string) ($postedLink['tracking_param'] ?? '')) !== ''
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<int, array<string,mixed>>
+     */
+    private function legacyPostedTextAdsToModules(mixed $postedAds): array
+    {
+        if (! is_array($postedAds)) {
+            return [];
+        }
+
+        $modules = [];
+        foreach ($postedAds as $postedAd) {
+            if (! is_array($postedAd)) {
+                continue;
+            }
+
+            $modules[] = [
+                'id' => $postedAd['id'] ?? '',
+                'name' => $postedAd['name'] ?? '',
+                'placement' => $postedAd['placement'] ?? ArticleTextAdPicker::PLACEMENT_TOP,
+                'enabled' => $postedAd['enabled'] ?? false,
+                'sort_order' => $postedAd['sort_order'] ?? 0,
+                'links' => [[
+                    'id' => $postedAd['id'] ?? '',
+                    'text' => $postedAd['text'] ?? '',
+                    'url' => $postedAd['url'] ?? '',
+                    'text_color' => $postedAd['text_color'] ?? '#2563eb',
+                    'open_new_tab' => $postedAd['open_new_tab'] ?? false,
+                    'tracking_enabled' => $postedAd['tracking_enabled'] ?? false,
+                    'tracking_param' => $postedAd['tracking_param'] ?? '',
+                    'enabled' => $postedAd['enabled'] ?? false,
+                    'sort_order' => $postedAd['sort_order'] ?? 0,
+                ]],
+            ];
+        }
+
+        return $modules;
     }
 
     /**
@@ -458,5 +704,61 @@ class SiteSettingsController extends Controller
         }
 
         return '/'.ltrim($normalized, '/');
+    }
+
+    /**
+     * 正文文本广告链接只允许站内相对路径或 http(s) URL，不接受协议相对 URL 与脚本协议。
+     */
+    private function normalizeArticleTextAdUrl(string $url): string
+    {
+        $normalized = trim($url);
+        if ($normalized === '' || str_starts_with($normalized, '//')) {
+            return '';
+        }
+
+        if (str_starts_with($normalized, '/')) {
+            return $normalized;
+        }
+
+        if (preg_match('#^https?://#i', $normalized) === 1) {
+            return $normalized;
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $normalized) === 1) {
+            return '';
+        }
+
+        return '/'.ltrim($normalized, '/');
+    }
+
+    private function isValidHexColor(string $color): bool
+    {
+        return preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', trim($color)) === 1;
+    }
+
+    private function normalizeHexColor(string $color): string
+    {
+        $color = trim($color);
+        if (! $this->isValidHexColor($color)) {
+            return '';
+        }
+
+        $hex = ltrim(strtolower($color), '#');
+        if (strlen($hex) === 3) {
+            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+        }
+
+        return '#'.$hex;
+    }
+
+    private function isValidTrackingParam(string $trackingParam): bool
+    {
+        $trackingParam = trim($trackingParam);
+
+        return $trackingParam !== ''
+            && mb_strlen($trackingParam) <= 250
+            && ! str_contains($trackingParam, '://')
+            && ! str_starts_with($trackingParam, '/')
+            && preg_match('/^[A-Za-z0-9._~%=&+;,:@-]+$/', $trackingParam) === 1;
     }
 }

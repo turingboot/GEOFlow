@@ -26,6 +26,7 @@
 ### v2.0.4
 
 - 修复已部署环境中 `.env` 固定版本号导致后台更新后仍显示旧版本的问题：后台版本默认读取本地 `version.json`，环境变量样例不再写入 `GEOFLOW_APP_VERSION`。
+- 重构 Docker 首次安装逻辑：新增 `php artisan geoflow:install` 与系统安装标记，空库才执行默认安装填充；已有数据的旧库只补标记，避免重启或升级后重复写入默认分类、文章、网站设置、广告和提示词。
 - 更新后台版本号为 `2.0.4`，同步 `version.json` 和后台默认版本展示。
 
 ### v2.0.3
@@ -190,9 +191,9 @@
   - 业务代码统一读取 `config('geoflow.url_import_allow_mixed_dns')`，兼容 Laravel 配置缓存
 - 补充模型 driver 识别与 URL 标准化测试覆盖。
 - 修复生产 Docker 首次部署默认管理员初始化：
-  - `docker/entrypoint.prod.sh` 新增 `AUTO_SEED` 支持
-  - `docker-compose.prod.yml` 仅在一次性 `init` 服务中开启 seed
-  - 首次迁移后自动写入默认后台账号，重复执行不会覆盖已有 `admin` 用户
+  - `docker-compose.prod.yml` 的一次性 `init` 服务在迁移后运行 `geoflow:install`
+  - 首次空库安装才写入默认后台账号，已有数据的旧库只补初始化标记
+  - 常驻服务不接收初始化环境变量，重启时不会重复执行安装填充
 
 ## 2026-05-08
 
