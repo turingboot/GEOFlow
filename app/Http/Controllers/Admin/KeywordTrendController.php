@@ -209,6 +209,7 @@ class KeywordTrendController extends Controller
             'top_n' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'target_keyword_library_id' => ['nullable', 'integer', 'exists:keyword_libraries,id'],
             'auto_import' => ['nullable', 'boolean'],
+            'ai_relevance' => ['nullable', 'boolean'],
             'schedule' => ['nullable', 'string', 'in:manual,hourly,daily,weekly'],
             'dataforseo_login' => ['nullable', 'string', 'max:160'],
             'location_name' => ['nullable', 'string', 'max:120'],
@@ -239,6 +240,7 @@ class KeywordTrendController extends Controller
             'top_n' => (int) ($data['top_n'] ?? config('geoflow.keyword_trends.top_n', 50)),
             'target_keyword_library_id' => $data['target_keyword_library_id'] ?? null,
             'auto_import' => (bool) ($data['auto_import'] ?? false),
+            'ai_relevance' => (bool) ($data['ai_relevance'] ?? false),
             'schedule' => $data['schedule'] ?? 'manual',
             'config' => array_filter([
                 'login' => $data['dataforseo_login'] ?? null,

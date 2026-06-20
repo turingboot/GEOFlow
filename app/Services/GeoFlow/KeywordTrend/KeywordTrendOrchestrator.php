@@ -17,6 +17,7 @@ class KeywordTrendOrchestrator
     public function __construct(
         private readonly KeywordTrendProviderManager $providers,
         private readonly KeywordTrendImportService $importer,
+        private readonly KeywordTrendRelevanceFilter $relevanceFilter,
     ) {}
 
     public function run(KeywordTrendSource $source): KeywordTrendSnapshot
@@ -31,6 +32,10 @@ class KeywordTrendOrchestrator
             $provider = $this->providers->forSource($source);
             $trends = $provider->fetchTrends($source);
             $kept = $this->filter($source, $trends);
+
+            if ((bool) $source->ai_relevance) {
+                $kept = $this->relevanceFilter->filter((string) $source->category, $kept);
+            }
 
             $now = Carbon::now();
             foreach ($kept as $t) {

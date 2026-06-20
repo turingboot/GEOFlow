@@ -4264,6 +4264,7 @@ return [
             'top_n' => 'Top N',
             'target_library' => 'Target Keyword Library',
             'auto_import' => 'Auto-import after fetch',
+            'ai_relevance' => 'AI relevance filter',
             'schedule' => 'Fetch Frequency',
             'dataforseo_login' => 'DataForSEO Login',
             'location_name' => 'Location Name (e.g. United States)',
@@ -4275,6 +4276,7 @@ return [
             'seed_keywords' => 'One per line or comma-separated; falls back to the category.',
             'api_key' => 'Stored encrypted, revealable by super admins only; leave blank on edit to keep.',
             'heat_threshold' => 'Keep only keywords with heat >= threshold or rising.',
+            'ai_relevance' => 'After fetching, use AI to drop keywords unrelated to the category (requires a configured chat model).',
             'none_library' => 'Not selected',
         ],
         'provider' => [

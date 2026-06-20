@@ -98,6 +98,15 @@
         {{ __('admin.keyword_trends.field.auto_import') }}
     </label>
 
+    <div>
+        <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="hidden" name="ai_relevance" value="0">
+            <input type="checkbox" name="ai_relevance" value="1" @checked(old('ai_relevance', $isEdit ? $source->ai_relevance : false))>
+            {{ __('admin.keyword_trends.field.ai_relevance') }}
+        </label>
+        <p class="mt-1 text-xs text-gray-500">{{ __('admin.keyword_trends.help.ai_relevance') }}</p>
+    </div>
+
     <div class="flex justify-end gap-3 pt-2">
         <a href="{{ route('admin.keyword-trends.index') }}" class="admin-btn admin-btn-secondary">{{ __('admin.keyword_trends.button.cancel') }}</a>
         <button type="submit" class="admin-btn admin-btn-primary">

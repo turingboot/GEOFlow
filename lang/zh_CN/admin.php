@@ -4264,6 +4264,7 @@ return [
             'top_n' => '取前 N 个',
             'target_library' => '目标关键词库',
             'auto_import' => '抓取后自动入库',
+            'ai_relevance' => 'AI 相关性过滤',
             'schedule' => '抓取频率',
             'dataforseo_login' => 'DataForSEO 登录名',
             'location_name' => '地区名称（如 United States）',
@@ -4275,6 +4276,7 @@ return [
             'seed_keywords' => '每行或逗号分隔；留空则用行业品类。',
             'api_key' => '加密存储，仅超级管理员可查看；编辑时留空表示不修改。',
             'heat_threshold' => '只保留热度≥阈值或处于上升趋势的关键词。',
+            'ai_relevance' => '抓取后用 AI 剔除与品类无关的词(需先配置可用的聊天模型)。',
             'none_library' => '未选择',
         ],
         'provider' => [

@@ -4272,6 +4272,7 @@ return array_replace_recursive($base, [
             'top_n' => 'Top N',
             'target_library' => 'Biblioteca de palavras-chave alvo',
             'auto_import' => 'Importar automaticamente após buscar',
+            'ai_relevance' => 'Filtro de relevância por IA',
             'schedule' => 'Frequência de busca',
             'dataforseo_login' => 'Login do DataForSEO',
             'location_name' => 'Nome da localização (ex.: United States)',
@@ -4283,6 +4284,7 @@ return array_replace_recursive($base, [
             'seed_keywords' => 'Uma por linha ou separadas por vírgula; usa a categoria se vazio.',
             'api_key' => 'Armazenada criptografada, revelável apenas por superadmins; deixe vazio ao editar para manter.',
             'heat_threshold' => 'Mantém apenas palavras com popularidade >= limite ou em alta.',
+            'ai_relevance' => 'Após a busca, usa IA para remover palavras não relacionadas à categoria (requer um modelo de chat configurado).',
             'none_library' => 'Não selecionada',
         ],
         'provider' => [
