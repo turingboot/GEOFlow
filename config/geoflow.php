@@ -146,4 +146,21 @@ return [
     // 会话空闲超时（秒）
     'session_timeout_seconds' => (int) env('GEOFLOW_SESSION_TIMEOUT', 2592000),
 
+    // GEO 质检层（外挂式扩展）：文章生成后自动评分 + 软闸口。
+    'geo_audit' => [
+        // 是否启用生成后自动评分钩子；关闭后主链路完全不受影响。
+        'enabled' => filter_var(env('GEOFLOW_GEO_AUDIT_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        // 综合分及格线（0-100）：低于则软闸口将草稿打回人工审核（review_status=pending）。
+        'pass_threshold' => (int) env('GEOFLOW_GEO_AUDIT_THRESHOLD', 70),
+        // 四维评分权重（求和后归一化，无需正好等于 1）。
+        'weights' => [
+            'title_keyword_match' => (float) env('GEOFLOW_GEO_AUDIT_W_TITLE', 0.3),
+            'structure' => (float) env('GEOFLOW_GEO_AUDIT_W_STRUCTURE', 0.25),
+            'kb_coverage' => (float) env('GEOFLOW_GEO_AUDIT_W_KB', 0.25),
+            'dedup' => (float) env('GEOFLOW_GEO_AUDIT_W_DEDUP', 0.2),
+        ],
+        // 历史重复度比对窗口（天）：只与该窗口内的历史文章比对。
+        'dedup_window_days' => (int) env('GEOFLOW_GEO_AUDIT_DEDUP_WINDOW_DAYS', 90),
+    ],
+
 ];

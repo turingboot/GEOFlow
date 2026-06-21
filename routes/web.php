@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\AuthorController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DistributionController;
+use App\Http\Controllers\Admin\GeoAuditController;
 use App\Http\Controllers\Admin\ImageLibraryController;
 use App\Http\Controllers\Admin\KeywordLibraryController;
 use App\Http\Controllers\Admin\KeywordTrendController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\Admin\SiteThemeReplicationController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\TitleLibraryController;
+use App\Http\Controllers\Admin\TopicPlanController;
 use App\Http\Controllers\Admin\UrlImportController;
 use App\Http\Controllers\Site\ArchiveController;
 use App\Http\Controllers\Site\ArticleController as SiteArticleController;
@@ -139,6 +141,24 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
             Route::post('{sourceId}/import', [KeywordTrendController::class, 'import'])->name('import')->whereNumber('sourceId');
             Route::post('{sourceId}/reveal-secret', [KeywordTrendController::class, 'revealSecret'])->name('reveal-secret')->whereNumber('sourceId');
             Route::get('{sourceId}', [KeywordTrendController::class, 'show'])->name('show')->whereNumber('sourceId');
+        });
+
+        // 选题规划层：月度选题规划 + 确认排期（外挂式扩展）
+        Route::prefix('topic-plans')->name('topic-plans.')->group(function () {
+            Route::get('/', [TopicPlanController::class, 'index'])->name('index');
+            Route::get('create', [TopicPlanController::class, 'create'])->name('create');
+            Route::post('create', [TopicPlanController::class, 'store'])->name('store');
+            Route::post('{planId}/confirm', [TopicPlanController::class, 'confirm'])->name('confirm')->whereNumber('planId');
+            Route::post('{planId}/dispatch', [TopicPlanController::class, 'dispatch'])->name('dispatch')->whereNumber('planId');
+            Route::get('{planId}', [TopicPlanController::class, 'show'])->name('show')->whereNumber('planId');
+        });
+
+        // GEO 质检层：文章 GEO 评分面板（外挂式扩展）
+        Route::prefix('geo-audits')->name('geo-audits.')->group(function () {
+            Route::get('/', [GeoAuditController::class, 'index'])->name('index');
+            Route::post('{articleId}/reaudit', [GeoAuditController::class, 'reaudit'])->name('reaudit')->whereNumber('articleId');
+            Route::post('{articleId}/optimize', [GeoAuditController::class, 'optimize'])->name('optimize')->whereNumber('articleId');
+            Route::get('{articleId}', [GeoAuditController::class, 'show'])->name('show')->whereNumber('articleId');
         });
 
         // 文章管理（Blade 新路径）

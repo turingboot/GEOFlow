@@ -158,6 +158,18 @@ class WorkerExecutionService
             return (int) $article->id;
         });
 
+        // GEO 质检层（外挂式扩展）：生成后自动评分 + 软闸口。失败仅记录，不影响主链路。
+        if ((bool) config('geoflow.geo_audit.enabled', true)) {
+            try {
+                app(GeoArticleAuditService::class)->auditAndApplyGate($articleId);
+            } catch (Throwable $e) {
+                Log::warning('GEO 质检执行失败（已跳过，不影响主链路）', [
+                    'article_id' => $articleId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         return [
             'article_id' => $articleId,
             'title' => (string) $titleRow->title,
