@@ -33,6 +33,7 @@ class GeoAuditController extends Controller
         $audits = ArticleGeoAudit::query()
             ->with('article:id,title,status,review_status')
             ->whereIn('id', $latestIds)
+            ->whereHas('article') // 排除回收站（软删）文章的评分；文章永久删除时评分已随 FK 级联清除。
             ->orderByDesc('audited_at')
             ->limit(200)
             ->get();
@@ -57,6 +58,7 @@ class GeoAuditController extends Controller
         $audit = ArticleGeoAudit::query()
             ->with('article')
             ->where('article_id', $articleId)
+            ->whereHas('article') // 回收站文章的评分不可见；恢复后自动重现，永久删除则随 FK 级联清除。
             ->orderByDesc('id')
             ->first();
 

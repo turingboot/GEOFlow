@@ -145,6 +145,49 @@ class AdminGeoAuditPageTest extends TestCase
         $this->assertSame($optimized, $article->fresh()->content);
     }
 
+    public function test_index_hides_audits_of_trashed_articles(): void
+    {
+        $live = $this->makeArticle(['title' => '在用文章']);
+        $trashed = $this->makeArticle(['title' => '回收站文章']);
+        foreach ([$live, $trashed] as $article) {
+            ArticleGeoAudit::query()->create([
+                'article_id' => $article->id,
+                'geo_score' => 60,
+                'gate_decision' => ArticleGeoAudit::GATE_TO_REVIEW,
+                'audited_at' => now(),
+            ]);
+        }
+        $trashed->delete(); // 软删 → 进回收站
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.geo-audits.index'))
+            ->assertOk()
+            ->assertSee('在用文章')
+            ->assertDontSee('回收站文章');
+
+        // 回收站文章的详情页不可见
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.geo-audits.show', $trashed->id))
+            ->assertRedirect(route('admin.geo-audits.index'));
+    }
+
+    public function test_force_deleting_article_cascades_geo_audits(): void
+    {
+        $article = $this->makeArticle();
+        ArticleGeoAudit::query()->create([
+            'article_id' => $article->id,
+            'geo_score' => 60,
+            'gate_decision' => ArticleGeoAudit::GATE_TO_REVIEW,
+            'audited_at' => now(),
+        ]);
+        $this->assertSame(1, ArticleGeoAudit::query()->where('article_id', $article->id)->count());
+
+        $article->forceDelete(); // 永久删除 → DB 外键级联
+
+        $this->assertSame(0, ArticleGeoAudit::query()->where('article_id', $article->id)->count());
+    }
+
     private function admin(): Admin
     {
         return Admin::query()->create([
