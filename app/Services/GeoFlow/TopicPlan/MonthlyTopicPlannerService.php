@@ -298,8 +298,9 @@ class MonthlyTopicPlannerService
         return DB::transaction(function () use ($params, $items, $sourceSummary): TopicPlan {
             $plan = TopicPlan::query()->create([
                 'name' => trim((string) ($params['name'] ?? '')) ?: '选题规划',
-                'period_start' => $params['period_start'] ?? now()->startOfMonth()->toDateString(),
-                'period_end' => $params['period_end'] ?? now()->endOfMonth()->toDateString(),
+                // 区间灵活：未指定时默认「今天 ~ 今天+30 天」，不再锚定自然月。
+                'period_start' => $params['period_start'] ?? now()->toDateString(),
+                'period_end' => $params['period_end'] ?? now()->addDays(30)->toDateString(),
                 'status' => 'draft',
                 'source_summary' => $sourceSummary,
                 'ai_model_id' => ((int) ($params['ai_model_id'] ?? 0)) ?: null,

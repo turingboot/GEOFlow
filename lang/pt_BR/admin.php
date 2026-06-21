@@ -4317,10 +4317,10 @@ return array_replace_recursive($base, [
     ],
 
     'topic_plans' => [
-        'page_title' => 'Planejamento mensal de pautas',
-        'page_subtitle' => 'Lê tendências/bibliotecas de palavras-chave/bases de conhecimento/histórico, gera um pool mensal de pautas por IA e agenda de forma flexível as pautas confirmadas em tarefas.',
+        'page_title' => 'Planejamento de pautas',
+        'page_subtitle' => 'Lê tendências/bibliotecas de palavras-chave/bases de conhecimento/histórico, gera um pool de pautas por IA em um intervalo de datas flexível e agenda de forma flexível as pautas confirmadas em tarefas.',
         'list_title' => 'Planos',
-        'empty' => 'Nenhum plano de pautas ainda. Clique em "Novo plano" para gerar um pool mensal.',
+        'empty' => 'Nenhum plano de pautas ainda. Clique em "Novo plano" para gerar um pool de pautas.',
         'create_title' => 'Novo plano de pautas',
         'create_subtitle' => 'Escolha as fontes de dados e a quantidade alvo; a IA gera pautas candidatas (apenas persistidas, sem gerar artigos).',
         'detail_title' => 'Confirmar e agendar pautas',

@@ -4309,10 +4309,10 @@ return [
     ],
 
     'topic_plans' => [
-        'page_title' => 'Monthly Topic Planning',
-        'page_subtitle' => 'Reads trends/keyword libraries/knowledge bases/history, AI-generates a monthly topic pool, then soft-schedules confirmed topics into tasks.',
+        'page_title' => 'Topic Planning',
+        'page_subtitle' => 'Reads trends/keyword libraries/knowledge bases/history, AI-generates a topic pool over a flexible date range, then soft-schedules confirmed topics into tasks.',
         'list_title' => 'Plans',
-        'empty' => 'No topic plans yet. Click "New plan" to generate a monthly topic pool.',
+        'empty' => 'No topic plans yet. Click "New plan" to generate a topic pool.',
         'create_title' => 'New topic plan',
         'create_subtitle' => 'Pick data sources and target count; AI generates candidate topics (persisted only, no articles generated).',
         'detail_title' => 'Confirm & schedule topics',
