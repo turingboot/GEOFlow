@@ -334,7 +334,7 @@ final class UrlImportProcessingService
 
         $bin = @inet_pton($ip);
 
-        return $bin !== false && (ord($bin[0]) & 0xfe) === 0xfc;
+        return $bin !== false && (ord($bin[0]) & 0xFE) === 0xFC;
     }
 
     /**
@@ -420,6 +420,7 @@ final class UrlImportProcessingService
         $summary = (string) ($parsed['summary'] ?? '');
         $libraryName = $this->safeName($title !== '' ? $title : (string) $job->source_domain);
         $pageJson = $this->buildPageJson($parsed, $job);
+        $languageDirective = $this->languageDirective($this->resolveOutputLanguage($job));
 
         $models = $this->assertAnalysisModelsReady();
         $errors = [];
@@ -439,7 +440,7 @@ final class UrlImportProcessingService
                     $this->log($job, 'info', __('admin.url_import.log.clean_start'));
                     $cleaned = $this->normalizeCleanedPage($this->requestAiJson(
                         $runtime,
-                        $this->buildCleanSystemPrompt(),
+                        $this->buildCleanSystemPrompt().$languageDirective,
                         $this->buildCleanUserPrompt($pageJson)
                     ), $parsed);
                     $this->log($job, 'info', __('admin.url_import.log.clean_done', [
@@ -448,7 +449,7 @@ final class UrlImportProcessingService
 
                     $knowledgePayload = $this->requestAiJson(
                         $runtime,
-                        $this->buildKnowledgeSystemPrompt(),
+                        $this->buildKnowledgeSystemPrompt().$languageDirective,
                         $this->buildKnowledgeUserPrompt($pageJson, $cleaned, [])
                     );
                     $aiSummary = $this->normalizeText($this->aiResponseTextToString($knowledgePayload['summary'] ?? $cleaned['summary'] ?? $summary));
@@ -465,7 +466,7 @@ final class UrlImportProcessingService
                     $this->log($job, 'info', __('admin.url_import.log.keywords_start'));
                     $keywordPayload = $this->requestAiJson(
                         $runtime,
-                        $this->buildKeywordsSystemPrompt(),
+                        $this->buildKeywordsSystemPrompt().$languageDirective,
                         $this->buildKeywordsUserPrompt($pageJson, $cleaned, $aiKnowledge),
                         'keywords'
                     );
@@ -480,7 +481,7 @@ final class UrlImportProcessingService
                     $this->log($job, 'info', __('admin.url_import.log.titles_start'));
                     $titlePayload = $this->requestAiJson(
                         $runtime,
-                        $this->buildTitlesSystemPrompt(),
+                        $this->buildTitlesSystemPrompt().$languageDirective,
                         $this->buildTitlesUserPrompt($pageJson, $cleaned, $aiKnowledge, $aiKeywords),
                         'titles'
                     );
@@ -714,6 +715,36 @@ final class UrlImportProcessingService
 core_business 必须描述页面主体对应的行业、产品/服务、目标客户、商业场景、价值主张和可验证边界。
 不能虚构页面没有的信息。
 PROMPT;
+    }
+
+    /**
+     * 根据导入任务的「内容语言」选项解析出目标输出语言。
+     * 空值表示自动跟随源页面语言（修复英文页面被强制转中文的问题）。
+     */
+    private function resolveOutputLanguage(UrlImportJob $job): string
+    {
+        $options = json_decode((string) $job->options_json, true);
+        $options = is_array($options) ? $options : [];
+        $language = strtolower(trim((string) ($options['content_language'] ?? '')));
+
+        return match (true) {
+            str_starts_with($language, 'zh') => 'zh-CN',
+            str_starts_with($language, 'en') => 'en',
+            default => 'auto',
+        };
+    }
+
+    /**
+     * 生成追加到各分析系统提示词末尾的语言指令。
+     * Chinese 系统提示词会把模型默认导向中文，这里用一条显式指令覆盖它。
+     */
+    private function languageDirective(string $language): string
+    {
+        return match ($language) {
+            'zh-CN' => "\n\n语言要求：所有输出文本字段（clean_title、clean_summary、summary、library_name、keywords、titles、knowledge_markdown 等）必须使用简体中文，即使源页面是其他语言也要翻译成简体中文。",
+            'en' => "\n\nLanguage requirement: Write ALL output text fields (clean_title, clean_summary, summary, library_name, keywords, titles, knowledge_markdown, etc.) in English. Even if the source page is in another language, do NOT translate into Chinese.",
+            default => "\n\n语言要求：必须严格沿用源页面的原始语言输出所有文本字段（clean_title、clean_summary、summary、library_name、keywords、titles、knowledge_markdown 等）。源页面是英文就全部用英文，是中文就全部用中文，绝不要把英文内容翻译或改写成中文。",
+        };
     }
 
     /**
