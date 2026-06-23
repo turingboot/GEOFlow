@@ -8,6 +8,9 @@
     $titles = array_values(array_filter((array) data_get($analysis, 'titles', [])));
     $rawJson = data_get($analysis, 'page_json') ?: data_get($page, 'raw_json', []);
     $importStatus = (string) data_get($import, 'status', 'preview');
+    $crawl = (array) data_get($result, 'crawl', []);
+    $crawlPages = array_values((array) data_get($crawl, 'pages', []));
+    $crawlImages = array_values(array_filter((array) data_get($crawl, 'image_urls', [])));
     $steps = [
         'queued' => __('admin.url_import.workflow.queued'),
         'fetch' => __('admin.url_import.workflow.fetch'),
@@ -238,6 +241,32 @@
                             </ol>
                         </div>
                     </div>
+
+                    @if (count($crawlPages) > 1 || count($crawlImages) > 0)
+                        <div class="rounded-xl border border-gray-200 p-5">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-base font-semibold text-gray-900">{{ __('admin.url_import.preview.crawl') }}</h4>
+                                <span class="text-xs text-gray-500">{{ __('admin.url_import.preview.crawl_summary', ['pages' => count($crawlPages), 'images' => count($crawlImages)]) }}</span>
+                            </div>
+                            @if (count($crawlPages) > 1)
+                                <ul class="mt-4 space-y-1 text-sm text-gray-600">
+                                    @foreach (array_slice($crawlPages, 0, 30) as $crawlPage)
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="{{ data_get($crawlPage, 'is_seed') ? 'home' : 'link' }}" class="mt-1 h-3.5 w-3.5 flex-none text-gray-400"></i>
+                                            <span class="break-all">{{ data_get($crawlPage, 'title') ?: data_get($crawlPage, 'url') }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                            @if (count($crawlImages) > 0)
+                                <div class="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
+                                    @foreach (array_slice($crawlImages, 0, 18) as $crawlImage)
+                                        <img src="{{ $crawlImage }}" alt="" loading="lazy" class="h-20 w-full rounded-md border border-gray-200 object-cover" referrerpolicy="no-referrer">
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @endif
 
                     <div class="rounded-xl border border-gray-200 p-5">
                         <h4 class="text-base font-semibold text-gray-900">{{ __('admin.url_import.preview.knowledge') }}</h4>

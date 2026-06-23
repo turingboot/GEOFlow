@@ -3402,6 +3402,10 @@ return array_replace_recursive($base, [
             'target_knowledge_base' => 'Base de Conhecimento Alvo',
             'target_keyword_library' => 'Biblioteca de Palavras-chave Alvo',
             'target_title_library' => 'Biblioteca de Títulos Alvo',
+            'crawl_secondary' => 'Rastrear páginas secundárias',
+            'max_secondary_pages' => 'Máx. de páginas secundárias',
+            'download_images' => 'Baixar imagens',
+            'max_images' => 'Máx. de imagens',
         ],
         'placeholder' => [
             'project_name' => 'Exemplo: Pesquisa sobre Ensino de Programação para Crianças',
@@ -3412,6 +3416,8 @@ return array_replace_recursive($base, [
             'auto_detect' => 'Detectar Automaticamente',
             'not_specified' => 'Não especificado',
             'create_or_later' => 'Criar nova ou decidir mais tarde',
+            'crawl_secondary_hint' => 'Segue os links do mesmo site na página inicial (incluindo abas de navegação) um nível abaixo e mescla na mesma base de conhecimento.',
+            'download_images_hint' => 'Baixa as imagens das páginas rastreadas para uma nova biblioteca de imagens do site (executa ao confirmar a importação).',
         ],
         'help' => [
             'url' => 'Comece com uma página de detalhes do artigo, página de relatório ou landing page com conteúdo principal claro. Evite páginas iniciais (homepages) no início.',
@@ -3473,6 +3479,8 @@ return array_replace_recursive($base, [
             'local_fallback' => 'Análise por regra local',
             'empty_summary' => 'Nenhum resumo ainda',
             'empty_knowledge' => 'Nenhuma visualização de conhecimento ainda',
+            'crawl' => 'Páginas e imagens rastreadas',
+            'crawl_summary' => ':pages páginas · :images imagens',
         ],
         'workflow' => [
             'queued' => 'Criar trabalho de importação',
@@ -3497,6 +3505,12 @@ return array_replace_recursive($base, [
         'log' => [
             'fetch_start' => 'Buscando: :url',
             'fetch_done' => 'Página buscada. Tamanho do HTML: :length bytes',
+            'secondary_start' => 'Rastreando páginas secundárias. Candidatas: :count',
+            'secondary_fetch' => 'Página secundária :current/:total buscada: :url',
+            'secondary_failed' => 'Falha na página secundária (ignorada): :url (:message)',
+            'chunk_sync_failed' => 'Falha na sincronização de chunks/embeddings (importado, tente novamente depois): :message',
+            'image_done' => 'Download de imagens concluído. :count imagens importadas',
+            'image_failed' => 'Falha no download da imagem (ignorada): :url (:message)',
             'page_json_start' => 'Gerando JSON da página com título, descrição e texto do corpo',
             'extract_done' => 'Extração concluída. Texto: :chars caracteres',
             'page_json_done' => 'JSON da página gerado. Texto limpável: :chars caracteres',

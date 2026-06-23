@@ -138,6 +138,36 @@
                             </label>
                         @endforeach
                     </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="rounded-lg border border-gray-200 p-4">
+                            <label class="flex items-start gap-3">
+                                <input type="checkbox" name="crawl_secondary" value="1" {{ old('crawl_secondary', '1') ? 'checked' : '' }} class="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span>
+                                    <span class="block text-sm font-medium text-gray-900">{{ __('admin.url_import.field.crawl_secondary') }}</span>
+                                    <span class="block mt-1 text-xs text-gray-500">{{ __('admin.url_import.option.crawl_secondary_hint') }}</span>
+                                </span>
+                            </label>
+                            <div class="mt-3">
+                                <label class="block text-xs font-medium text-gray-700">{{ __('admin.url_import.field.max_secondary_pages') }}</label>
+                                <input type="number" name="max_secondary_pages" min="1" max="50" value="{{ old('max_secondary_pages', 20) }}" class="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            </div>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-4">
+                            <label class="flex items-start gap-3">
+                                <input type="checkbox" name="download_images" value="1" {{ old('download_images', '1') ? 'checked' : '' }} class="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span>
+                                    <span class="block text-sm font-medium text-gray-900">{{ __('admin.url_import.field.download_images') }}</span>
+                                    <span class="block mt-1 text-xs text-gray-500">{{ __('admin.url_import.option.download_images_hint') }}</span>
+                                </span>
+                            </label>
+                            <div class="mt-3">
+                                <label class="block text-xs font-medium text-gray-700">{{ __('admin.url_import.field.max_images') }}</label>
+                                <input type="number" name="max_images" min="1" max="200" value="{{ old('max_images', 50) }}" class="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="rounded-xl border border-blue-100 bg-blue-50 p-4">
                         <h3 class="text-sm font-semibold text-blue-900">{{ __('admin.url_import.section.next_flow') }}</h3>
                         <p class="mt-2 text-sm leading-6 text-blue-800">{{ __('admin.url_import.recommendation.copy') }}</p>

@@ -4032,6 +4032,10 @@ return [
             'target_knowledge_base' => 'Target Knowledge Base',
             'target_keyword_library' => 'Target Keyword Library',
             'target_title_library' => 'Target Title Library',
+            'crawl_secondary' => 'Crawl secondary pages',
+            'max_secondary_pages' => 'Max secondary pages',
+            'download_images' => 'Download images',
+            'max_images' => 'Max images',
         ],
         'placeholder' => [
             'project_name' => 'Example: Kids Coding Research',
@@ -4042,6 +4046,8 @@ return [
             'auto_detect' => 'Auto Detect',
             'not_specified' => 'Not specified',
             'create_or_later' => 'Create new or decide later',
+            'crawl_secondary_hint' => 'Follow same-site links on the seed page (including nav tabs) one level deep and merge into the same knowledge base.',
+            'download_images_hint' => 'Download images from the crawled pages into a new site-origin image library (runs on confirm import).',
         ],
         'help' => [
             'url' => 'Start with an article detail page, report page, or landing page with clear main content. Avoid homepages first.',
@@ -4102,6 +4108,8 @@ return [
             'local_fallback' => 'Local rule parsing',
             'empty_summary' => 'No summary yet',
             'empty_knowledge' => 'No knowledge preview yet',
+            'crawl' => 'Crawled pages & images',
+            'crawl_summary' => ':pages pages · :images images',
         ],
         'workflow' => [
             'queued' => 'Create import job',
@@ -4126,6 +4134,12 @@ return [
         'log' => [
             'fetch_start' => 'Fetching: :url',
             'fetch_done' => 'Page fetched. HTML length: :length bytes',
+            'secondary_start' => 'Crawling secondary pages. Candidates: :count',
+            'secondary_fetch' => 'Secondary page :current/:total fetched: :url',
+            'secondary_failed' => 'Secondary page failed (skipped): :url (:message)',
+            'chunk_sync_failed' => 'Knowledge chunk/embedding sync failed (imported, retry later): :message',
+            'image_done' => 'Image download completed. Imported :count images',
+            'image_failed' => 'Image download failed (skipped): :url (:message)',
             'page_json_start' => 'Generating page JSON with title, description, and body text',
             'extract_done' => 'Extraction completed. Text: :chars chars',
             'page_json_done' => 'Page JSON generated. Cleanable text: :chars chars',

@@ -4,6 +4,8 @@ namespace App\Services\GeoFlow;
 
 use App\Ai\Agents\MarkdownContentWriterAgent;
 use App\Models\AiModel;
+use App\Models\Image;
+use App\Models\ImageLibrary;
 use App\Models\Keyword;
 use App\Models\KeywordLibrary;
 use App\Models\KnowledgeBase;
@@ -15,10 +17,12 @@ use App\Models\UrlImportJobLog;
 use App\Support\GeoFlow\ApiKeyCrypto;
 use App\Support\GeoFlow\OpenAiRuntimeProvider;
 use DOMDocument;
+use DOMElement;
 use DOMXPath;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -26,7 +30,27 @@ final class UrlImportProcessingService
 {
     private const AI_ANALYSIS_MAX_ATTEMPTS = 3;
 
-    public function __construct(private readonly ApiKeyCrypto $apiKeyCrypto) {}
+    private const SECONDARY_FETCH_DEFAULT = 20;
+
+    private const SECONDARY_FETCH_MAX = 50;
+
+    private const IMAGE_DOWNLOAD_DEFAULT = 50;
+
+    private const IMAGE_DOWNLOAD_MAX = 200;
+
+    private const IMAGE_MAX_BYTES = 5_242_880;
+
+    // 只过滤明显的图标/追踪像素;过大阈值会把正常缩略图(常见 120-180px)误删。
+    private const IMAGE_MIN_DIMENSION = 64;
+
+    private const AI_CORPUS_MAX_CHARS = 32000;
+
+    private const KB_CORPUS_MAX_CHARS = 120000;
+
+    public function __construct(
+        private readonly ApiKeyCrypto $apiKeyCrypto,
+        private readonly KnowledgeChunkSyncService $chunkSyncService,
+    ) {}
 
     /**
      * @return array{url:string,host:string}
@@ -129,12 +153,13 @@ final class UrlImportProcessingService
         $this->log($job, 'info', __('admin.url_import.log.fetch_start', ['url' => $job->normalized_url]));
 
         try {
-            $fetched = $this->fetchPage((string) $job->normalized_url);
+            $seedUrl = (string) $job->normalized_url;
+            $fetched = $this->fetchPage($seedUrl);
             $this->log($job, 'info', __('admin.url_import.log.fetch_done', ['length' => strlen($fetched['html'])]));
 
             $this->updateStep($job, 'page_json', 25);
             $this->log($job, 'info', __('admin.url_import.log.page_json_start'));
-            $parsed = $this->parseHtml($fetched['html'], (string) $job->normalized_url);
+            $parsed = $this->parseHtml($fetched['html'], $seedUrl);
             $this->log($job, 'info', __('admin.url_import.log.extract_done', [
                 'chars' => mb_strlen($parsed['text'], 'UTF-8'),
             ]));
@@ -142,18 +167,35 @@ final class UrlImportProcessingService
                 'chars' => mb_strlen((string) data_get($parsed, 'raw_json.text', ''), 'UTF-8'),
             ]));
 
-            $analysis = $this->buildAnalysis($parsed, $job);
+            $crawl = $this->crawlSecondaryPages($job, $seedUrl, $parsed);
+
+            // 聚合语料喂给单次 AI 分析,但保持存档的 page 仍为种子页本身。
+            $analysisInput = $parsed;
+            $analysisInput['text'] = $crawl['ai_corpus'];
+            $analysis = $this->buildAnalysis($analysisInput, $job);
+
+            $pageForStore = $parsed;
+            unset($pageForStore['links'], $pageForStore['images']);
 
             $result = [
                 'source' => [
                     'url' => (string) $job->url,
-                    'normalized_url' => (string) $job->normalized_url,
+                    'normalized_url' => $seedUrl,
                     'domain' => (string) $job->source_domain,
                     'fetched_at' => now()->toIso8601String(),
                     'status' => $fetched['status'],
                 ],
-                'page' => $parsed,
+                'page' => $pageForStore,
                 'analysis' => $analysis,
+                'crawl' => [
+                    'enabled' => $crawl['enabled'],
+                    'download_images' => $crawl['download_images'],
+                    'pages' => $crawl['pages'],
+                    'page_count' => count($crawl['pages']),
+                    'image_urls' => $crawl['image_urls'],
+                    'image_count' => count($crawl['image_urls']),
+                    'corpus' => $crawl['kb_corpus'],
+                ],
                 'import' => [
                     'status' => 'preview',
                     'summary' => null,
@@ -186,7 +228,7 @@ final class UrlImportProcessingService
     }
 
     /**
-     * @return array{knowledge_base:int,keyword_library:int,title_library:int,keywords:int,titles:int}
+     * @return array{knowledge_base:int,keyword_library:int,title_library:int,keywords:int,titles:int,chunks?:int,image_library?:int,images?:int}
      */
     public function commit(UrlImportJob $job): array
     {
@@ -205,10 +247,18 @@ final class UrlImportProcessingService
         $page = is_array($result['page'] ?? null) ? $result['page'] : [];
         /** @var array<string, mixed> $analysis */
         $analysis = is_array($result['analysis'] ?? null) ? $result['analysis'] : [];
+        /** @var array<string, mixed> $crawl */
+        $crawl = is_array($result['crawl'] ?? null) ? $result['crawl'] : [];
         $baseName = $this->safeName((string) ($analysis['library_name'] ?? $page['title'] ?? $job->source_domain ?: 'URL素材'));
         $knowledgeContent = trim((string) ($analysis['knowledge_markdown'] ?? $page['text'] ?? ''));
         if ($knowledgeContent === '') {
             throw new \RuntimeException(__('admin.url_import.error.commit_before_parse'));
+        }
+
+        // 把多页聚合的原始正文并入知识库,确保二级页面内容也会被切片/向量化召回。
+        $corpus = trim((string) ($crawl['corpus'] ?? ''));
+        if ($corpus !== '') {
+            $knowledgeContent .= "\n\n## 采集正文(多页聚合)\n\n".$corpus;
         }
         $keywords = $this->stringList($analysis['keywords'] ?? []);
         $titles = $this->stringList($analysis['titles'] ?? []);
@@ -275,6 +325,21 @@ final class UrlImportProcessingService
             ];
         });
 
+        // 切片 + 向量(放在事务外:内部会做 embedding 网络调用)。失败不阻断入库,仅记录。
+        try {
+            $summary['chunks'] = $this->chunkSyncService->sync((int) $summary['knowledge_base'], $knowledgeContent);
+        } catch (Throwable $exception) {
+            $summary['chunks'] = 0;
+            $this->log($job, 'warning', __('admin.url_import.log.chunk_sync_failed', [
+                'message' => $exception->getMessage(),
+            ]), 'imported');
+        }
+
+        // 下载采集到的图片并新建「站点同源图片库」(事务外:含网络下载)。
+        $imageResult = $this->importCrawledImages($job, $crawl, $baseName);
+        $summary['image_library'] = $imageResult['library_id'];
+        $summary['images'] = $imageResult['count'];
+
         $result['import'] = [
             'status' => 'imported',
             'imported_at' => now()->toIso8601String(),
@@ -298,6 +363,156 @@ final class UrlImportProcessingService
         $decoded = json_decode((string) $job->result_json, true);
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * 下载采集到的图片到 public 磁盘,并写入一个新建的「站点同源图片库」。
+     *
+     * @param  array<string, mixed>  $crawl
+     * @return array{library_id:int,count:int}
+     */
+    private function importCrawledImages(UrlImportJob $job, array $crawl, string $baseName): array
+    {
+        if (! (bool) ($crawl['download_images'] ?? false)) {
+            return ['library_id' => 0, 'count' => 0];
+        }
+
+        $urls = array_slice($this->stringList($crawl['image_urls'] ?? []), 0, self::IMAGE_DOWNLOAD_MAX);
+        if ($urls === []) {
+            return ['library_id' => 0, 'count' => 0];
+        }
+
+        $library = ImageLibrary::query()->create([
+            'name' => $baseName.' 图片库',
+            'description' => 'URL智能采集自动生成',
+            'image_count' => 0,
+            'used_task_count' => 0,
+        ]);
+
+        $seenHashes = [];
+        $count = 0;
+        foreach ($urls as $url) {
+            try {
+                $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+                if ($host === '') {
+                    continue;
+                }
+                $this->guardAgainstPrivateTargets($host);
+
+                $binary = $this->fetchImageBinary($url);
+                if ($binary === null) {
+                    continue;
+                }
+                if (max($binary['width'], $binary['height']) < self::IMAGE_MIN_DIMENSION) {
+                    continue;
+                }
+                if (in_array($binary['hash'], $seenHashes, true)) {
+                    continue;
+                }
+                $seenHashes[] = $binary['hash'];
+
+                $directory = 'uploads/images/'.date('Y/m');
+                if (! Storage::disk('public')->exists($directory) && ! Storage::disk('public')->makeDirectory($directory)) {
+                    continue;
+                }
+                $filename = bin2hex(random_bytes(16)).'.'.$this->imageExtension($binary['mime']);
+                $relativePath = $directory.'/'.$filename;
+                if (! Storage::disk('public')->put($relativePath, $binary['body'])) {
+                    continue;
+                }
+
+                Image::query()->create([
+                    'library_id' => (int) $library->id,
+                    'filename' => $filename,
+                    'file_name' => $filename,
+                    'original_name' => $this->imageOriginalName($url, $filename),
+                    'file_path' => 'storage/'.$relativePath,
+                    'file_size' => strlen($binary['body']),
+                    'mime_type' => $binary['mime'],
+                    'width' => $binary['width'],
+                    'height' => $binary['height'],
+                    'used_count' => 0,
+                    'usage_count' => 0,
+                ]);
+                $count++;
+            } catch (Throwable $exception) {
+                $this->log($job, 'warning', __('admin.url_import.log.image_failed', [
+                    'url' => Str::limit($url, 120, '...'),
+                    'message' => $exception->getMessage(),
+                ]), 'imported');
+            }
+        }
+
+        $library->update(['image_count' => $count]);
+        $this->log($job, 'info', __('admin.url_import.log.image_done', ['count' => $count]), 'imported');
+
+        return ['library_id' => (int) $library->id, 'count' => $count];
+    }
+
+    /**
+     * @return array{body:string,mime:string,width:int,height:int,hash:string}|null
+     */
+    private function fetchImageBinary(string $url): ?array
+    {
+        try {
+            $response = Http::timeout(15)
+                ->connectTimeout(8)
+                ->withHeaders(['User-Agent' => 'GEOFlow URL Importer/1.0'])
+                ->get($url);
+        } catch (Throwable) {
+            return null;
+        }
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $contentType = strtolower(trim(explode(';', (string) $response->header('Content-Type'))[0] ?? ''));
+        if ($contentType !== '' && ! str_starts_with($contentType, 'image/')) {
+            return null;
+        }
+
+        $body = (string) $response->body();
+        $size = strlen($body);
+        if ($size === 0 || $size > self::IMAGE_MAX_BYTES) {
+            return null;
+        }
+
+        $info = @getimagesizefromstring($body);
+        if ($info === false) {
+            return null;
+        }
+        $mime = strtolower((string) ($info['mime'] ?? $contentType));
+        if (! str_starts_with($mime, 'image/')) {
+            return null;
+        }
+
+        return [
+            'body' => $body,
+            'mime' => $mime,
+            'width' => (int) ($info[0] ?? 0),
+            'height' => (int) ($info[1] ?? 0),
+            'hash' => hash('sha256', $body),
+        ];
+    }
+
+    private function imageExtension(string $mime): string
+    {
+        return match (strtolower($mime)) {
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            'image/bmp' => 'bmp',
+            default => 'jpg',
+        };
+    }
+
+    private function imageOriginalName(string $url, string $fallback): string
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $base = $path !== '' ? basename($path) : '';
+
+        return $base !== '' ? Str::limit($base, 180, '') : $fallback;
     }
 
     private function guardAgainstPrivateTargets(string $host): void
@@ -366,7 +581,7 @@ final class UrlImportProcessingService
     }
 
     /**
-     * @return array{title:string,description:string,text:string,summary:string,raw_json:array<string,mixed>}
+     * @return array{title:string,description:string,text:string,summary:string,links:list<string>,images:list<string>,raw_json:array<string,mixed>}
      */
     private function parseHtml(string $html, string $baseUrl): array
     {
@@ -377,6 +592,11 @@ final class UrlImportProcessingService
         libxml_use_internal_errors($previous);
 
         $xpath = new DOMXPath($dom);
+
+        // 先在完整 DOM 上抽取链接与图片:导航 tab 链接位于 nav/header 中,必须在删除这些节点之前提取。
+        $links = $this->extractLinks($xpath, $baseUrl);
+        $images = $this->extractImages($xpath, $baseUrl);
+
         foreach ($xpath->query('//script|//style|//noscript|//nav|//footer|//header|//form|//aside') ?: [] as $node) {
             $node->parentNode?->removeChild($node);
         }
@@ -401,12 +621,276 @@ final class UrlImportProcessingService
             'description' => $this->normalizeText($description),
             'text' => Str::limit($text, 20000, ''),
             'summary' => $this->normalizeText($summary),
+            'links' => $links,
+            'images' => $images,
             'raw_json' => [
                 'title' => $this->normalizeText($title),
                 'description' => $this->normalizeText($description),
                 'text' => Str::limit($text, 20000, ''),
             ],
         ];
+    }
+
+    /**
+     * 抓取种子页之外的同站二级页面,聚合正文并收集全部图片 URL。
+     *
+     * @param  array<string, mixed>  $seedParsed
+     * @return array{enabled:bool,download_images:bool,pages:list<array<string,mixed>>,image_urls:list<string>,ai_corpus:string,kb_corpus:string}
+     */
+    private function crawlSecondaryPages(UrlImportJob $job, string $seedUrl, array $seedParsed): array
+    {
+        $options = json_decode((string) $job->options_json, true);
+        $options = is_array($options) ? $options : [];
+        $crawlSecondary = (bool) ($options['crawl_secondary'] ?? false);
+        $maxSecondary = max(1, min(self::SECONDARY_FETCH_MAX, (int) ($options['max_secondary_pages'] ?? self::SECONDARY_FETCH_DEFAULT)));
+        $downloadImages = (bool) ($options['download_images'] ?? false);
+        $maxImages = max(1, min(self::IMAGE_DOWNLOAD_MAX, (int) ($options['max_images'] ?? self::IMAGE_DOWNLOAD_DEFAULT)));
+
+        $seedText = (string) ($seedParsed['text'] ?? '');
+        $pages = [[
+            'url' => $seedUrl,
+            'title' => (string) ($seedParsed['title'] ?? ''),
+            'chars' => mb_strlen($seedText, 'UTF-8'),
+            'is_seed' => true,
+        ]];
+        $corpusParts = [$this->corpusSection($seedUrl, $seedText)];
+        $imageUrls = $this->stringList($seedParsed['images'] ?? []);
+
+        if ($crawlSecondary) {
+            $candidates = array_slice($this->stringList($seedParsed['links'] ?? []), 0, $maxSecondary);
+            $total = count($candidates);
+            $this->log($job, 'info', __('admin.url_import.log.secondary_start', ['count' => $total]));
+
+            foreach ($candidates as $index => $link) {
+                try {
+                    $host = strtolower((string) parse_url($link, PHP_URL_HOST));
+                    if ($host === '') {
+                        continue;
+                    }
+                    $this->guardAgainstPrivateTargets($host);
+                    $sub = $this->fetchPage($link);
+                    $subParsed = $this->parseHtml($sub['html'], $link);
+                    $subText = (string) ($subParsed['text'] ?? '');
+                    $pages[] = [
+                        'url' => $link,
+                        'title' => (string) ($subParsed['title'] ?? ''),
+                        'chars' => mb_strlen($subText, 'UTF-8'),
+                        'is_seed' => false,
+                    ];
+                    $corpusParts[] = $this->corpusSection($link, $subText);
+                    $imageUrls = array_merge($imageUrls, $this->stringList($subParsed['images'] ?? []));
+                    $this->log($job, 'info', __('admin.url_import.log.secondary_fetch', [
+                        'current' => $index + 1,
+                        'total' => $total,
+                        'url' => Str::limit($link, 120, '...'),
+                    ]), 'page_json');
+                } catch (Throwable $exception) {
+                    $this->log($job, 'warning', __('admin.url_import.log.secondary_failed', [
+                        'url' => Str::limit($link, 120, '...'),
+                        'message' => $exception->getMessage(),
+                    ]), 'page_json');
+                }
+
+                $this->updateStep($job, 'page_json', 25 + (int) floor(15 * (($index + 1) / max(1, $total))));
+            }
+        }
+
+        $imageUrls = array_values(array_unique(array_filter($imageUrls)));
+        $imageUrls = $downloadImages ? array_slice($imageUrls, 0, $maxImages) : [];
+
+        return [
+            'enabled' => $crawlSecondary,
+            'download_images' => $downloadImages,
+            'pages' => $pages,
+            'image_urls' => $imageUrls,
+            'ai_corpus' => $this->joinCorpus($corpusParts, self::AI_CORPUS_MAX_CHARS),
+            'kb_corpus' => $this->joinCorpus($corpusParts, self::KB_CORPUS_MAX_CHARS),
+        ];
+    }
+
+    private function corpusSection(string $url, string $text): string
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return '';
+        }
+
+        return "## 来源: {$url}\n{$text}";
+    }
+
+    /**
+     * @param  list<string>  $parts
+     */
+    private function joinCorpus(array $parts, int $maxChars): string
+    {
+        $parts = array_values(array_filter(array_map('trim', $parts), static fn (string $part): bool => $part !== ''));
+
+        return Str::limit(implode("\n\n", $parts), $maxChars, '');
+    }
+
+    /**
+     * 从完整 DOM 中提取与种子同主域、去重、去 fragment 的内部链接。
+     *
+     * @return list<string>
+     */
+    private function extractLinks(DOMXPath $xpath, string $baseUrl): array
+    {
+        $seedHost = strtolower((string) parse_url($baseUrl, PHP_URL_HOST));
+        $seedClean = $this->stripFragment($baseUrl);
+        $links = [];
+
+        foreach ($xpath->query('//a/@href') ?: [] as $attr) {
+            $resolved = $this->resolveUrl((string) $attr->nodeValue, $baseUrl);
+            if ($resolved === '' || $resolved === $seedClean) {
+                continue;
+            }
+            $host = strtolower((string) parse_url($resolved, PHP_URL_HOST));
+            if ($host === '' || ! $this->isSameRegistrableDomain($host, $seedHost)) {
+                continue;
+            }
+            $links[$resolved] = true;
+        }
+
+        return array_keys($links);
+    }
+
+    /**
+     * 从完整 DOM 中提取图片 URL(含懒加载属性与 og:image)。
+     *
+     * @return list<string>
+     */
+    private function extractImages(DOMXPath $xpath, string $baseUrl): array
+    {
+        $urls = [];
+
+        foreach ($xpath->query('//img') ?: [] as $img) {
+            if (! $img instanceof DOMElement) {
+                continue;
+            }
+            foreach (['src', 'data-src', 'data-original', 'data-lazy-src'] as $attr) {
+                $value = trim($img->getAttribute($attr));
+                if ($value === '') {
+                    continue;
+                }
+                $resolved = $this->resolveUrl($value, $baseUrl);
+                if ($resolved !== '' && preg_match('#^https?://#i', $resolved)) {
+                    $urls[$resolved] = true;
+                }
+            }
+        }
+
+        foreach (['og:image', 'twitter:image'] as $metaName) {
+            $meta = $this->firstMetaContent($xpath, [$metaName]);
+            if ($meta === '') {
+                continue;
+            }
+            $resolved = $this->resolveUrl($meta, $baseUrl);
+            if ($resolved !== '' && preg_match('#^https?://#i', $resolved)) {
+                $urls[$resolved] = true;
+            }
+        }
+
+        return array_keys($urls);
+    }
+
+    /**
+     * 把页面上的 href 解析成绝对 URL(去 fragment),非 http(s) 或锚点返回空串。
+     */
+    private function resolveUrl(string $href, string $baseUrl): string
+    {
+        $href = trim($href);
+        if ($href === '' || str_starts_with($href, '#')) {
+            return '';
+        }
+        if (preg_match('#^(?:mailto:|tel:|sms:|javascript:|data:|ftp:)#i', $href)) {
+            return '';
+        }
+
+        $href = $this->stripFragment($href);
+        if ($href === '') {
+            return '';
+        }
+
+        if (preg_match('#^https?://#i', $href)) {
+            return $href;
+        }
+
+        $base = parse_url($baseUrl);
+        $scheme = strtolower((string) ($base['scheme'] ?? 'https'));
+        $host = (string) ($base['host'] ?? '');
+        if ($host === '') {
+            return '';
+        }
+        $authority = $scheme.'://'.$host.(isset($base['port']) ? ':'.$base['port'] : '');
+
+        if (str_starts_with($href, '//')) {
+            return $scheme.':'.$href;
+        }
+        if (str_starts_with($href, '/')) {
+            return $authority.$href;
+        }
+
+        $basePath = (string) ($base['path'] ?? '/');
+        $dir = preg_replace('#/[^/]*$#', '/', $basePath);
+        if (! is_string($dir) || $dir === '') {
+            $dir = '/';
+        }
+
+        [$relPath, $relQuery] = array_pad(explode('?', $href, 2), 2, null);
+        $segments = [];
+        foreach (explode('/', $dir.$relPath) as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+            if ($segment === '..') {
+                array_pop($segments);
+
+                continue;
+            }
+            $segments[] = $segment;
+        }
+
+        $resolved = $authority.'/'.implode('/', $segments);
+        if ($relQuery !== null && $relQuery !== '') {
+            $resolved .= '?'.$relQuery;
+        }
+
+        return $resolved;
+    }
+
+    private function stripFragment(string $url): string
+    {
+        $pos = strpos($url, '#');
+
+        return $pos === false ? $url : substr($url, 0, $pos);
+    }
+
+    private function isSameRegistrableDomain(string $host, string $seedHost): bool
+    {
+        $host = strtolower(trim($host));
+        $seedHost = strtolower(trim($seedHost));
+        if ($host === '' || $seedHost === '') {
+            return false;
+        }
+        if ($host === $seedHost) {
+            return true;
+        }
+
+        $a = $this->registrableDomain($host);
+        $b = $this->registrableDomain($seedHost);
+
+        return $a !== '' && $a === $b;
+    }
+
+    private function registrableDomain(string $host): string
+    {
+        $parts = explode('.', trim($host, '.'));
+        $count = count($parts);
+        if ($count <= 2) {
+            return $host;
+        }
+
+        return implode('.', array_slice($parts, -2));
     }
 
     /**

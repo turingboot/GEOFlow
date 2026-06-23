@@ -4032,6 +4032,10 @@ return [
             'target_knowledge_base' => '目标知识库',
             'target_keyword_library' => '目标关键词库',
             'target_title_library' => '目标标题库',
+            'crawl_secondary' => '抓取二级页面',
+            'max_secondary_pages' => '二级页面上限',
+            'download_images' => '下载图片',
+            'max_images' => '图片数量上限',
         ],
         'placeholder' => [
             'project_name' => '例如：少儿编程研究',
@@ -4042,6 +4046,8 @@ return [
             'auto_detect' => '自动检测',
             'not_specified' => '不指定',
             'create_or_later' => '新建或稍后确认',
+            'crawl_secondary_hint' => '沿种子页上的同站链接(含导航 tab)向下抓一层,聚合进同一个知识库。',
+            'download_images_hint' => '把采集页面里的图片下载到新建的「站点同源图片库」(确认入库时执行)。',
         ],
         'help' => [
             'url' => '建议先录入文章详情页、专题页或带明确主体内容的落地页，不要从首页开始。',
@@ -4102,6 +4108,8 @@ return [
             'local_fallback' => '本地规则解析',
             'empty_summary' => '暂无摘要',
             'empty_knowledge' => '暂无知识预览',
+            'crawl' => '采集页面与图片',
+            'crawl_summary' => '共 :pages 个页面 · :images 张图片',
         ],
         'workflow' => [
             'queued' => '创建采集任务',
@@ -4126,6 +4134,12 @@ return [
         'log' => [
             'fetch_start' => '开始抓取：:url',
             'fetch_done' => '页面抓取完成，HTML 长度：:length 字节',
+            'secondary_start' => '开始抓取二级页面，候选 :count 个',
+            'secondary_fetch' => '二级页面 :current/:total 抓取完成：:url',
+            'secondary_failed' => '二级页面抓取失败（已跳过）：:url（:message）',
+            'chunk_sync_failed' => '知识库切片/向量化失败（已入库，可后续重试）：:message',
+            'image_done' => '图片下载完成，共入库 :count 张',
+            'image_failed' => '图片下载失败（已跳过）：:url（:message）',
             'page_json_start' => '开始生成页面 JSON，保留标题、描述和正文',
             'extract_done' => '正文抽取完成，正文：:chars 字',
             'page_json_done' => '页面 JSON 已生成，可清洗正文：:chars 字',

@@ -40,6 +40,10 @@ class UrlImportController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
             'outputs' => ['array'],
             'outputs.*' => ['string', 'in:knowledge,keywords,titles'],
+            'crawl_secondary' => ['nullable', 'boolean'],
+            'max_secondary_pages' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'download_images' => ['nullable', 'boolean'],
+            'max_images' => ['nullable', 'integer', 'min:1', 'max:200'],
         ]);
 
         try {
@@ -71,6 +75,10 @@ class UrlImportController extends Controller
                 'content_language' => $validated['content_language'] ?? '',
                 'notes' => $validated['notes'] ?? '',
                 'outputs' => $validated['outputs'] ?? ['knowledge', 'keywords', 'titles'],
+                'crawl_secondary' => $request->boolean('crawl_secondary'),
+                'max_secondary_pages' => max(1, min(50, (int) ($validated['max_secondary_pages'] ?? 20))),
+                'download_images' => $request->boolean('download_images'),
+                'max_images' => max(1, min(200, (int) ($validated['max_images'] ?? 50))),
             ], JSON_UNESCAPED_UNICODE),
             'result_json' => '',
             'error_message' => '',
@@ -256,7 +264,7 @@ class UrlImportController extends Controller
         return [
             'id' => (int) $job->id,
             'status' => (string) $job->status,
-            'status_label' => __('admin.url_import_history.status.' . $job->status),
+            'status_label' => __('admin.url_import_history.status.'.$job->status),
             'current_step' => $currentStep,
             'stored_step' => $storedStep,
             'progress_percent' => (int) $job->progress_percent,
