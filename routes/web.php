@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\LegacyController;
 use App\Http\Controllers\Admin\MaterialsController;
 use App\Http\Controllers\Admin\SecuritySettingsController;
 use App\Http\Controllers\Admin\SiteSettingsController;
+use App\Http\Controllers\Admin\SiteThemeEditorController;
 use App\Http\Controllers\Admin\SiteThemeReplicationController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TaskController;
@@ -114,6 +115,7 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
             Route::get('create', [DistributionController::class, 'create'])->name('create');
             Route::post('create', [DistributionController::class, 'store'])->name('store');
             Route::get('jobs', [DistributionController::class, 'jobs'])->name('jobs');
+            Route::post('sync-settings-all', [DistributionController::class, 'syncSettingsAll'])->name('sync-settings-all');
             Route::get('jobs/{distributionId}/edit', [DistributionController::class, 'editArticle'])->name('article.edit')->whereNumber('distributionId');
             Route::put('jobs/{distributionId}', [DistributionController::class, 'updateArticle'])->name('article.update')->whereNumber('distributionId');
             Route::post('jobs/{distributionId}/delete', [DistributionController::class, 'deleteArticle'])->name('article.delete')->whereNumber('distributionId');
@@ -303,6 +305,29 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
             Route::get('/', [SiteSettingsController::class, 'index'])->name('index');
             Route::post('/', [SiteSettingsController::class, 'update'])->name('update');
             Route::post('theme', [SiteSettingsController::class, 'updateTheme'])->name('theme');
+            Route::post('homepage-modules', [SiteSettingsController::class, 'updateHomepageModules'])->name('homepage-modules');
+            Route::post('homepage-modules/preset', [SiteSettingsController::class, 'applyHomepageModulePreset'])->name('homepage-modules.preset');
+            Route::post('homepage-modules/import', [SiteSettingsController::class, 'importHomepageModuleDesign'])->name('homepage-modules.import');
+            Route::get('theme-editor/{themeId}/{page}', [SiteThemeEditorController::class, 'edit'])
+                ->name('theme-editor.edit')
+                ->where('themeId', '[A-Za-z0-9_-]+')
+                ->whereIn('page', ['home', 'category', 'article']);
+            Route::get('theme-editor/{themeId}/{page}/preview', [SiteThemeEditorController::class, 'preview'])
+                ->name('theme-editor.preview')
+                ->where('themeId', '[A-Za-z0-9_-]+')
+                ->whereIn('page', ['home', 'category', 'article']);
+            Route::post('theme-editor/{themeId}/{page}/draft', [SiteThemeEditorController::class, 'draft'])
+                ->name('theme-editor.draft')
+                ->where('themeId', '[A-Za-z0-9_-]+')
+                ->whereIn('page', ['home', 'category', 'article']);
+            Route::post('theme-editor/{themeId}/{page}/publish', [SiteThemeEditorController::class, 'publish'])
+                ->name('theme-editor.publish')
+                ->where('themeId', '[A-Za-z0-9_-]+')
+                ->whereIn('page', ['home', 'category', 'article']);
+            Route::post('theme-editor/{themeId}/{page}/discard', [SiteThemeEditorController::class, 'discard'])
+                ->name('theme-editor.discard')
+                ->where('themeId', '[A-Za-z0-9_-]+')
+                ->whereIn('page', ['home', 'category', 'article']);
             Route::get('theme-replications/create', [SiteThemeReplicationController::class, 'create'])->name('theme-replications.create');
             Route::post('theme-replications', [SiteThemeReplicationController::class, 'store'])->name('theme-replications.store');
             Route::get('theme-replications/{replicationId}', [SiteThemeReplicationController::class, 'show'])

@@ -8,6 +8,13 @@
                 <p class="admin-hero-sub">{{ __('admin.distribution.page_subtitle') }}</p>
             </div>
             <div class="admin-hero-actions">
+                <form method="POST" action="{{ route('admin.distribution.sync-settings-all') }}" onsubmit="return confirm(@js(__('admin.distribution.confirm.sync_settings_all')))">
+                    @csrf
+                    <button type="submit" class="admin-btn admin-btn-secondary">
+                        <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                        {{ __('admin.distribution.button.sync_settings_all') }}
+                    </button>
+                </form>
                 <a href="{{ route('admin.distribution.jobs') }}" class="admin-btn admin-btn-secondary">
                     <i data-lucide="list-checks" class="h-4 w-4"></i>
                     {{ __('admin.distribution.button.jobs') }}
