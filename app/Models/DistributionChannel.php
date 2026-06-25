@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use App\Support\Site\ArticleTextAdPicker;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,10 +11,13 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class DistributionChannel extends Model
 {
+    use BelongsToTenant;
+
     public const MAX_CUSTOM_TEXT_AD_MODULES_PER_PLACEMENT = 5;
 
     protected $fillable = [
         'name',
+        'tenant_id',
         'domain',
         'endpoint_url',
         'channel_type',
@@ -33,6 +37,7 @@ class DistributionChannel extends Model
     {
         return [
             'created_by_admin_id' => 'integer',
+            'tenant_id' => 'integer',
             'last_health_checked_at' => 'datetime',
             'site_settings' => 'array',
             'channel_config' => 'array',

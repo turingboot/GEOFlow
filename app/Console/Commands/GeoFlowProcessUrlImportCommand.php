@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\UrlImportJob;
 use App\Services\GeoFlow\UrlImportProcessingService;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Console\Command;
 
 class GeoFlowProcessUrlImportCommand extends Command
@@ -14,7 +15,7 @@ class GeoFlowProcessUrlImportCommand extends Command
 
     public function handle(UrlImportProcessingService $service): int
     {
-        $job = UrlImportJob::query()->whereKey((int) $this->argument('jobId'))->first();
+        $job = UrlImportJob::withoutGlobalScopes()->whereKey((int) $this->argument('jobId'))->first();
         if (! $job) {
             $this->error('URL import job not found.');
 
@@ -27,7 +28,9 @@ class GeoFlowProcessUrlImportCommand extends Command
             return self::SUCCESS;
         }
 
-        $service->process($job);
+        TenantContext::run((int) $job->tenant_id, function () use ($service, $job): void {
+            $service->process($job);
+        });
         $this->info('URL import job processed.');
 
         return self::SUCCESS;

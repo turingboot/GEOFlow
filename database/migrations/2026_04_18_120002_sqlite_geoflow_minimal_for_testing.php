@@ -18,6 +18,15 @@ return new class extends Migration
             return;
         }
 
+        Schema::create('tenants', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 100);
+            $table->string('slug', 120)->unique();
+            $table->unsignedBigInteger('owner_admin_id')->nullable();
+            $table->string('status', 20)->default('active');
+            $table->timestamps();
+        });
+
         Schema::create('api_idempotency_keys', function (Blueprint $table) {
             $table->id();
             $table->string('idempotency_key', 120);
@@ -31,6 +40,7 @@ return new class extends Migration
 
         Schema::create('ai_models', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->string('name', 100);
             $table->string('version', 50)->default('');
             $table->string('api_key', 500)->default('');
@@ -47,6 +57,7 @@ return new class extends Migration
 
         Schema::create('prompts', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->string('name', 100);
             $table->string('type', 50);
             $table->text('content');
@@ -62,6 +73,7 @@ return new class extends Migration
 
         Schema::create('keyword_libraries', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->string('name', 100);
             $table->text('description')->nullable();
             $table->integer('keyword_count')->default(0);
@@ -80,6 +92,7 @@ return new class extends Migration
 
         Schema::create('title_libraries', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->string('name', 100);
             $table->text('description')->nullable();
             $table->integer('title_count')->default(0);
@@ -105,6 +118,7 @@ return new class extends Migration
 
         Schema::create('knowledge_bases', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->string('name', 100);
             $table->text('description')->nullable();
             $table->text('content')->default('');
@@ -135,6 +149,7 @@ return new class extends Migration
 
         Schema::create('image_libraries', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->string('name', 100);
             $table->text('description')->nullable();
             $table->integer('image_count')->default(0);
@@ -161,6 +176,7 @@ return new class extends Migration
 
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->string('name', 100);
             $table->foreignId('title_library_id')->nullable()->constrained('title_libraries');
             $table->foreignId('image_library_id')->nullable()->constrained('image_libraries');
@@ -196,6 +212,7 @@ return new class extends Migration
 
         Schema::create('authors', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->string('name', 100);
             $table->text('bio')->nullable();
             $table->string('email', 100)->default('');
@@ -207,6 +224,7 @@ return new class extends Migration
 
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->string('name', 100);
             $table->string('slug', 100)->unique();
             $table->text('description')->nullable();
@@ -216,6 +234,7 @@ return new class extends Migration
 
         Schema::create('articles', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->string('title', 500);
             $table->string('slug', 500)->unique();
             $table->text('excerpt')->nullable();
@@ -272,5 +291,6 @@ return new class extends Migration
         Schema::dropIfExists('prompts');
         Schema::dropIfExists('ai_models');
         Schema::dropIfExists('api_idempotency_keys');
+        Schema::dropIfExists('tenants');
     }
 };

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Support\AdminWeb;
+use App\Support\Tenancy\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,8 @@ use Throwable;
  */
 class AdminUserController extends Controller
 {
+    public function __construct(private readonly TenantProvisioner $tenantProvisioner) {}
+
     /**
      * 管理员管理首页。
      */
@@ -126,7 +129,7 @@ class AdminUserController extends Controller
         ]);
 
         try {
-            Admin::query()->create([
+            $admin = Admin::query()->create([
                 'username' => trim((string) $payload['username']),
                 'display_name' => trim((string) ($payload['display_name'] ?? '')),
                 'email' => trim((string) ($payload['email'] ?? '')),
@@ -135,6 +138,7 @@ class AdminUserController extends Controller
                 'status' => 'active',
                 'created_by' => (int) (auth('admin')->id() ?? 0),
             ]);
+            $this->tenantProvisioner->ensureForAdmin($admin);
 
             return redirect()->route('admin.admin-users.index')->with('message', __('admin.admin_users.message.create_success'));
         } catch (Throwable $exception) {

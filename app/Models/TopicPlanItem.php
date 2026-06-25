@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TopicPlanItem extends Model
 {
+    use BelongsToTenant;
+
     /** 条目状态枚举。 */
     public const STATUSES = ['suggested', 'confirmed', 'rejected', 'dispatched'];
 
     protected $fillable = [
         'topic_plan_id',
+        'tenant_id',
         'title',
         'keyword',
         'secondary_keywords',
@@ -29,6 +33,7 @@ class TopicPlanItem extends Model
     {
         return [
             'topic_plan_id' => 'integer',
+            'tenant_id' => 'integer',
             'secondary_keywords' => 'array',
             'heat_score' => 'integer',
             'planned_publish_at' => 'date',

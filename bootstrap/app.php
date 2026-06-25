@@ -13,6 +13,9 @@ use App\Http\Middleware\AuthenticateAdminWeb;
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnsureApiScope;
 use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\InitializeApiTenantContext;
+use App\Http\Middleware\InitializeSiteTenantContext;
+use App\Http\Middleware\InitializeTenantContext;
 use App\Http\Middleware\LogAdminActivity;
 use App\Http\Middleware\RecordSiteViewLog;
 use App\Http\Middleware\SiteWebLocale;
@@ -40,8 +43,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.request_id' => AssignApiRequestId::class,
             // Authorization: Bearer，解析 Sanctum token 并注入 ApiAuthContext
             'api.auth' => AuthenticateApiToken::class,
+            'api.tenant_context' => InitializeApiTenantContext::class,
             // 校验 Token scopes，如 api.scope:catalog:read
             'api.scope' => EnsureApiScope::class,
+            'tenant.context' => InitializeTenantContext::class,
+            'site.tenant_context' => InitializeSiteTenantContext::class,
+            'admin.auth' => AuthenticateAdminWeb::class,
             // Blade 后台：管理员会话鉴权（失败跳转 admin.login）
             'admin.auth' => AuthenticateAdminWeb::class,
             // Blade 后台：session locale

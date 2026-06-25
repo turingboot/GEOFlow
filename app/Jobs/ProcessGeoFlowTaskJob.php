@@ -7,6 +7,7 @@ use App\Models\TaskRun;
 use App\Models\WorkerHeartbeat;
 use App\Services\GeoFlow\JobQueueService;
 use App\Services\GeoFlow\WorkerExecutionService;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Arr;
@@ -78,21 +79,23 @@ class ProcessGeoFlowTaskJob implements ShouldQueue
 
         $startedAt = microtime(true);
         try {
-            $result = $workerExecutionService->executeTask($taskId);
-            $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+            TenantContext::run($this->tenantIdForTask($taskId), function () use ($workerExecutionService, $queueService, $taskId, $startedAt): void {
+                $result = $workerExecutionService->executeTask($taskId);
+                $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
 
-            $queueService->completeJob(
-                jobId: $this->taskRunId,
-                taskId: $taskId,
-                articleId: Arr::get($result, 'article_id') !== null ? (int) Arr::get($result, 'article_id') : null,
-                durationMs: $durationMs,
-                meta: is_array(Arr::get($result, 'meta')) ? Arr::get($result, 'meta') : []
-            );
+                $queueService->completeJob(
+                    jobId: $this->taskRunId,
+                    taskId: $taskId,
+                    articleId: Arr::get($result, 'article_id') !== null ? (int) Arr::get($result, 'article_id') : null,
+                    durationMs: $durationMs,
+                    meta: is_array(Arr::get($result, 'meta')) ? Arr::get($result, 'meta') : []
+                );
+            });
         } catch (Throwable $exception) {
             $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
             $message = $exception->getMessage();
 
-            if ($this->shouldCancel($taskId, $message)) {
+            if (TenantContext::run($this->tenantIdForTask($taskId), fn (): bool => $this->shouldCancel($taskId, $message))) {
                 $queueService->cancelJob($this->taskRunId, $taskId, '管理员手动停止');
             } else {
                 $queueService->failJob($this->taskRunId, $taskId, $message, $durationMs);
@@ -151,6 +154,15 @@ class ProcessGeoFlowTaskJob implements ShouldQueue
         }
 
         return ($task->status ?? 'paused') !== 'active' || (int) ($task->schedule_enabled ?? 1) !== 1;
+    }
+
+    private function tenantIdForTask(int $taskId): ?int
+    {
+        $tenantId = Task::withoutGlobalScopes()
+            ->whereKey($taskId)
+            ->value('tenant_id');
+
+        return $tenantId !== null ? (int) $tenantId : null;
     }
 
     /**

@@ -26,6 +26,7 @@ class Admin extends Authenticatable
 
     protected $fillable = [
         'username',
+        'tenant_id',
         'password',
         'email',
         'display_name',
@@ -41,6 +42,7 @@ class Admin extends Authenticatable
     {
         return [
             'last_login' => 'datetime',
+            'tenant_id' => 'integer',
             'welcome_dismissed_at' => 'datetime',
             'created_by' => 'integer',
             'password' => 'hashed',
@@ -75,6 +77,11 @@ class Admin extends Authenticatable
     public function creator(): BelongsTo
     {
         return $this->belongsTo(self::class, 'created_by');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class, 'tenant_id');
     }
 
     public function activityLogs(): HasMany

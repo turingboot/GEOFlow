@@ -3,6 +3,7 @@
 namespace App\Support\Site;
 
 use App\Models\SiteSetting;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
  */
 final class SiteSettingsBag
 {
-    private const CACHE_KEY = 'geoflow.site_settings.public_map';
+    private const CACHE_KEY_PREFIX = 'geoflow.site_settings.public_map';
 
     private const CACHE_TTL_SECONDS = 60;
 
@@ -20,11 +21,16 @@ final class SiteSettingsBag
      */
     public static function all(): array
     {
+        $channelSettings = request()?->attributes->get('site_channel_settings');
+        if (is_array($channelSettings)) {
+            return array_map(static fn (mixed $value): string => is_scalar($value) ? (string) $value : '', $channelSettings);
+        }
+
         if (! Schema::hasTable('site_settings')) {
             return [];
         }
 
-        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL_SECONDS, static function (): array {
+        return Cache::remember(self::cacheKey(), self::CACHE_TTL_SECONDS, static function (): array {
             /** @var array<string, string> $map */
             $map = SiteSetting::query()
                 ->pluck('setting_value', 'setting_key')
@@ -46,6 +52,12 @@ final class SiteSettingsBag
      */
     public static function forget(): void
     {
-        Cache::forget(self::CACHE_KEY);
+        Cache::forget(self::cacheKey());
+        Cache::forget(self::CACHE_KEY_PREFIX);
+    }
+
+    private static function cacheKey(): string
+    {
+        return self::CACHE_KEY_PREFIX.'.tenant.'.(TenantContext::id() ?: 'global');
     }
 }

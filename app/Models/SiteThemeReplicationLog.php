@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SiteThemeReplicationLog extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
+        'tenant_id',
         'replication_id',
         'level',
         'step',
@@ -19,6 +23,7 @@ class SiteThemeReplicationLog extends Model
     {
         return [
             'replication_id' => 'integer',
+            'tenant_id' => 'integer',
             'context_json' => 'array',
         ];
     }

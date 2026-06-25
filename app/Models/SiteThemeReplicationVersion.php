@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SiteThemeReplicationVersion extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
+        'tenant_id',
         'replication_id',
         'version',
         'prompt_hash',
@@ -23,6 +27,7 @@ class SiteThemeReplicationVersion extends Model
     {
         return [
             'replication_id' => 'integer',
+            'tenant_id' => 'integer',
             'version' => 'integer',
             'blueprint_json' => 'array',
             'files_json' => 'array',

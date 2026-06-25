@@ -2,26 +2,40 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SiteThemeReplication extends Model
 {
+    use BelongsToTenant;
+
     public const STATUS_QUEUED = 'queued';
+
     public const STATUS_FETCHING = 'fetching';
+
     public const STATUS_EXTRACTING = 'extracting';
+
     public const STATUS_ANALYZING = 'analyzing';
+
     public const STATUS_GENERATING = 'generating';
+
     public const STATUS_SCANNING = 'scanning';
+
     public const STATUS_ITERATING = 'iterating';
+
     public const STATUS_FAILED = 'failed';
+
     public const STATUS_READY = 'ready';
+
     public const STATUS_PUBLISHED = 'published';
+
     public const STATUS_ARCHIVED = 'archived';
 
     protected $fillable = [
         'name',
+        'tenant_id',
         'theme_id',
         'base_theme_id',
         'ai_model_id',
@@ -49,6 +63,7 @@ class SiteThemeReplication extends Model
     {
         return [
             'ai_model_id' => 'integer',
+            'tenant_id' => 'integer',
             'source_fingerprints' => 'array',
             'analysis_json' => 'array',
             'generated_files_json' => 'array',

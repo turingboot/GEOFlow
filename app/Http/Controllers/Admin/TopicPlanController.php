@@ -12,8 +12,11 @@ use App\Models\TopicPlan;
 use App\Services\GeoFlow\TopicPlan\MonthlyTopicPlannerService;
 use App\Services\GeoFlow\TopicPlan\TopicPlanToTaskService;
 use App\Support\AdminWeb;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Illuminate\View\View;
 use Throwable;
 
@@ -49,13 +52,16 @@ class TopicPlanController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:160'],
-            'ai_model_id' => ['required', 'integer'],
             'period_start' => ['nullable', 'date'],
             'period_end' => ['nullable', 'date'],
             'target_count' => ['nullable', 'integer', 'min:1', 'max:100'],
             'keyword_library_ids' => ['nullable', 'array'],
+            'keyword_library_ids.*' => ['integer', $this->tenantExistsRule('keyword_libraries')],
             'knowledge_base_ids' => ['nullable', 'array'],
+            'knowledge_base_ids.*' => ['integer', $this->tenantExistsRule('knowledge_bases')],
             'trend_source_ids' => ['nullable', 'array'],
+            'trend_source_ids.*' => ['integer', $this->tenantExistsRule('keyword_trend_sources')],
+            'ai_model_id' => ['required', 'integer', $this->tenantExistsRule('ai_models')],
         ]);
 
         try {
@@ -130,14 +136,15 @@ class TopicPlanController extends Controller
         }
 
         $data = $request->validate([
-            'prompt_id' => ['required', 'integer'],
-            'ai_model_id' => ['required', 'integer'],
+            'prompt_id' => ['required', 'integer', $this->tenantExistsRule('prompts')],
+            'ai_model_id' => ['required', 'integer', $this->tenantExistsRule('ai_models')],
             'publish_interval' => ['nullable', 'integer', 'min:60'],
             'need_review' => ['nullable', 'boolean'],
             'category_mode' => ['nullable', 'in:smart,fixed'],
             'publish_scope' => ['nullable', 'in:local_and_distribution,distribution_only,local_only'],
             'status' => ['nullable', 'in:active,paused'],
             'knowledge_base_ids' => ['nullable', 'array'],
+            'knowledge_base_ids.*' => ['integer', $this->tenantExistsRule('knowledge_bases')],
         ]);
 
         try {
@@ -185,5 +192,14 @@ class TopicPlanController extends Controller
             })
             ->orderBy('name')
             ->get(['id', 'name']);
+    }
+
+    private function tenantExistsRule(string $table): Exists
+    {
+        return Rule::exists($table, 'id')->where(function ($query): void {
+            if (TenantContext::id()) {
+                $query->where('tenant_id', TenantContext::id());
+            }
+        });
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use App\Models\Article;
 use App\Models\Author;
 use App\Models\Category;
@@ -11,11 +12,14 @@ use App\Models\Task;
 use App\Services\GeoFlow\DistributionOrchestrator;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\ArticleWorkflow;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Throwable;
 
@@ -280,7 +284,7 @@ class ArticleController extends Controller
                 'is_hot' => (bool) ($article->is_hot ?? false),
                 'is_featured' => (bool) ($article->is_featured ?? false),
             ],
-            'formOptions' => $this->loadFormOptions(),
+            'formOptions' => $this->loadFormOptions((int) ($article->tenant_id ?? 0)),
         ]);
     }
 
@@ -289,8 +293,8 @@ class ArticleController extends Controller
      */
     public function update(Request $request, int $articleId): RedirectResponse
     {
-        $payload = $this->validateArticleForm($request, true);
         $article = Article::query()->whereKey($articleId)->firstOrFail();
+        $payload = $this->validateArticleForm($request, true, (int) ($article->tenant_id ?? 0));
 
         $workflowState = ArticleWorkflow::normalizeState(
             $payload['status'],
@@ -559,10 +563,10 @@ class ArticleController extends Controller
     /**
      * @return array<int, array{id: int, name: string}>
      */
-    private function loadAuthorOptions(): array
+    private function loadAuthorOptions(?int $tenantId = null): array
     {
         try {
-            return Author::query()
+            return $this->tenantScopedQuery(Author::query(), $tenantId)
                 ->select(['id', 'name'])
                 ->orderBy('name')
                 ->get()
@@ -582,13 +586,13 @@ class ArticleController extends Controller
      *     authors: array<int, array{id: int, name: string}>
      * }
      */
-    private function loadFormOptions(): array
+    private function loadFormOptions(?int $tenantId = null): array
     {
         $categories = [];
-        $authors = $this->loadAuthorOptions();
+        $authors = $this->loadAuthorOptions($tenantId);
 
         try {
-            $categories = Category::query()
+            $categories = $this->tenantScopedQuery(Category::query(), $tenantId)
                 ->select(['id', 'name'])
                 ->orderBy('name')
                 ->get()
@@ -622,7 +626,7 @@ class ArticleController extends Controller
      *     is_featured: bool
      * }
      */
-    private function validateArticleForm(Request $request, bool $isEdit): array
+    private function validateArticleForm(Request $request, bool $isEdit, ?int $tenantId = null): array
     {
         $keyPrefix = $isEdit ? 'admin.article_edit.error' : 'admin.article_create.error';
 
@@ -632,8 +636,8 @@ class ArticleController extends Controller
             'content' => ['required', 'string'],
             'keywords' => ['nullable', 'string', 'max:500'],
             'meta_description' => ['nullable', 'string', 'max:500'],
-            'category_id' => ['required', 'integer', 'min:1'],
-            'author_id' => ['required', 'integer', 'min:1'],
+            'category_id' => ['required', 'integer', 'min:1', $this->tenantExistsRule((new Category)->getTable(), $tenantId)],
+            'author_id' => ['required', 'integer', 'min:1', $this->tenantExistsRule((new Author)->getTable(), $tenantId)],
             'status' => ['required', 'string', 'in:draft,published,private'],
             'review_status' => ['required', 'string', 'in:pending,approved,rejected,auto_approved'],
             'is_hot' => ['nullable', 'boolean'],
@@ -646,6 +650,30 @@ class ArticleController extends Controller
             'author_id.required' => __($keyPrefix.'.author_required'),
             'author_id.min' => __($keyPrefix.'.author_required'),
         ]);
+    }
+
+    private function currentTenantId(): int
+    {
+        $tenantId = TenantContext::id();
+        if ($tenantId !== null && $tenantId > 0) {
+            return $tenantId;
+        }
+
+        $adminId = (int) (Auth::guard('admin')->id() ?? 0);
+        if ($adminId <= 0) {
+            return 0;
+        }
+
+        return (int) (DB::table((new Admin)->getTable())->where('id', $adminId)->value('tenant_id') ?? 0);
+    }
+
+    private function targetTenantId(?int $tenantId = null): int
+    {
+        if ($tenantId !== null && $tenantId > 0) {
+            return $tenantId;
+        }
+
+        return $this->currentTenantId();
     }
 
     /**
@@ -806,5 +834,30 @@ class ArticleController extends Controller
             'batch_update_review' => AdminWeb::routePath('admin.articles.batch.update-review'),
             'delete_articles' => AdminWeb::routePath('admin.articles.batch.delete'),
         ];
+    }
+
+    private function tenantScopedQuery($query, ?int $tenantId = null)
+    {
+        $targetTenantId = $this->targetTenantId($tenantId);
+        if ($targetTenantId > 0) {
+            $query->where('tenant_id', $targetTenantId);
+        }
+
+        return $query;
+    }
+
+    private function tenantExistsRule(string $table, ?int $tenantId = null): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($table, $tenantId): void {
+            $query = DB::table($table)->where('id', (int) $value);
+            $targetTenantId = $this->targetTenantId($tenantId);
+            if ($targetTenantId > 0) {
+                $query->where('tenant_id', $targetTenantId);
+            }
+
+            if (! $query->exists()) {
+                $fail(__('validation.exists', ['attribute' => $attribute]));
+            }
+        };
     }
 }

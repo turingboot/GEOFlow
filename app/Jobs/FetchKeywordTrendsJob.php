@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\KeywordTrendSource;
 use App\Services\GeoFlow\KeywordTrend\KeywordTrendOrchestrator;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -19,11 +20,13 @@ class FetchKeywordTrendsJob implements ShouldQueue
 
     public function handle(KeywordTrendOrchestrator $orchestrator): void
     {
-        $source = KeywordTrendSource::query()->find($this->sourceId);
+        $source = KeywordTrendSource::withoutGlobalScopes()->find($this->sourceId);
         if ($source === null) {
             return;
         }
 
-        $orchestrator->run($source);
+        TenantContext::run((int) $source->tenant_id, function () use ($orchestrator, $source): void {
+            $orchestrator->run($source);
+        });
     }
 }

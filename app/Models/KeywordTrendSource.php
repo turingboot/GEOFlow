@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class KeywordTrendSource extends Model
 {
+    use BelongsToTenant;
+
     /**
      * Supported keyword-trend data providers (pluggable adapters).
      *
@@ -26,6 +29,7 @@ class KeywordTrendSource extends Model
 
     protected $fillable = [
         'name',
+        'tenant_id',
         'provider',
         'category',
         'seed_keywords',
@@ -48,6 +52,7 @@ class KeywordTrendSource extends Model
     {
         return [
             'seed_keywords' => 'array',
+            'tenant_id' => 'integer',
             'config' => 'array',
             'auto_import' => 'boolean',
             'ai_relevance' => 'boolean',

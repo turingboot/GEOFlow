@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TopicPlan extends Model
 {
+    use BelongsToTenant;
+
     /** 计划状态枚举。 */
     public const STATUSES = ['draft', 'confirmed', 'dispatched', 'archived'];
 
     protected $fillable = [
         'name',
+        'tenant_id',
         'period_start',
         'period_end',
         'status',
@@ -25,6 +29,7 @@ class TopicPlan extends Model
     {
         return [
             'period_start' => 'date',
+            'tenant_id' => 'integer',
             'period_end' => 'date',
             'source_summary' => 'array',
             'ai_model_id' => 'integer',

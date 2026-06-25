@@ -7,6 +7,7 @@ use App\Models\Admin;
 use App\Support\AdminActivityLogger;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\AdminLoginLockService;
+use App\Support\Tenancy\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +21,8 @@ use Throwable;
 class AdminAuthController extends Controller
 {
     public function __construct(
-        private readonly AdminLoginLockService $adminLoginLockService
+        private readonly AdminLoginLockService $adminLoginLockService,
+        private readonly TenantProvisioner $tenantProvisioner,
     ) {}
 
     public function showLoginForm(Request $request): View|RedirectResponse
@@ -72,6 +74,10 @@ class AdminAuthController extends Controller
         $admin = Auth::guard('admin')->user();
         $request->session()->regenerate();
         $this->adminLoginLockService->clearFailedAttempts((string) $admin->username);
+
+        if (! $admin->isSuperAdmin()) {
+            $this->tenantProvisioner->ensureForAdmin($admin);
+        }
 
         $admin->forceFill(['last_login' => now()])->save();
         AdminActivityLogger::logFromRequest($request, $admin, 'auth:login', [

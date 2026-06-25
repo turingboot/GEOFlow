@@ -23,6 +23,7 @@ class KeywordTrendOrchestrator
     public function run(KeywordTrendSource $source): KeywordTrendSnapshot
     {
         $snapshot = KeywordTrendSnapshot::query()->create([
+            'tenant_id' => (int) $source->tenant_id,
             'keyword_trend_source_id' => $source->id,
             'status' => 'running',
             'ran_at' => Carbon::now(),
@@ -40,6 +41,7 @@ class KeywordTrendOrchestrator
             $now = Carbon::now();
             foreach ($kept as $t) {
                 KeywordTrend::query()->create([
+                    'tenant_id' => (int) $source->tenant_id,
                     'keyword_trend_snapshot_id' => $snapshot->id,
                     'keyword_trend_source_id' => $source->id,
                     'keyword' => $t->keyword,

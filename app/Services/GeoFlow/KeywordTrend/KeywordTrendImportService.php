@@ -22,7 +22,14 @@ class KeywordTrendImportService
     public function import(KeywordTrendSource $source, iterable $trends): array
     {
         $libraryId = (int) ($source->target_keyword_library_id ?? 0);
-        if ($libraryId <= 0 || ! KeywordLibrary::query()->whereKey($libraryId)->exists()) {
+        $library = $libraryId > 0
+            ? KeywordLibrary::query()
+                ->whereKey($libraryId)
+                ->where('tenant_id', (int) $source->tenant_id)
+                ->first()
+            : null;
+
+        if (! $library) {
             return ['imported' => 0, 'skipped' => 0, 'library_id' => null];
         }
 

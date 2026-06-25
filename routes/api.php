@@ -25,7 +25,7 @@ Route::prefix('v1')
         Route::post('auth/login', [AuthController::class, 'login']);
 
         // 需有效 Token + 对应 scope
-        Route::middleware(['api.auth'])->group(function (): void {
+        Route::middleware(['api.auth', 'api.tenant_context'])->group(function (): void {
             // catalog:read — 下拉元数据（模型、提示词、库、作者、分类等）
             Route::get('catalog', [CatalogController::class, 'show'])->middleware('api.scope:catalog:read');
 

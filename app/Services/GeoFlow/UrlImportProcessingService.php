@@ -16,6 +16,7 @@ use App\Models\UrlImportJob;
 use App\Models\UrlImportJobLog;
 use App\Support\GeoFlow\ApiKeyCrypto;
 use App\Support\GeoFlow\OpenAiRuntimeProvider;
+use App\Support\Tenancy\TenantContext;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;
@@ -145,6 +146,10 @@ final class UrlImportProcessingService
 
     public function process(UrlImportJob $job): UrlImportJob
     {
+        if (TenantContext::id() !== (int) $job->tenant_id) {
+            return TenantContext::run((int) $job->tenant_id, fn (): UrlImportJob => $this->process($job));
+        }
+
         $this->updateStep($job, 'fetch', 10, [
             'status' => 'running',
             'started_at' => now(),
@@ -232,6 +237,10 @@ final class UrlImportProcessingService
      */
     public function commit(UrlImportJob $job): array
     {
+        if (TenantContext::id() !== (int) $job->tenant_id) {
+            return TenantContext::run((int) $job->tenant_id, fn (): array => $this->commit($job));
+        }
+
         $result = $this->decodeResult($job);
         if ($result === []) {
             throw new \RuntimeException(__('admin.url_import.error.commit_before_parse'));

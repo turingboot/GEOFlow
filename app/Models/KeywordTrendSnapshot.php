@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KeywordTrendSnapshot extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
+        'tenant_id',
         'keyword_trend_source_id',
         'status',
         'fetched_count',
@@ -23,6 +27,7 @@ class KeywordTrendSnapshot extends Model
     {
         return [
             'keyword_trend_source_id' => 'integer',
+            'tenant_id' => 'integer',
             'fetched_count' => 'integer',
             'kept_count' => 'integer',
             'imported_count' => 'integer',

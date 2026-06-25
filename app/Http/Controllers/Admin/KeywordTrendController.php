@@ -10,10 +10,12 @@ use App\Models\KeywordTrendSource;
 use App\Services\GeoFlow\KeywordTrend\KeywordTrendImportService;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\ApiKeyCrypto;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class KeywordTrendController extends Controller
@@ -207,7 +209,15 @@ class KeywordTrendController extends Controller
             'timeframe' => ['nullable', 'string', 'max:32'],
             'heat_threshold' => ['nullable', 'integer', 'min:0', 'max:100'],
             'top_n' => ['nullable', 'integer', 'min:1', 'max:1000'],
-            'target_keyword_library_id' => ['nullable', 'integer', 'exists:keyword_libraries,id'],
+            'target_keyword_library_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('keyword_libraries', 'id')->where(function ($query): void {
+                    if (TenantContext::id()) {
+                        $query->where('tenant_id', TenantContext::id());
+                    }
+                }),
+            ],
             'auto_import' => ['nullable', 'boolean'],
             'ai_relevance' => ['nullable', 'boolean'],
             'schedule' => ['nullable', 'string', 'in:manual,hourly,daily,weekly'],

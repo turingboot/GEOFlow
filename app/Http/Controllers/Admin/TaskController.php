@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use App\Models\AiModel;
 use App\Models\Author;
 use App\Models\Category;
@@ -17,9 +18,12 @@ use App\Services\GeoFlow\TaskDistributionChannelSelector;
 use App\Services\GeoFlow\TaskLifecycleService;
 use App\Services\GeoFlow\TaskMonitoringQueryService;
 use App\Support\AdminWeb;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Throwable;
@@ -525,16 +529,16 @@ class TaskController extends Controller
     {
         return $request->validate([
             'task_name' => ['required', 'string', 'max:200'],
-            'title_library_id' => ['required', 'integer', 'min:1'],
-            'prompt_id' => ['required', 'integer', 'min:1'],
-            'ai_model_id' => ['required', 'integer', 'min:1'],
-            'author_id' => ['nullable', 'integer', 'min:0'],
-            'image_library_id' => ['nullable', 'integer', 'min:1'],
+            'title_library_id' => ['required', 'integer', 'min:1', $this->tenantExistsRule((new TitleLibrary)->getTable())],
+            'prompt_id' => ['required', 'integer', 'min:1', $this->tenantExistsRule((new Prompt)->getTable())],
+            'ai_model_id' => ['required', 'integer', 'min:1', $this->tenantExistsRule((new AiModel)->getTable())],
+            'author_id' => ['nullable', 'integer', 'min:0', $this->optionalTenantExistsRule((new Author)->getTable())],
+            'image_library_id' => ['nullable', 'integer', 'min:1', $this->tenantExistsRule((new ImageLibrary)->getTable())],
             'image_count' => ['nullable', 'integer', 'min:0', 'max:5'],
-            'knowledge_base_id' => ['nullable', 'integer', 'min:1', 'exists:knowledge_bases,id'],
+            'knowledge_base_id' => ['nullable', 'integer', 'min:1', $this->tenantExistsRule((new KnowledgeBase)->getTable())],
             'knowledge_base_ids' => ['nullable', 'array', 'max:5'],
-            'knowledge_base_ids.*' => ['integer', 'min:1', 'distinct', 'exists:knowledge_bases,id'],
-            'fixed_category_id' => ['nullable', 'integer', 'min:1'],
+            'knowledge_base_ids.*' => ['integer', 'min:1', 'distinct', $this->tenantExistsRule((new KnowledgeBase)->getTable())],
+            'fixed_category_id' => ['nullable', 'integer', 'min:1', $this->tenantExistsRule((new Category)->getTable())],
             'status' => ['required', 'string', 'in:active,paused'],
             'article_limit' => ['nullable', 'integer', 'min:1', 'max:99999'],
             'draft_limit' => ['nullable', 'integer', 'min:1', 'max:9999'],
@@ -544,8 +548,57 @@ class TaskController extends Controller
             'publish_scope' => ['nullable', 'string', 'in:local_and_distribution,distribution_only,local_only'],
             'distribution_strategy' => ['nullable', 'string', 'in:'.implode(',', TaskDistributionChannelSelector::strategies())],
             'distribution_channel_ids' => ['nullable', 'array'],
-            'distribution_channel_ids.*' => ['integer', 'min:1'],
+            'distribution_channel_ids.*' => ['integer', 'min:1', $this->tenantExistsRule((new DistributionChannel)->getTable())],
         ]);
+    }
+
+    private function tenantExistsRule(string $table): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($table): void {
+            if (! $this->resourceExistsForCurrentTenant($table, (int) $value)) {
+                $fail(__('validation.exists', ['attribute' => $attribute]));
+            }
+        };
+    }
+
+    private function optionalTenantExistsRule(string $table): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($table): void {
+            $id = (int) $value;
+            if ($id <= 0) {
+                return;
+            }
+
+            if (! $this->resourceExistsForCurrentTenant($table, $id)) {
+                $fail(__('validation.exists', ['attribute' => $attribute]));
+            }
+        };
+    }
+
+    private function resourceExistsForCurrentTenant(string $table, int $id): bool
+    {
+        $query = DB::table($table)->where('id', $id);
+        $tenantId = $this->currentTenantId();
+        if ($tenantId > 0) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        return $query->exists();
+    }
+
+    private function currentTenantId(): int
+    {
+        $tenantId = TenantContext::id();
+        if ($tenantId !== null && $tenantId > 0) {
+            return $tenantId;
+        }
+
+        $adminId = (int) (Auth::guard('admin')->id() ?? 0);
+        if ($adminId <= 0) {
+            return 0;
+        }
+
+        return (int) (DB::table((new Admin)->getTable())->where('id', $adminId)->value('tenant_id') ?? 0);
     }
 
     /**

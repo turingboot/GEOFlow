@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KnowledgeBase extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'knowledge_bases';
 
     protected $fillable = [
         'name',
+        'tenant_id',
         'description',
         'content',
         'character_count',
@@ -33,6 +37,7 @@ class KnowledgeBase extends Model
     {
         return [
             'character_count' => 'integer',
+            'tenant_id' => 'integer',
             'used_task_count' => 'integer',
             'word_count' => 'integer',
             'usage_count' => 'integer',

@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KeywordLibrary extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'keyword_libraries';
 
     protected $fillable = [
         'name',
+        'tenant_id',
         'description',
         'keyword_count',
     ];
@@ -18,6 +22,7 @@ class KeywordLibrary extends Model
     protected function casts(): array
     {
         return [
+            'tenant_id' => 'integer',
             'keyword_count' => 'integer',
         ];
     }

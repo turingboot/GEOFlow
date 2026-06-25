@@ -42,7 +42,7 @@ use App\Http\Controllers\Site\HomeController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['site.locale', 'site.view_log'])->group(function (): void {
+Route::middleware(['site.tenant_context', 'site.locale', 'site.view_log'])->group(function (): void {
     Route::get('/', [HomeController::class, 'index'])->name('site.home');
     Route::get('/archive', [ArchiveController::class, 'index'])->name('site.archive');
     Route::get('/archive/{year}/{month}', [ArchiveController::class, 'month'])
@@ -71,7 +71,7 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
     });
 
     // 后台受保护路由
-    Route::middleware(['admin.auth', 'admin.activity'])->group(function () {
+    Route::middleware(['admin.auth', 'tenant.context', 'admin.activity'])->group(function () {
         // 会话与首页
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');
         Route::post('welcome/dismiss', [AdminWelcomeController::class, 'dismiss'])->name('welcome.dismiss');
