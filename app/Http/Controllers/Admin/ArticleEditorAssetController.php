@@ -8,6 +8,7 @@ use App\Models\ArticleImage;
 use App\Models\Image;
 use App\Models\ImageLibrary;
 use App\Support\Admin\WeChatArticleHtmlExporter;
+use App\Support\Tenancy\TenantStoragePath;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -147,7 +148,7 @@ class ArticleEditorAssetController extends Controller
     {
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg');
         $filename = bin2hex(random_bytes(16)).'.'.$extension;
-        $directory = 'uploads/images/'.date('Y/m');
+        $directory = TenantStoragePath::prefix('uploads/images/'.date('Y/m'));
 
         if (! Storage::disk('public')->exists($directory) && ! Storage::disk('public')->makeDirectory($directory)) {
             throw new \RuntimeException(__('admin.article_editor.error.upload_directory_failed'));

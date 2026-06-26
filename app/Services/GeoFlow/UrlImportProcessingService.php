@@ -17,6 +17,7 @@ use App\Models\UrlImportJobLog;
 use App\Support\GeoFlow\ApiKeyCrypto;
 use App\Support\GeoFlow\OpenAiRuntimeProvider;
 use App\Support\Tenancy\TenantContext;
+use App\Support\Tenancy\TenantStoragePath;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;
@@ -420,7 +421,7 @@ final class UrlImportProcessingService
                 }
                 $seenHashes[] = $binary['hash'];
 
-                $directory = 'uploads/images/'.date('Y/m');
+                $directory = TenantStoragePath::prefix('uploads/images/'.date('Y/m'));
                 if (! Storage::disk('public')->exists($directory) && ! Storage::disk('public')->makeDirectory($directory)) {
                     continue;
                 }

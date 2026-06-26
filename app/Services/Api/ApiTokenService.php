@@ -4,6 +4,7 @@ namespace App\Services\Api;
 
 use App\Exceptions\ApiException;
 use App\Models\Admin;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -20,7 +21,7 @@ class ApiTokenService
         /** @var Collection<int, PersonalAccessToken> $rows */
         $rows = PersonalAccessToken::query()
             ->where('tokenable_type', Admin::class)
-            ->with('tokenable:id,username')
+            ->with('tokenable:id,username,tenant_id')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
@@ -107,19 +108,19 @@ class ApiTokenService
 
     public function resolveAuditAdminId(?int $preferredAdminId): int
     {
-        if ($preferredAdminId !== null && $preferredAdminId > 0) {
-            $exists = Admin::query()->whereKey($preferredAdminId)->exists();
-            if ($exists) {
-                return $preferredAdminId;
-            }
+        if ($preferredAdminId === null || $preferredAdminId <= 0) {
+            throw new ApiException('admin_not_found', 'Token admin not found', 401);
         }
 
-        $fallback = (int) Admin::query()->orderBy('id')->value('id');
-        if ($fallback <= 0) {
-            throw new ApiException('admin_not_found', '系统中不存在可用的管理员账号', 500);
+        $exists = Admin::query()
+            ->whereKey($preferredAdminId)
+            ->whereNotNull('tenant_id')
+            ->exists();
+        if (! $exists) {
+            throw new ApiException('admin_not_found', 'Token admin is missing tenant binding', 401);
         }
 
-        return $fallback;
+        return $preferredAdminId;
     }
 
     /**
@@ -143,7 +144,12 @@ class ApiTokenService
         }
 
         $expires = $this->normalizeExpiresAt($expiresAt);
-        $creatorId = $this->normalizeCreatorAdminId($adminId) ?? $this->resolveAuditAdminId($adminId);
+        $tenantId = TenantContext::id();
+        if ($tenantId === null || $tenantId <= 0) {
+            throw new ApiException('tenant_required', 'Token must be created inside a tenant context', 403);
+        }
+
+        $creatorId = $this->normalizeCreatorAdminId($adminId, $tenantId) ?? $this->resolveAuditAdminId($adminId);
         $admin = Admin::query()->whereKey($creatorId)->first();
         if (! $admin) {
             throw new ApiException('admin_not_found', '系统中不存在可用的管理员账号', 500);
@@ -159,6 +165,7 @@ class ApiTokenService
             throw new ApiException('token_create_failed', 'Token 创建失败', 500);
         }
 
+        $model->forceFill(['tenant_id' => $tenantId])->save();
         $record = $this->hydrate($model);
 
         return [
@@ -202,6 +209,7 @@ class ApiTokenService
             'scopes' => $scopes,
             'status' => 'active',
             'created_by_admin_id' => $row->tokenable_id !== null ? (int) $row->tokenable_id : null,
+            'tenant_id' => (int) ($row->tenant_id ?? 0) ?: ($row->tokenable instanceof Admin ? (int) ($row->tokenable->tenant_id ?? 0) : null),
             'last_used_at' => $row->last_used_at?->format('Y-m-d H:i:s'),
             'expires_at' => $row->expires_at?->format('Y-m-d H:i:s'),
             'created_at' => $row->created_at?->format('Y-m-d H:i:s'),
@@ -243,12 +251,32 @@ class ApiTokenService
         return date('Y-m-d H:i:s', $timestamp);
     }
 
-    private function normalizeCreatorAdminId(?int $adminId): ?int
+    private function normalizeCreatorAdminId(?int $adminId, int $tenantId): ?int
     {
         if ($adminId === null || $adminId <= 0) {
             return null;
         }
 
-        return Admin::query()->whereKey($adminId)->exists() ? $adminId : null;
+        $admin = Admin::query()
+            ->whereKey($adminId)
+            ->first(['id', 'tenant_id', 'role']);
+        if (! $admin) {
+            return null;
+        }
+
+        if ((int) ($admin->tenant_id ?? 0) === $tenantId) {
+            return $adminId;
+        }
+
+        if (! $admin->isSuperAdmin()) {
+            return null;
+        }
+
+        $tenantAdminId = (int) Admin::query()
+            ->where('tenant_id', $tenantId)
+            ->orderBy('id')
+            ->value('id');
+
+        return $tenantAdminId > 0 ? $tenantAdminId : null;
     }
 }

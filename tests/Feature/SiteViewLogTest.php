@@ -22,7 +22,7 @@ class SiteViewLogTest extends TestCase
         $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.23'])
             ->withHeader('User-Agent', 'GPTBot/1.0')
             ->withHeader('Referer', 'https://example.com/ref')
-            ->get('/article/'.$article->slug)
+            ->get('http://localhost/article/'.$article->slug)
             ->assertOk();
 
         $this->assertDatabaseHas('view_logs', [
@@ -46,7 +46,7 @@ class SiteViewLogTest extends TestCase
 
         $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.9'])
             ->withHeader('User-Agent', 'Mozilla/5.0')
-            ->get('/')
+            ->get('http://localhost/')
             ->assertOk();
 
         $this->assertDatabaseHas('view_logs', [
@@ -63,6 +63,22 @@ class SiteViewLogTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_unknown_public_host_is_not_served_without_channel_tenant(): void
+    {
+        $article = $this->publishedArticle();
+
+        $this->get('http://unknown-tenant.example/article/'.$article->slug)
+            ->assertNotFound();
+    }
+
+    public function test_localhost_public_site_uses_default_tenant_instead_of_null_tenant(): void
+    {
+        $article = $this->publishedArticle();
+
+        $this->get('http://localhost/article/'.$article->slug)
+            ->assertOk();
+    }
+
     public function test_head_requests_are_not_saved_as_page_views(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-05-21 12:20:00'));
@@ -71,7 +87,7 @@ class SiteViewLogTest extends TestCase
 
         $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
             ->withHeader('User-Agent', 'ChatGPT-User/1.0')
-            ->head('/article/'.$article->slug)
+            ->head('http://localhost/article/'.$article->slug)
             ->assertOk();
 
         $this->assertDatabaseCount('view_logs', 0);

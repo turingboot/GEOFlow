@@ -5,6 +5,7 @@ namespace App\Services\Api;
 use App\Exceptions\ApiException;
 use App\Models\Admin;
 use App\Support\GeoFlow\AdminLoginLockService;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -65,16 +66,21 @@ class ApiAdminAuthService
             throw new ApiException('invalid_credentials', '用户名或密码错误，或账号已被停用', 401);
         }
 
+        $tenantId = (int) ($admin->tenant_id ?? 0);
+        if ($tenantId <= 0) {
+            throw new ApiException('tenant_required', 'API login requires an admin tenant binding', 403);
+        }
+
         $tokenResult = DB::transaction(function () use ($admin, $username, $throttleKey) {
             $admin->forceFill(['last_login' => now()])->save();
-            $this->loginLockService->clearFailedAttempts($username);
+            $this->loginLockService->clearFailedAttempts($admin);
             RateLimiter::clear($throttleKey);
 
-            return $this->tokenService->createToken(
+            return TenantContext::run((int) $admin->tenant_id, fn (): array => $this->tokenService->createToken(
                 'CLI Login '.$username.' '.date('Y-m-d H:i:s'),
                 $this->tokenService->getAvailableScopes(),
                 (int) $admin->id
-            );
+            ));
         });
 
         return [

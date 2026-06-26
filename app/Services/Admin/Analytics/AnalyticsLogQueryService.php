@@ -3,6 +3,7 @@
 namespace App\Services\Admin\Analytics;
 
 use App\Support\Analytics\TrafficClassifier;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +65,10 @@ class AnalyticsLogQueryService
         $query = DB::table('view_logs')
             ->leftJoin('articles as a', 'view_logs.article_id', '=', 'a.id')
             ->whereBetween('view_logs.created_at', [$filter->start(), $filter->end()]);
+
+        if (TenantContext::id() !== null && Schema::hasColumn('view_logs', 'tenant_id')) {
+            $query->where('view_logs.tenant_id', TenantContext::id());
+        }
 
         if (Schema::hasColumn('view_logs', 'method')) {
             $query->where('view_logs.method', 'GET');

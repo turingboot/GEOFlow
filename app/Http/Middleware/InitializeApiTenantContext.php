@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Http\ApiAuthContext;
-use App\Models\Admin;
 use App\Support\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -17,13 +16,9 @@ class InitializeApiTenantContext
     public function handle(Request $request, Closure $next): Response
     {
         $apiAuth = $request->attributes->get('api_auth');
-        $adminId = $apiAuth instanceof ApiAuthContext ? $apiAuth->auditAdminId : null;
+        $tenantId = $apiAuth instanceof ApiAuthContext ? $apiAuth->tenantId : null;
 
-        $admin = $adminId !== null && $adminId > 0
-            ? Admin::query()->whereKey($adminId)->first()
-            : null;
-
-        TenantContext::fromAdmin($admin);
+        TenantContext::set($tenantId);
 
         try {
             return $next($request);

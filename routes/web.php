@@ -78,7 +78,7 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics');
 
-        Route::prefix('system-updates')->name('system-updates.')->group(function () {
+        Route::prefix('system-updates')->name('system-updates.')->middleware('admin.super')->group(function () {
             Route::get('/', [SystemUpdateController::class, 'index'])->name('index');
             Route::post('check', [SystemUpdateController::class, 'check'])->name('check');
             Route::get('runs/status', [SystemUpdateController::class, 'runsStatus'])->name('runs.status');

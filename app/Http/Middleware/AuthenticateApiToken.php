@@ -40,8 +40,12 @@ class AuthenticateApiToken
         $auditAdminId = $this->tokenService->resolveAuditAdminId(
             isset($token['created_by_admin_id']) ? (int) $token['created_by_admin_id'] : null
         );
+        $tenantId = isset($token['tenant_id']) ? (int) $token['tenant_id'] : 0;
+        if ($tenantId <= 0) {
+            throw new ApiException('tenant_required', 'Token is missing tenant binding', 401);
+        }
 
-        $request->attributes->set('api_auth', new ApiAuthContext($token, $auditAdminId));
+        $request->attributes->set('api_auth', new ApiAuthContext($token, $auditAdminId, $tenantId));
 
         return $next($request);
     }

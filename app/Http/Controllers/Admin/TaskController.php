@@ -75,6 +75,7 @@ class TaskController extends Controller
             'recentJobs' => $recentJobs,
             'legacyError' => $error,
             'taskI18n' => $this->taskI18n(),
+            'taskRealtimeTenantId' => TenantContext::id(),
         ]);
     }
 

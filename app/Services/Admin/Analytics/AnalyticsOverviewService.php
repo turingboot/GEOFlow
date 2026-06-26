@@ -17,6 +17,7 @@ use App\Models\TaskRun;
 use App\Models\Title;
 use App\Models\TitleLibrary;
 use App\Models\UrlImportJob;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -331,6 +332,7 @@ class AnalyticsOverviewService
             ->leftJoin('tasks as t', 'tr.task_id', '=', 't.id')
             ->where('tr.status', 'failed')
             ->whereBetween('tr.created_at', [$filter->start(), $filter->end()])
+            ->when(TenantContext::id() !== null, fn ($query) => $query->where('tr.tenant_id', TenantContext::id()))
             ->when($filter->taskId !== null, fn ($query) => $query->where('tr.task_id', $filter->taskId))
             ->orderByDesc('tr.created_at')
             ->select('tr.id', 'tr.error_message', 'tr.created_at', 't.name as task_name')
@@ -481,6 +483,9 @@ class AnalyticsOverviewService
         }
 
         $query = DB::table('view_logs')->whereDate('created_at', $today);
+        if (TenantContext::id() !== null && Schema::hasColumn('view_logs', 'tenant_id')) {
+            $query->where('tenant_id', TenantContext::id());
+        }
         if (Schema::hasColumn('view_logs', 'method')) {
             $query->where('method', 'GET');
         }
@@ -581,6 +586,10 @@ class AnalyticsOverviewService
             ->leftJoin('articles as a', 'view_logs.article_id', '=', 'a.id')
             ->leftJoin('categories as c', 'a.category_id', '=', 'c.id')
             ->whereBetween('view_logs.created_at', [$filter->start(), $filter->end()]);
+
+        if (TenantContext::id() !== null && Schema::hasColumn('view_logs', 'tenant_id')) {
+            $query->where('view_logs.tenant_id', TenantContext::id());
+        }
 
         if (Schema::hasColumn('view_logs', 'method')) {
             $query->where('view_logs.method', 'GET');

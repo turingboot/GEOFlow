@@ -9,6 +9,8 @@ use App\Models\KnowledgeChunk;
 use App\Models\SiteSetting;
 use App\Support\GeoFlow\ApiKeyCrypto;
 use App\Support\GeoFlow\OpenAiRuntimeProvider;
+use App\Support\GeoFlow\OutboundHttpProxy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -52,6 +54,7 @@ class KnowledgeChunkSyncService
             $plannedChunks
         ));
         $knowledgeMetadata = $this->resolveKnowledgeBaseMetadata($knowledgeBaseId);
+        $tenantId = (int) ($knowledgeMetadata['tenant_id'] ?? 0);
         $embeddingMetadata = $this->resolveEmbeddingMetadata();
         $embeddingDocumentTitle = $this->resolveEmbeddingDocumentTitle($knowledgeBaseId);
         $generatedEmbeddings = $this->generateEmbeddingsForChunks($chunks, $embeddingMetadata, $requireRealEmbedding, $embeddingDocumentTitle);
@@ -60,7 +63,7 @@ class KnowledgeChunkSyncService
             throw new \RuntimeException(__('admin.knowledge_bases.error.embedding_sync_failed'));
         }
 
-        DB::transaction(function () use ($knowledgeBaseId, $plannedChunks, $generatedEmbeddings, $knowledgeMetadata): void {
+        DB::transaction(function () use ($knowledgeBaseId, $plannedChunks, $generatedEmbeddings, $knowledgeMetadata, $tenantId): void {
             KnowledgeChunk::query()->where('knowledge_base_id', $knowledgeBaseId)->delete();
 
             foreach ($plannedChunks as $index => $chunk) {
@@ -73,6 +76,7 @@ class KnowledgeChunkSyncService
                     : json_encode($fallbackVector, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
 
                 KnowledgeChunk::query()->create([
+                    'tenant_id' => $tenantId > 0 ? $tenantId : null,
                     'knowledge_base_id' => $knowledgeBaseId,
                     'chunk_index' => $index,
                     'content' => $chunkContent,
@@ -111,6 +115,7 @@ class KnowledgeChunkSyncService
 
         return array_filter([
             'knowledge_base_id' => (int) $knowledgeBase->id,
+            'tenant_id' => (int) ($knowledgeBase->tenant_id ?? 0),
             'knowledge_base_name' => (string) $knowledgeBase->name,
             'knowledge_base_description' => trim((string) ($knowledgeBase->description ?? '')),
             'file_type' => (string) ($knowledgeBase->file_type ?? 'markdown'),
@@ -129,7 +134,7 @@ class KnowledgeChunkSyncService
      */
     private function knowledgeBaseMetadataSelectColumns(): array
     {
-        $columns = ['id', 'name', 'description', 'file_type'];
+        $columns = ['id', 'tenant_id', 'name', 'description', 'file_type'];
         foreach (['source_name', 'source_url', 'source_type', 'business_line', 'effective_date', 'risk_level', 'review_status'] as $column) {
             if (Schema::hasColumn('knowledge_bases', $column)) {
                 $columns[] = $column;
@@ -276,6 +281,7 @@ class KnowledgeChunkSyncService
                     $inFence = false;
                     $fenceMarker = '';
                 }
+
                 continue;
             }
 
@@ -285,11 +291,13 @@ class KnowledgeChunkSyncService
                 $fenceMarker = (string) $fenceMatch[1];
                 $bufferType = 'code';
                 $buffer[] = (string) $line;
+
                 continue;
             }
 
             if ($trimmed === '') {
                 $flushBuffer();
+
                 continue;
             }
 
@@ -301,6 +309,7 @@ class KnowledgeChunkSyncService
                     'heading_level' => strlen((string) $headingMatch[1]),
                     'heading_text' => trim((string) $headingMatch[2]),
                 ];
+
                 continue;
             }
 
@@ -398,6 +407,7 @@ class KnowledgeChunkSyncService
             $candidate = $buffer === '' ? $line : $buffer."\n".$line;
             if (mb_strlen($candidate, 'UTF-8') <= $maxChars) {
                 $buffer = $candidate;
+
                 continue;
             }
 
@@ -633,7 +643,7 @@ class KnowledgeChunkSyncService
         return array_values($models);
     }
 
-    private function semanticChunkingModelQuery(): \Illuminate\Database\Eloquent\Builder
+    private function semanticChunkingModelQuery(): Builder
     {
         return AiModel::query()
             ->where('status', 'active')
@@ -978,8 +988,7 @@ class KnowledgeChunkSyncService
         ?array $embeddingMetadata,
         bool $requireRealEmbedding = false,
         ?string $documentTitle = null
-    ): array
-    {
+    ): array {
         if ($chunks === []) {
             return [];
         }
@@ -1114,7 +1123,7 @@ class KnowledgeChunkSyncService
      *
      * @param  list<string>  $inputs
      * @param  array{model_id:int,model_name:string,provider:string,api_url:string,api_key:string,driver:string}  $embeddingMetadata
-     * @return array<int,mixed>  与 $inputs 顺序对应的原始向量数组
+     * @return array<int,mixed> 与 $inputs 顺序对应的原始向量数组
      */
     private function requestEmbeddingVectors(array $inputs, array $embeddingMetadata, string $providerName): array
     {
@@ -1132,7 +1141,7 @@ class KnowledgeChunkSyncService
     /**
      * 直连 OpenAI 兼容 /embeddings 接口，仅发送 model + input。
      *
-     * 出站代理由全局 {@see \App\Support\GeoFlow\OutboundHttpProxy} 中间件按域名注入，无需在此重复配置。
+     * 出站代理由全局 {@see OutboundHttpProxy} 中间件按域名注入，无需在此重复配置。
      *
      * @param  list<string>  $inputs
      * @param  array{model_id:int,model_name:string,provider:string,api_url:string,api_key:string,driver:string}  $embeddingMetadata

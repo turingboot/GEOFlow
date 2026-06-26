@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AdminActivityLog extends Model
 {
+    use BelongsToTenant;
+
     public const UPDATED_AT = null;
 
     protected $table = 'admin_activity_logs';
 
     protected $fillable = [
+        'tenant_id',
         'admin_id',
         'admin_username',
         'admin_role',
@@ -28,6 +32,7 @@ class AdminActivityLog extends Model
     {
         return [
             'admin_id' => 'integer',
+            'tenant_id' => 'integer',
             'target_id' => 'integer',
         ];
     }

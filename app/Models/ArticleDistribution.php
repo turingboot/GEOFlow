@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ArticleDistribution extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
+        'tenant_id',
         'article_id',
         'distribution_channel_id',
         'action',
@@ -28,6 +32,7 @@ class ArticleDistribution extends Model
     {
         return [
             'article_id' => 'integer',
+            'tenant_id' => 'integer',
             'distribution_channel_id' => 'integer',
             'attempt_count' => 'integer',
             'next_retry_at' => 'datetime',

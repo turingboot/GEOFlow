@@ -5,24 +5,34 @@ namespace Tests\Feature;
 use App\Models\Admin;
 use App\Models\AiModel;
 use App\Models\Article;
+use App\Models\ArticleDistribution;
+use App\Models\ArticleGeoAudit;
 use App\Models\Author;
 use App\Models\Category;
+use App\Models\DistributionChannel;
+use App\Models\DistributionLog;
 use App\Models\KeywordLibrary;
 use App\Models\KeywordTrendSource;
 use App\Models\KnowledgeBase;
 use App\Models\Prompt;
 use App\Models\SiteSetting;
 use App\Models\SiteThemeReplication;
+use App\Models\Task;
+use App\Models\TaskRun;
 use App\Models\Tenant;
 use App\Models\TitleLibrary;
 use App\Models\TopicPlan;
 use App\Models\UrlImportJob;
+use App\Services\Admin\Analytics\AnalyticsFilter;
+use App\Services\Admin\Analytics\AnalyticsOverviewService;
 use App\Support\Site\SiteSettingsBag;
 use App\Support\Tenancy\TenantContext;
+use App\Support\Tenancy\TenantStoragePath;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
 
 class AdminTenantIsolationTest extends TestCase
@@ -309,12 +319,16 @@ class AdminTenantIsolationTest extends TestCase
         $planOne = TopicPlan::query()->create([
             'tenant_id' => (int) $tenantOne->id,
             'name' => 'Tenant One Topic Plan',
+            'period_start' => '2026-06-01',
+            'period_end' => '2026-06-30',
             'status' => 'draft',
             'ai_model_id' => (int) $modelOne->id,
         ]);
         $planTwo = TopicPlan::query()->create([
             'tenant_id' => (int) $tenantTwo->id,
             'name' => 'Tenant Two Topic Plan',
+            'period_start' => '2026-06-01',
+            'period_end' => '2026-06-30',
             'status' => 'draft',
             'ai_model_id' => (int) $foreignModel->id,
         ]);
@@ -464,6 +478,188 @@ class AdminTenantIsolationTest extends TestCase
                 'compliance_ack' => '1',
             ])
             ->assertRedirect();
+    }
+
+    public function test_distribution_jobs_and_logs_are_isolated_by_tenant(): void
+    {
+        [$adminOne, $tenantOne] = $this->adminWithTenant('tenant_one_distribution', 'tenant-one-distribution');
+        [, $tenantTwo] = $this->adminWithTenant('tenant_two_distribution', 'tenant-two-distribution');
+
+        $articleOne = $this->articleForTenant($tenantOne, 'Tenant One Distribution', 'tenant-one-distribution');
+        $articleTwo = $this->articleForTenant($tenantTwo, 'Tenant Two Distribution', 'tenant-two-distribution');
+        $channelOne = DistributionChannel::query()->create([
+            'tenant_id' => (int) $tenantOne->id,
+            'name' => 'Tenant One Channel',
+            'domain' => 'tenant-one.example.test',
+            'endpoint_url' => 'https://tenant-one.example.test',
+            'status' => 'active',
+        ]);
+        $channelTwo = DistributionChannel::query()->create([
+            'tenant_id' => (int) $tenantTwo->id,
+            'name' => 'Tenant Two Channel',
+            'domain' => 'tenant-two.example.test',
+            'endpoint_url' => 'https://tenant-two.example.test',
+            'status' => 'active',
+        ]);
+
+        $visibleDistribution = ArticleDistribution::query()->create([
+            'tenant_id' => (int) $tenantOne->id,
+            'article_id' => (int) $articleOne->id,
+            'distribution_channel_id' => (int) $channelOne->id,
+            'action' => 'publish',
+            'status' => 'failed',
+            'idempotency_key' => 'tenant-one-distribution',
+        ]);
+        $hiddenDistribution = ArticleDistribution::query()->create([
+            'tenant_id' => (int) $tenantTwo->id,
+            'article_id' => (int) $articleTwo->id,
+            'distribution_channel_id' => (int) $channelTwo->id,
+            'action' => 'publish',
+            'status' => 'failed',
+            'idempotency_key' => 'tenant-two-distribution',
+        ]);
+        DistributionLog::query()->create([
+            'tenant_id' => (int) $tenantOne->id,
+            'distribution_channel_id' => (int) $channelOne->id,
+            'article_distribution_id' => (int) $visibleDistribution->id,
+            'article_id' => (int) $articleOne->id,
+            'level' => 'info',
+            'message' => 'tenant one log',
+            'created_at' => now(),
+        ]);
+        DistributionLog::query()->create([
+            'tenant_id' => (int) $tenantTwo->id,
+            'distribution_channel_id' => (int) $channelTwo->id,
+            'article_distribution_id' => (int) $hiddenDistribution->id,
+            'article_id' => (int) $articleTwo->id,
+            'level' => 'info',
+            'message' => 'tenant two log',
+            'created_at' => now(),
+        ]);
+
+        $this->actingAs($adminOne, 'admin')
+            ->get(route('admin.distribution.index'))
+            ->assertOk()
+            ->assertSee('Tenant One Channel')
+            ->assertSee('tenant one log')
+            ->assertDontSee('Tenant Two Channel')
+            ->assertDontSee('tenant two log');
+
+        $this->actingAs($adminOne, 'admin')
+            ->post(route('admin.distribution.retry', ['distributionId' => (int) $hiddenDistribution->id]))
+            ->assertSessionHasErrors();
+    }
+
+    public function test_geo_audits_and_task_runs_are_isolated_by_tenant(): void
+    {
+        [$adminOne, $tenantOne] = $this->adminWithTenant('tenant_one_audit', 'tenant-one-audit');
+        [, $tenantTwo] = $this->adminWithTenant('tenant_two_audit', 'tenant-two-audit');
+
+        $articleOne = $this->articleForTenant($tenantOne, 'Tenant One Audit', 'tenant-one-audit');
+        $articleTwo = $this->articleForTenant($tenantTwo, 'Tenant Two Audit', 'tenant-two-audit');
+        $taskFixturesOne = $this->taskFixturesForTenant($tenantOne);
+        $taskFixturesTwo = $this->taskFixturesForTenant($tenantTwo);
+        ArticleGeoAudit::query()->create([
+            'tenant_id' => (int) $tenantOne->id,
+            'article_id' => (int) $articleOne->id,
+            'geo_score' => 91,
+            'gate_decision' => ArticleGeoAudit::GATE_AUTO_APPROVED,
+            'audited_at' => now(),
+        ]);
+        ArticleGeoAudit::query()->create([
+            'tenant_id' => (int) $tenantTwo->id,
+            'article_id' => (int) $articleTwo->id,
+            'geo_score' => 11,
+            'gate_decision' => ArticleGeoAudit::GATE_TO_REVIEW,
+            'audited_at' => now(),
+        ]);
+        $taskOne = Task::query()->create([
+            'tenant_id' => (int) $tenantOne->id,
+            'name' => 'Tenant One Task',
+            'title_library_id' => (int) $taskFixturesOne['title_library']->id,
+            'prompt_id' => (int) $taskFixturesOne['prompt']->id,
+            'ai_model_id' => (int) $taskFixturesOne['ai_model']->id,
+            'status' => 'active',
+        ]);
+        $taskTwo = Task::query()->create([
+            'tenant_id' => (int) $tenantTwo->id,
+            'name' => 'Tenant Two Task',
+            'title_library_id' => (int) $taskFixturesTwo['title_library']->id,
+            'prompt_id' => (int) $taskFixturesTwo['prompt']->id,
+            'ai_model_id' => (int) $taskFixturesTwo['ai_model']->id,
+            'status' => 'active',
+        ]);
+        TaskRun::query()->create([
+            'tenant_id' => (int) $tenantOne->id,
+            'task_id' => (int) $taskOne->id,
+            'status' => 'failed',
+            'error_message' => 'tenant one failure',
+        ]);
+        TaskRun::query()->create([
+            'tenant_id' => (int) $tenantTwo->id,
+            'task_id' => (int) $taskTwo->id,
+            'status' => 'failed',
+            'error_message' => 'tenant two failure',
+        ]);
+
+        $this->actingAs($adminOne, 'admin')
+            ->get(route('admin.geo-audits.index'))
+            ->assertOk()
+            ->assertSee('Tenant One Audit')
+            ->assertDontSee('Tenant Two Audit');
+
+        $taskHealth = TenantContext::run(
+            (int) $tenantOne->id,
+            fn (): array => app(AnalyticsOverviewService::class)->taskHealth(AnalyticsFilter::fromRequest([]))
+        );
+        $failureMessages = collect($taskHealth['recent_failures'])
+            ->pluck('error_message')
+            ->all();
+
+        $this->assertContains('tenant one failure', $failureMessages);
+        $this->assertNotContains('tenant two failure', $failureMessages);
+    }
+
+    public function test_api_token_creation_persists_selected_tenant_binding(): void
+    {
+        $superAdmin = Admin::query()->create([
+            'username' => 'super_admin_api_token',
+            'password' => 'secret-123',
+            'email' => 'super-admin-api-token@example.com',
+            'display_name' => 'Super Admin API Token',
+            'role' => 'super_admin',
+            'status' => 'active',
+        ]);
+        [, $tenant] = $this->adminWithTenant('tenant_api_owner', 'tenant-api-owner');
+
+        $this->actingAs($superAdmin, 'admin')
+            ->post(route('admin.api-tokens.store'), [
+                'name' => 'Tenant Bound Token',
+                'tenant_id' => (int) $tenant->id,
+                'scopes' => ['tasks:read'],
+                'expires_at' => now()->addDay()->format('Y-m-d\TH:i'),
+            ])
+            ->assertRedirect(route('admin.api-tokens.index'));
+
+        $token = PersonalAccessToken::query()
+            ->where('name', 'Tenant Bound Token')
+            ->firstOrFail();
+
+        $this->assertSame((int) $tenant->id, (int) $token->tenant_id);
+        $this->assertSame((int) $tenant->owner_admin_id, (int) $token->tokenable_id);
+    }
+
+    public function test_tenant_storage_paths_are_namespaced_by_current_tenant(): void
+    {
+        [, $tenantOne] = $this->adminWithTenant('tenant_one_storage', 'tenant-one-storage');
+        [, $tenantTwo] = $this->adminWithTenant('tenant_two_storage', 'tenant-two-storage');
+
+        $pathOne = TenantContext::run((int) $tenantOne->id, fn (): string => TenantStoragePath::prefix('uploads/images/2026/06'));
+        $pathTwo = TenantContext::run((int) $tenantTwo->id, fn (): string => TenantStoragePath::prefix('uploads/images/2026/06'));
+
+        $this->assertSame('tenants/'.(int) $tenantOne->id.'/uploads/images/2026/06', $pathOne);
+        $this->assertSame('tenants/'.(int) $tenantTwo->id.'/uploads/images/2026/06', $pathTwo);
+        $this->assertNotSame($pathOne, $pathTwo);
     }
 
     /**
@@ -671,6 +867,21 @@ class AdminTenantIsolationTest extends TestCase
                 $table->string('endpoint_url')->default('');
                 $table->string('channel_type')->default('geoflow_agent');
                 $table->string('status', 20)->default('active');
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('distribution_channel_secrets')) {
+            Schema::create('distribution_channel_secrets', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('tenant_id')->nullable()->index();
+                $table->unsignedBigInteger('distribution_channel_id');
+                $table->string('key_id');
+                $table->text('secret_hash');
+                $table->text('secret_ciphertext');
+                $table->string('status')->default('active');
+                $table->json('scopes')->nullable();
+                $table->timestamp('last_used_at')->nullable();
                 $table->timestamps();
             });
         }
@@ -919,6 +1130,7 @@ class AdminTenantIsolationTest extends TestCase
         if (! Schema::hasTable('article_distributions')) {
             Schema::create('article_distributions', function (Blueprint $table): void {
                 $table->id();
+                $table->unsignedBigInteger('tenant_id')->nullable()->index();
                 $table->unsignedBigInteger('article_id');
                 $table->unsignedBigInteger('distribution_channel_id');
                 $table->string('action', 20)->default('publish');
@@ -929,12 +1141,82 @@ class AdminTenantIsolationTest extends TestCase
             });
         }
 
-        foreach (['admins', 'ai_models', 'prompts', 'keyword_libraries', 'title_libraries', 'image_libraries', 'authors', 'categories', 'knowledge_bases', 'distribution_channels', 'tasks', 'articles', 'site_settings', 'keyword_trend_sources', 'topic_plans', 'topic_plan_items', 'url_import_jobs', 'url_import_job_logs', 'site_theme_replications', 'site_theme_replication_logs', 'site_theme_replication_versions'] as $table) {
+        if (! Schema::hasTable('distribution_logs')) {
+            Schema::create('distribution_logs', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('tenant_id')->nullable()->index();
+                $table->unsignedBigInteger('distribution_channel_id')->nullable();
+                $table->unsignedBigInteger('article_distribution_id')->nullable();
+                $table->unsignedBigInteger('article_id')->nullable();
+                $table->string('level')->default('info');
+                $table->string('event')->nullable();
+                $table->text('message');
+                $table->json('context')->nullable();
+                $table->timestamp('created_at')->nullable();
+            });
+        }
+
+        if (! Schema::hasTable('article_geo_audits')) {
+            Schema::create('article_geo_audits', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('tenant_id')->nullable()->index();
+                $table->unsignedBigInteger('article_id');
+                $table->integer('geo_score')->default(0);
+                $table->integer('title_keyword_match')->default(0);
+                $table->integer('structure_score')->default(0);
+                $table->integer('kb_coverage')->default(0);
+                $table->integer('dup_ratio')->default(0);
+                $table->integer('word_count')->default(0);
+                $table->string('gate_decision')->default('passthrough');
+                $table->text('suggestion')->nullable();
+                $table->json('risk_notes')->nullable();
+                $table->json('details')->nullable();
+                $table->unsignedBigInteger('ai_model_id')->nullable();
+                $table->timestamp('audited_at')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('task_runs')) {
+            Schema::create('task_runs', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('tenant_id')->nullable()->index();
+                $table->unsignedBigInteger('task_id');
+                $table->string('status');
+                $table->unsignedBigInteger('article_id')->nullable();
+                $table->text('error_message')->nullable();
+                $table->integer('duration_ms')->default(0);
+                $table->json('meta')->nullable();
+                $table->timestamp('started_at')->nullable();
+                $table->timestamp('finished_at')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        foreach (['admins', 'ai_models', 'prompts', 'keyword_libraries', 'title_libraries', 'image_libraries', 'authors', 'categories', 'knowledge_bases', 'distribution_channels', 'tasks', 'articles', 'article_distributions', 'distribution_logs', 'article_geo_audits', 'task_runs', 'site_settings', 'keyword_trend_sources', 'topic_plans', 'topic_plan_items', 'url_import_jobs', 'url_import_job_logs', 'site_theme_replications', 'site_theme_replication_logs', 'site_theme_replication_versions'] as $table) {
             if (Schema::hasTable($table) && ! Schema::hasColumn($table, 'tenant_id')) {
                 Schema::table($table, function (Blueprint $blueprint): void {
                     $blueprint->unsignedBigInteger('tenant_id')->nullable()->index();
                 });
             }
+        }
+
+        if (! Schema::hasTable('personal_access_tokens')) {
+            Schema::create('personal_access_tokens', function (Blueprint $table): void {
+                $table->id();
+                $table->morphs('tokenable');
+                $table->unsignedBigInteger('tenant_id')->nullable()->index();
+                $table->string('name');
+                $table->string('token', 64)->unique();
+                $table->text('abilities')->nullable();
+                $table->timestamp('last_used_at')->nullable();
+                $table->timestamp('expires_at')->nullable();
+                $table->timestamps();
+            });
+        } elseif (! Schema::hasColumn('personal_access_tokens', 'tenant_id')) {
+            Schema::table('personal_access_tokens', function (Blueprint $table): void {
+                $table->unsignedBigInteger('tenant_id')->nullable()->index();
+            });
         }
     }
 
@@ -962,5 +1244,30 @@ class AdminTenantIsolationTest extends TestCase
             'review_status' => 'approved',
             'published_at' => now(),
         ]);
+    }
+
+    /**
+     * @return array{title_library: TitleLibrary, prompt: Prompt, ai_model: AiModel}
+     */
+    private function taskFixturesForTenant(Tenant $tenant): array
+    {
+        return [
+            'title_library' => TitleLibrary::query()->create([
+                'tenant_id' => (int) $tenant->id,
+                'name' => 'Task Title Library '.$tenant->id,
+            ]),
+            'prompt' => Prompt::query()->create([
+                'tenant_id' => (int) $tenant->id,
+                'name' => 'Task Prompt '.$tenant->id,
+                'type' => 'content',
+                'content' => 'Write content.',
+            ]),
+            'ai_model' => AiModel::query()->create([
+                'tenant_id' => (int) $tenant->id,
+                'name' => 'Task Model '.$tenant->id,
+                'model_id' => 'task-model-'.$tenant->id,
+                'status' => 'active',
+            ]),
+        ];
     }
 }

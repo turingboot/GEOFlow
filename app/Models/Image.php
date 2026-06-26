@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Image extends Model
 {
+    use BelongsToTenant;
+
     public const UPDATED_AT = null;
 
     protected $table = 'images';
 
     protected $fillable = [
+        'tenant_id',
         'library_id',
         'filename',
         'original_name',
@@ -31,6 +35,7 @@ class Image extends Model
     {
         return [
             'library_id' => 'integer',
+            'tenant_id' => 'integer',
             'file_size' => 'integer',
             'width' => 'integer',
             'height' => 'integer',

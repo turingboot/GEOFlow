@@ -42,6 +42,17 @@
                     </div>
 
                     <div>
+                        <label for="tenant_id" class="block text-sm font-medium text-gray-700">Tenant *</label>
+                        <select id="tenant_id" name="tenant_id" required class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            @foreach (($tenants ?? []) as $tenant)
+                                <option value="{{ (int) $tenant['id'] }}" @selected((int) old('tenant_id', (int) ($tenants[0]['id'] ?? 0)) === (int) $tenant['id'])>
+                                    {{ $tenant['name'] }} ({{ $tenant['slug'] }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
                         <div class="mb-3 block text-sm font-medium text-gray-700">Scopes *</div>
                         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                             @foreach ($availableScopes as $scope)
@@ -76,6 +87,7 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{{ __('admin.api_tokens.column.name') }}</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Tenant</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Scopes</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{{ __('admin.api_tokens.column.created_by') }}</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{{ __('admin.api_tokens.column.last_used') }}</th>
@@ -88,6 +100,7 @@
                             @foreach ($tokens as $token)
                                 <tr>
                                     <td class="px-6 py-4 text-sm text-gray-900">{{ $token['name'] ?? '' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">#{{ (int) ($token['tenant_id'] ?? 0) }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ implode(', ', $token['scopes'] ?? []) }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $token['created_by_username'] !== '' ? $token['created_by_username'] : __('admin.api_tokens.value.system') }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $token['last_used_at'] ?? __('admin.api_tokens.value.never_used') }}</td>

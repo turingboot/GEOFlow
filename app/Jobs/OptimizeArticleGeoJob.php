@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Article;
 use App\Services\GeoFlow\GeoArticleOptimizerService;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
@@ -38,6 +39,23 @@ class OptimizeArticleGeoJob implements ShouldQueue
     }
 
     public function handle(GeoArticleOptimizerService $optimizer): void
+    {
+        $tenantId = Article::withoutGlobalScopes()
+            ->whereKey($this->articleId)
+            ->value('tenant_id');
+
+        if ($tenantId === null) {
+            Cache::forget(self::lockKey($this->articleId));
+
+            return;
+        }
+
+        TenantContext::run((int) $tenantId, function () use ($optimizer): void {
+            $this->optimizeForTenant($optimizer);
+        });
+    }
+
+    private function optimizeForTenant(GeoArticleOptimizerService $optimizer): void
     {
         try {
             $article = Article::query()->find($this->articleId);

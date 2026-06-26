@@ -37,7 +37,7 @@ class AdminLoginLockService
             return false;
         }
 
-        $cacheKey = $this->failedAttemptsCacheKey($username);
+        $cacheKey = $this->failedAttemptsCacheKeyForAdmin($admin);
         $attempts = (int) Cache::increment($cacheKey);
         if ($attempts <= 1) {
             Cache::forever($cacheKey, 1);
@@ -57,8 +57,15 @@ class AdminLoginLockService
     /**
      * 清理账号失败次数（用于成功登录或手动解锁后）。
      */
-    public function clearFailedAttempts(string $username): void
+    public function clearFailedAttempts(string|Admin $username): void
     {
+        if ($username instanceof Admin) {
+            Cache::forget($this->failedAttemptsCacheKeyForAdmin($username));
+            Cache::forget($this->failedAttemptsCacheKey((string) $username->username));
+
+            return;
+        }
+
         $username = trim($username);
         if ($username === '') {
             return;
@@ -73,5 +80,10 @@ class AdminLoginLockService
     private function failedAttemptsCacheKey(string $username): string
     {
         return 'admin_login_failed_attempts:'.strtolower(trim($username));
+    }
+
+    private function failedAttemptsCacheKeyForAdmin(Admin $admin): string
+    {
+        return 'admin_login_failed_attempts:'.((int) ($admin->tenant_id ?? 0)).':'.strtolower(trim((string) $admin->username));
     }
 }

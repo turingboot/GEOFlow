@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ArticleGeoAudit extends Model
 {
+    use BelongsToTenant;
+
     /** 软闸口决定枚举。 */
     public const GATE_AUTO_APPROVED = 'auto_approved';
 
@@ -15,6 +18,7 @@ class ArticleGeoAudit extends Model
     public const GATE_PASSTHROUGH = 'passthrough';
 
     protected $fillable = [
+        'tenant_id',
         'article_id',
         'geo_score',
         'title_keyword_match',
@@ -34,6 +38,7 @@ class ArticleGeoAudit extends Model
     {
         return [
             'article_id' => 'integer',
+            'tenant_id' => 'integer',
             'geo_score' => 'integer',
             'title_keyword_match' => 'integer',
             'structure_score' => 'integer',

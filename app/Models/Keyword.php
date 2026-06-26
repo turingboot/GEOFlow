@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Keyword extends Model
 {
+    use BelongsToTenant;
+
     public const UPDATED_AT = null;
 
     protected $table = 'keywords';
 
     protected $fillable = [
+        'tenant_id',
         'library_id',
         'keyword',
         'used_count',
@@ -22,6 +26,7 @@ class Keyword extends Model
     {
         return [
             'library_id' => 'integer',
+            'tenant_id' => 'integer',
             'used_count' => 'integer',
             'usage_count' => 'integer',
         ];

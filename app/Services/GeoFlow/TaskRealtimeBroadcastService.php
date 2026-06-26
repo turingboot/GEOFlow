@@ -3,6 +3,7 @@
 namespace App\Services\GeoFlow;
 
 use App\Events\Admin\TasksOverviewUpdated;
+use App\Support\Tenancy\TenantContext;
 use Throwable;
 
 /**
@@ -24,8 +25,13 @@ class TaskRealtimeBroadcastService
     public function broadcastOverview(): void
     {
         try {
+            $tenantId = TenantContext::id();
+            if ($tenantId === null) {
+                return;
+            }
+
             $overview = $this->taskMonitoringQueryService->buildAdminOverview();
-            broadcast(new TasksOverviewUpdated($overview));
+            broadcast(new TasksOverviewUpdated($overview, $tenantId));
         } catch (Throwable) {
             // Ignore broadcast failure and keep business flow stable.
         }

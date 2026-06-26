@@ -51,6 +51,7 @@ class GeoArticleAuditService
         $gate = $this->gateDecision($geoScore, (string) $article->review_status);
 
         return ArticleGeoAudit::query()->create([
+            'tenant_id' => (int) ($article->tenant_id ?? 0) ?: null,
             'article_id' => (int) $article->id,
             'geo_score' => $geoScore,
             'title_keyword_match' => $titleKeyword['score'],

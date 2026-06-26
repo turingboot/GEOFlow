@@ -8,6 +8,7 @@ use App\Models\Image;
 use App\Models\ImageLibrary;
 use App\Models\Task;
 use App\Support\AdminWeb;
+use App\Support\Tenancy\TenantStoragePath;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -450,7 +451,7 @@ class ImageLibraryController extends Controller
         $uploadDirectory = 'images/'.date('Y/m');
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg');
         $filename = bin2hex(random_bytes(16)).'.'.$extension;
-        $directory = 'uploads/'.$uploadDirectory;
+        $directory = TenantStoragePath::prefix('uploads/'.$uploadDirectory);
         if (! Storage::disk('public')->exists($directory) && ! Storage::disk('public')->makeDirectory($directory)) {
             throw new \RuntimeException('创建图片上传目录失败：storage/app/public/'.$directory);
         }

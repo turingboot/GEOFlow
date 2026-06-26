@@ -10,6 +10,7 @@ use App\Services\GeoFlow\GeoArticleAuditService;
 use App\Services\GeoFlow\GeoArticleOptimizerService;
 use App\Services\GeoFlow\KnowledgeRetrievalService;
 use App\Support\GeoFlow\ApiKeyCrypto;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
@@ -94,6 +95,7 @@ class AdminGeoAuditPageTest extends TestCase
             ->post(route('admin.geo-audits.reaudit', $article->id))
             ->assertRedirect(route('admin.geo-audits.show', $article->id));
 
+        $this->initializeDefaultTenantContext();
         $this->assertSame(2, ArticleGeoAudit::query()->where('article_id', $article->id)->count());
     }
 
@@ -111,7 +113,7 @@ class AdminGeoAuditPageTest extends TestCase
         $this->assertTrue((bool) Cache::get(OptimizeArticleGeoJob::lockKey($article->id)));
     }
 
-    public function test_optimize_route_rewrites_article_and_redirects(): void
+    public function test_optimize_job_rewrites_article_for_its_tenant(): void
     {
         AiModel::query()->create(['name' => 'Writer', 'model_id' => 'gpt-x', 'api_url' => 'https://api.example.com/v1', 'status' => 'active']);
         $article = $this->makeArticle(['title' => 'AI 客服怎么选', 'original_keyword' => 'AI 客服', 'content' => '流水文字。']);
@@ -138,11 +140,14 @@ class AdminGeoAuditPageTest extends TestCase
             return $stub;
         });
 
-        $this->actingAs($this->admin(), 'admin')
-            ->post(route('admin.geo-audits.optimize', $article->id))
-            ->assertRedirect(route('admin.geo-audits.show', $article->id));
+        Cache::put(OptimizeArticleGeoJob::lockKey($article->id), true, now()->addMinutes(10));
+        TenantContext::clear();
 
+        (new OptimizeArticleGeoJob((int) $article->id))->handle(app(GeoArticleOptimizerService::class));
+
+        $this->initializeDefaultTenantContext();
         $this->assertSame($optimized, $article->fresh()->content);
+        $this->assertFalse((bool) Cache::get(OptimizeArticleGeoJob::lockKey($article->id)));
     }
 
     public function test_index_hides_audits_of_trashed_articles(): void

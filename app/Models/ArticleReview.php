@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ArticleReview extends Model
 {
+    use BelongsToTenant;
+
     public const UPDATED_AT = null;
 
     protected $table = 'article_reviews';
 
     protected $fillable = [
+        'tenant_id',
         'article_id',
         'admin_id',
         'review_status',
@@ -22,6 +26,7 @@ class ArticleReview extends Model
     {
         return [
             'article_id' => 'integer',
+            'tenant_id' => 'integer',
             'admin_id' => 'integer',
         ];
     }

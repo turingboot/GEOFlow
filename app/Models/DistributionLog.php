@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DistributionLog extends Model
 {
+    use BelongsToTenant;
+
     public $timestamps = false;
 
     protected $fillable = [
+        'tenant_id',
         'distribution_channel_id',
         'article_distribution_id',
         'article_id',
@@ -24,6 +28,7 @@ class DistributionLog extends Model
     {
         return [
             'distribution_channel_id' => 'integer',
+            'tenant_id' => 'integer',
             'article_distribution_id' => 'integer',
             'article_id' => 'integer',
             'context' => 'array',

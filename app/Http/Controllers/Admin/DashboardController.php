@@ -23,6 +23,8 @@ use App\Models\TitleLibrary;
 use App\Models\UrlImportJob;
 use App\Support\AdminWeb;
 use App\Support\Analytics\TrafficClassifier;
+use App\Support\Tenancy\TenantContext;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -135,12 +137,14 @@ class DashboardController extends Controller
                 ->whereDate('created_at', $today)
                 ->count();
             $todayViewQuery = DB::table('view_logs')->whereDate('created_at', $today);
+            $this->scopeTenant($todayViewQuery, 'view_logs');
             if (Schema::hasColumn('view_logs', 'method')) {
                 $todayViewQuery->where('method', 'GET');
             }
             $out['today_views'] = (int) $todayViewQuery->count();
             if (Schema::hasColumn('view_logs', 'user_agent')) {
                 $todayAiBotQuery = DB::table('view_logs')->whereDate('created_at', $today);
+                $this->scopeTenant($todayAiBotQuery, 'view_logs');
                 if (Schema::hasColumn('view_logs', 'method')) {
                     $todayAiBotQuery->where('method', 'GET');
                 }
@@ -201,6 +205,7 @@ class DashboardController extends Controller
             $out['recent_failures'] = DB::table('task_runs as tr')
                 ->leftJoin('tasks as t', 'tr.task_id', '=', 't.id')
                 ->where('tr.status', 'failed')
+                ->when(TenantContext::id() !== null, fn ($query) => $query->where('tr.tenant_id', TenantContext::id()))
                 ->orderByDesc('tr.created_at')
                 ->select('tr.id', 'tr.error_message', 'tr.created_at', 't.name as task_name')
                 ->limit(4)
@@ -383,5 +388,13 @@ class DashboardController extends Controller
         }
 
         return $out;
+    }
+
+    private function scopeTenant(Builder $query, string $table): void
+    {
+        $tenantId = TenantContext::id();
+        if ($tenantId !== null && Schema::hasColumn($table, 'tenant_id')) {
+            $query->where($table.'.tenant_id', $tenantId);
+        }
     }
 }

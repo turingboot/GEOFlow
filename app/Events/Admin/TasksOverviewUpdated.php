@@ -27,12 +27,13 @@ class TasksOverviewUpdated implements ShouldBroadcastNow
      * }  $overview
      */
     public function __construct(
-        public array $overview
+        public array $overview,
+        public int $tenantId
     ) {}
 
     public function broadcastOn(): PrivateChannel
     {
-        return new PrivateChannel('admin.tasks');
+        return new PrivateChannel('admin.tasks.tenant.'.$this->tenantId);
     }
 
     public function broadcastAs(): string

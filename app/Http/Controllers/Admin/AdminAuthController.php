@@ -73,7 +73,7 @@ class AdminAuthController extends Controller
         /** @var Admin $admin */
         $admin = Auth::guard('admin')->user();
         $request->session()->regenerate();
-        $this->adminLoginLockService->clearFailedAttempts((string) $admin->username);
+        $this->adminLoginLockService->clearFailedAttempts($admin);
 
         if (! $admin->isSuperAdmin()) {
             $this->tenantProvisioner->ensureForAdmin($admin);

@@ -15,6 +15,7 @@ use App\Services\Admin\Analytics\AnalyticsFilter;
 use App\Services\Admin\Analytics\AnalyticsLogQueryService;
 use App\Services\Admin\Analytics\AnalyticsOverviewService;
 use App\Support\Analytics\TrafficClassifier;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -199,7 +200,7 @@ class AdminAnalyticsPageTest extends TestCase
         $fixtures = $this->contentFixtures();
         $admin = $this->admin();
 
-        DB::table('view_logs')->insert([
+        DB::table('view_logs')->insert($this->withTenant([
             [
                 'article_id' => (int) $fixtures['article']->id,
                 'method' => 'GET',
@@ -250,7 +251,7 @@ class AdminAnalyticsPageTest extends TestCase
                 'user_agent' => 'Mozilla/5.0',
                 'created_at' => Carbon::parse('2026-05-21 12:00:00'),
             ],
-        ]);
+        ]));
 
         $this->actingAs($admin, 'admin')
             ->get(route('admin.analytics', [
@@ -348,7 +349,7 @@ class AdminAnalyticsPageTest extends TestCase
             'created_at' => Carbon::parse('2026-05-01 09:00:00'),
         ]);
 
-        DB::table('view_logs')->insert([
+        DB::table('view_logs')->insert($this->withTenant([
             ...$this->viewLogRows((int) $fixtures['article']->id, '/article/analytics-hot-article', 2, '2026-05-20 10:00:00'),
             ...$this->viewLogRows((int) $oldViewed->id, '/article/old-most-viewed-in-range', 4, '2026-05-21 10:00:00'),
             [
@@ -362,7 +363,7 @@ class AdminAnalyticsPageTest extends TestCase
                 'user_agent' => 'Mozilla/5.0',
                 'created_at' => Carbon::parse('2026-05-21 11:00:00'),
             ],
-        ]);
+        ]));
 
         $filter = AnalyticsFilter::fromRequest([
             'preset' => 'custom',
@@ -446,7 +447,7 @@ class AdminAnalyticsPageTest extends TestCase
         $this->assertSame('human', TrafficClassifier::classify('Mozilla/5.0 Safari/537.36'));
         $this->assertSame('unknown', TrafficClassifier::classify(''));
 
-        DB::table('view_logs')->insert([
+        DB::table('view_logs')->insert($this->withTenant([
             [
                 'article_id' => null,
                 'source' => 'local',
@@ -502,7 +503,7 @@ class AdminAnalyticsPageTest extends TestCase
                 'user_agent' => 'ChatGPT-User/1.0',
                 'created_at' => Carbon::parse('2026-05-21 09:40:00'),
             ],
-        ]);
+        ]));
 
         $summary = app(AnalyticsLogQueryService::class)->summary(AnalyticsFilter::fromRequest([
             'preset' => 'custom',
@@ -663,6 +664,12 @@ class AdminAnalyticsPageTest extends TestCase
     private function ensureViewLogsTable(): void
     {
         if (Schema::hasTable('view_logs')) {
+            if (! Schema::hasColumn('view_logs', 'tenant_id')) {
+                Schema::table('view_logs', function (Blueprint $table): void {
+                    $table->unsignedBigInteger('tenant_id')->nullable()->index()->after('id');
+                });
+            }
+
             DB::table('view_logs')->truncate();
 
             return;
@@ -670,6 +677,7 @@ class AdminAnalyticsPageTest extends TestCase
 
         Schema::create('view_logs', function (Blueprint $table): void {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->nullable()->index();
             $table->unsignedBigInteger('article_id')->nullable();
             $table->string('source', 32)->default('local');
             $table->string('method', 16)->default('GET');
@@ -688,9 +696,11 @@ class AdminAnalyticsPageTest extends TestCase
     private function viewLogRows(int $articleId, string $path, int $count, string $createdAt): array
     {
         $rows = [];
+        $tenantId = $this->currentTenantId();
 
         for ($i = 1; $i <= $count; $i++) {
             $rows[] = [
+                'tenant_id' => $tenantId,
                 'article_id' => $articleId,
                 'source' => 'local',
                 'method' => 'GET',
@@ -704,5 +714,23 @@ class AdminAnalyticsPageTest extends TestCase
         }
 
         return $rows;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function withTenant(array $rows): array
+    {
+        $tenantId = $this->currentTenantId();
+
+        return array_map(static fn (array $row): array => ['tenant_id' => $tenantId] + $row, $rows);
+    }
+
+    private function currentTenantId(): int
+    {
+        $this->initializeDefaultTenantContext();
+
+        return (int) TenantContext::id();
     }
 }

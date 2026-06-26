@@ -37,8 +37,9 @@ class ThemeReplicationPublishService
 
         $version = $this->latestVersion($replication);
         $themeId = (string) $replication->theme_id;
-        $targetViewsPath = resource_path("views/theme/{$themeId}");
-        $targetAssetsPath = public_path("themes/{$themeId}");
+        $tenantThemeId = $this->tenantThemeId($replication, $themeId);
+        $targetViewsPath = resource_path("views/theme/{$tenantThemeId}");
+        $targetAssetsPath = public_path("themes/{$tenantThemeId}");
 
         if ($this->targetExistsForAnotherTheme($replication, $targetViewsPath, $targetAssetsPath)) {
             throw new RuntimeException(__('admin.theme_replication.error.theme_target_exists'));
@@ -80,6 +81,16 @@ class ThemeReplicationPublishService
         return $version;
     }
 
+    private function tenantThemeId(SiteThemeReplication $replication, string $themeId): string
+    {
+        $tenantId = (int) ($replication->tenant_id ?? 0);
+        if ($tenantId <= 0) {
+            throw new RuntimeException('Theme publishing requires tenant_id.');
+        }
+
+        return 'tenants/'.$tenantId.'/'.$themeId;
+    }
+
     private function targetExistsForAnotherTheme(SiteThemeReplication $replication, string $viewsPath, string $assetsPath): bool
     {
         if ((string) $replication->published_theme_path === $viewsPath && (string) $replication->published_asset_path === $assetsPath) {
@@ -114,6 +125,6 @@ class ThemeReplicationPublishService
         return $path !== ''
             && ! str_contains($path, '..')
             && ! str_starts_with($path, '/')
-            && ! str_contains($path, "\\");
+            && ! str_contains($path, '\\');
     }
 }

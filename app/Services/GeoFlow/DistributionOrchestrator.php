@@ -8,6 +8,7 @@ use App\Models\ArticleDistribution;
 use App\Models\DistributionChannel;
 use App\Models\DistributionLog;
 use App\Models\Task;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Collection;
 use Throwable;
 
@@ -91,6 +92,7 @@ class DistributionOrchestrator
             $payloadHash = hash('sha256', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');
 
             foreach ($channels as $channel) {
+                $tenantId = (int) ($articleModel->tenant_id ?? $channel->tenant_id ?? TenantContext::id() ?? 0);
                 $distribution = ArticleDistribution::query()->updateOrCreate(
                     [
                         'article_id' => (int) $articleModel->id,
@@ -98,6 +100,7 @@ class DistributionOrchestrator
                         'action' => $action,
                     ],
                     [
+                        'tenant_id' => $tenantId > 0 ? $tenantId : null,
                         'status' => 'queued',
                         'next_retry_at' => now(),
                         'payload_hash' => $payloadHash,
@@ -233,7 +236,11 @@ class DistributionOrchestrator
      */
     public function log(string $level, string $message, ?int $channelId = null, ?int $distributionId = null, ?int $articleId = null, array $context = []): void
     {
+        $tenantId = TenantContext::id()
+            ?? $this->resolveLogTenantId($distributionId, $articleId, $channelId);
+
         DistributionLog::query()->create([
+            'tenant_id' => $tenantId,
             'distribution_channel_id' => $channelId,
             'article_distribution_id' => $distributionId,
             'article_id' => $articleId,
@@ -248,6 +255,38 @@ class DistributionOrchestrator
     private function idempotencyKey(int $articleId, int $channelId, string $action): string
     {
         return 'article-'.$articleId.'-channel-'.$channelId.'-'.$action.'-v1';
+    }
+
+    private function resolveLogTenantId(?int $distributionId, ?int $articleId, ?int $channelId): ?int
+    {
+        if ($distributionId !== null && $distributionId > 0) {
+            $tenantId = ArticleDistribution::withoutGlobalScopes()
+                ->whereKey($distributionId)
+                ->value('tenant_id');
+            if ($tenantId !== null) {
+                return (int) $tenantId;
+            }
+        }
+
+        if ($articleId !== null && $articleId > 0) {
+            $tenantId = Article::withoutGlobalScopes()
+                ->whereKey($articleId)
+                ->value('tenant_id');
+            if ($tenantId !== null) {
+                return (int) $tenantId;
+            }
+        }
+
+        if ($channelId !== null && $channelId > 0) {
+            $tenantId = DistributionChannel::withoutGlobalScopes()
+                ->whereKey($channelId)
+                ->value('tenant_id');
+            if ($tenantId !== null) {
+                return (int) $tenantId;
+            }
+        }
+
+        return null;
     }
 
     private function sendImmediateAction(ArticleDistribution $distribution, string $action): void

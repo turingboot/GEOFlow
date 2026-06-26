@@ -378,6 +378,7 @@ const TASK_I18N = @json($taskI18n, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES
 const TASK_HEALTH_URL = @js(\App\Support\AdminWeb::routePath('admin.tasks.health'));
 const TASK_BATCH_URL = @js(\App\Support\AdminWeb::routePath('admin.tasks.batch'));
 const TASK_INITIAL_OVERVIEW = @json($taskInitialOverview, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+const TASK_REALTIME_TENANT_ID = @json($taskRealtimeTenantId);
 const TASK_TEXT = {
     workerNone: @js(__('admin.tasks.worker.none')),
     workerCurrentJob: @js(__('admin.tasks.worker.current_job')),
@@ -617,7 +618,11 @@ function initTaskRealtime() {
         return;
     }
 
-    window.Echo.private('admin.tasks').listen('.tasks.overview.updated', (payload) => {
+    if (!TASK_REALTIME_TENANT_ID) {
+        return;
+    }
+
+    window.Echo.private(`admin.tasks.tenant.${TASK_REALTIME_TENANT_ID}`).listen('.tasks.overview.updated', (payload) => {
         applyOverview(payload);
     });
 }

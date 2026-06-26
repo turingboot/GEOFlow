@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Jobs\FetchKeywordTrendsJob;
 use App\Models\KeywordTrendSource;
 use App\Services\GeoFlow\KeywordTrend\KeywordTrendOrchestrator;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Console\Command;
 
 class GeoFlowFetchKeywordTrendsCommand extends Command
@@ -31,7 +32,9 @@ class GeoFlowFetchKeywordTrendsCommand extends Command
             }
 
             if ($this->option('sync')) {
-                $orchestrator->run($source);
+                TenantContext::run((int) $source->tenant_id, function () use ($orchestrator, $source): void {
+                    $orchestrator->run($source);
+                });
             } else {
                 FetchKeywordTrendsJob::dispatch((int) $source->id)->onQueue('trends');
             }

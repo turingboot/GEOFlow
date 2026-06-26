@@ -686,12 +686,14 @@ class MaterialLibraryService
 
     private function createKeywordItem(int $parentId, array $data): Keyword
     {
+        $library = KeywordLibrary::query()->whereKey($parentId)->firstOrFail(['id', 'tenant_id']);
         $keyword = $this->requiredString($data, 'keyword', '关键词不能为空', 200);
         if (Keyword::query()->where('library_id', $parentId)->where('keyword', $keyword)->exists()) {
             throw new ApiException('material_item_exists', '关键词已存在', 409);
         }
 
         $row = Keyword::query()->create([
+            'tenant_id' => (int) ($library->tenant_id ?? 0) ?: null,
             'library_id' => $parentId,
             'keyword' => $keyword,
             'used_count' => 0,
@@ -704,12 +706,14 @@ class MaterialLibraryService
 
     private function createTitleItem(int $parentId, array $data): Title
     {
+        $library = TitleLibrary::query()->whereKey($parentId)->firstOrFail(['id', 'tenant_id']);
         $title = $this->requiredString($data, 'title', '标题不能为空', 500);
         if (Title::query()->where('library_id', $parentId)->where('title', $title)->exists()) {
             throw new ApiException('material_item_exists', '标题已存在', 409);
         }
 
         $row = Title::query()->create([
+            'tenant_id' => (int) ($library->tenant_id ?? 0) ?: null,
             'library_id' => $parentId,
             'title' => $title,
             'keyword' => $this->optionalString($data, 'keyword', 200),
@@ -724,6 +728,7 @@ class MaterialLibraryService
 
     private function createImageItem(int $parentId, array $data): Image
     {
+        $library = ImageLibrary::query()->whereKey($parentId)->firstOrFail(['id', 'tenant_id']);
         $filePath = $this->requiredString($data, 'file_path', '图片 file_path 不能为空', 500);
         $filename = $this->optionalString($data, 'filename', 255);
         if ($filename === '') {
@@ -731,6 +736,7 @@ class MaterialLibraryService
         }
 
         $row = Image::query()->create([
+            'tenant_id' => (int) ($library->tenant_id ?? 0) ?: null,
             'library_id' => $parentId,
             'filename' => $filename,
             'original_name' => $this->optionalString($data, 'original_name', 255) ?: $filename,

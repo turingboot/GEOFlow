@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Admin;
 use App\Models\AdminActivityLog;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Throwable;
 
@@ -41,6 +42,7 @@ final class AdminActivityLogger
 
         try {
             AdminActivityLog::query()->create([
+                'tenant_id' => TenantContext::id() ?? $admin->tenant_id,
                 'admin_id' => (int) $admin->id,
                 'admin_username' => (string) ($admin->username ?? ''),
                 'admin_role' => (string) ($admin->role ?? 'admin'),

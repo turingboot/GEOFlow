@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class KnowledgeChunk extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'knowledge_chunks';
 
     protected $fillable = [
+        'tenant_id',
         'knowledge_base_id',
         'chunk_index',
         'content',
@@ -31,6 +35,7 @@ class KnowledgeChunk extends Model
     {
         return [
             'knowledge_base_id' => 'integer',
+            'tenant_id' => 'integer',
             'chunk_index' => 'integer',
             'token_count' => 'integer',
             'embedding_model_id' => 'integer',

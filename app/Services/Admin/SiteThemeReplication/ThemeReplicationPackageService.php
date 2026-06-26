@@ -21,6 +21,7 @@ class ThemeReplicationPackageService
     {
         $version = $this->latestVersion($replication);
         $themeId = (string) $replication->theme_id;
+        $tenantThemeId = $this->tenantThemeId($replication, $themeId);
         $versionNumber = (int) $version->version;
         $packageDir = "geoflow-theme-replications/{$replication->id}/packages";
         $packageName = "{$themeId}-v{$versionNumber}.zip";
@@ -34,8 +35,8 @@ class ThemeReplicationPackageService
             throw new RuntimeException(__('admin.theme_replication.error.package_create_failed'));
         }
 
-        $this->addDirectoryToZip($zip, (string) $version->draft_views_path, "resources/views/theme/{$themeId}");
-        $this->addDirectoryToZip($zip, (string) $version->draft_assets_path, "public/themes/{$themeId}");
+        $this->addDirectoryToZip($zip, (string) $version->draft_views_path, "resources/views/theme/{$tenantThemeId}");
+        $this->addDirectoryToZip($zip, (string) $version->draft_assets_path, "public/themes/{$tenantThemeId}");
         if (! $zip->close()) {
             throw new RuntimeException(__('admin.theme_replication.error.package_create_failed'));
         }
@@ -67,6 +68,16 @@ class ThemeReplicationPackageService
         return $version;
     }
 
+    private function tenantThemeId(SiteThemeReplication $replication, string $themeId): string
+    {
+        $tenantId = (int) ($replication->tenant_id ?? 0);
+        if ($tenantId <= 0) {
+            throw new RuntimeException('Theme package export requires tenant_id.');
+        }
+
+        return 'tenants/'.$tenantId.'/'.$themeId;
+    }
+
     private function addDirectoryToZip(ZipArchive $zip, string $storageDirectory, string $targetDirectory): void
     {
         $storageDirectory = trim($storageDirectory, '/');
@@ -89,6 +100,6 @@ class ThemeReplicationPackageService
         return $path !== ''
             && ! str_contains($path, '..')
             && ! str_starts_with($path, '/')
-            && ! str_contains($path, "\\");
+            && ! str_contains($path, '\\');
     }
 }

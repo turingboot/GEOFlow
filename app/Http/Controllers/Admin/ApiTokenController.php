@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
+use App\Models\Tenant;
 use App\Services\Api\ApiTokenService;
 use App\Support\AdminWeb;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -35,6 +37,7 @@ class ApiTokenController extends Controller
             'activeMenu' => 'admin_users',
             'adminSiteName' => AdminWeb::siteName(),
             'tokens' => $this->apiTokenService->listTokens(),
+            'tenants' => $this->tokenTenantOptions(),
             'availableScopes' => $this->apiTokenService->getAvailableScopes(),
             'defaultExpiresAtInput' => $this->apiTokenService->defaultExpiresAtInputValue(),
         ]);
@@ -49,16 +52,18 @@ class ApiTokenController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'scopes' => ['required', 'array', 'min:1'],
             'scopes.*' => ['required', 'string'],
+            'tenant_id' => ['required', 'integer', 'min:1'],
             'expires_at' => ['nullable', 'string', 'max:32'],
         ]);
 
         try {
-            $created = $this->apiTokenService->createToken(
+            $tenantId = $this->resolveTokenTenantId((int) $payload['tenant_id']);
+            $created = TenantContext::run($tenantId, fn (): array => $this->apiTokenService->createToken(
                 (string) $payload['name'],
                 is_array($payload['scopes']) ? $payload['scopes'] : [],
                 auth('admin')->id() !== null ? (int) auth('admin')->id() : null,
                 (string) ($payload['expires_at'] ?? '')
-            );
+            ));
 
             return redirect()
                 ->route('admin.api-tokens.index')
@@ -91,5 +96,44 @@ class ApiTokenController extends Controller
         } catch (Throwable $exception) {
             return back()->withErrors(__('admin.api_tokens.error.operation_failed', ['message' => $exception->getMessage()]));
         }
+    }
+
+    /**
+     * @return list<array{id:int,name:string,slug:string}>
+     */
+    private function tokenTenantOptions(): array
+    {
+        $admin = auth('admin')->user();
+        $query = Tenant::query()
+            ->select(['id', 'name', 'slug'])
+            ->orderBy('name')
+            ->orderBy('id');
+
+        if (! $admin?->isSuperAdmin()) {
+            $query->whereKey((int) ($admin->tenant_id ?? 0));
+        }
+
+        return $query->get()
+            ->map(static fn (Tenant $tenant): array => [
+                'id' => (int) $tenant->id,
+                'name' => (string) $tenant->name,
+                'slug' => (string) $tenant->slug,
+            ])
+            ->all();
+    }
+
+    private function resolveTokenTenantId(int $tenantId): int
+    {
+        $admin = auth('admin')->user();
+        if (! $admin?->isSuperAdmin() && (int) ($admin->tenant_id ?? 0) !== $tenantId) {
+            throw new ApiException('tenant_forbidden', 'Token tenant is forbidden', 403);
+        }
+
+        $exists = Tenant::query()->whereKey($tenantId)->exists();
+        if (! $exists) {
+            throw new ApiException('tenant_not_found', 'Token tenant not found', 404);
+        }
+
+        return $tenantId;
     }
 }

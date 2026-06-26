@@ -1338,6 +1338,7 @@ class DistributionController extends Controller
         $plainSecret = 'gfsec_'.Str::random(40);
 
         DistributionChannelSecret::query()->create([
+            'tenant_id' => (int) ($channel->tenant_id ?? 0) ?: null,
             'distribution_channel_id' => (int) $channel->id,
             'key_id' => $keyId,
             'secret_ciphertext' => $this->apiKeyCrypto->encrypt($plainSecret),
@@ -1354,6 +1355,7 @@ class DistributionController extends Controller
     private function createWordPressSecret(DistributionChannel $channel, string $applicationPassword): void
     {
         DistributionChannelSecret::query()->create([
+            'tenant_id' => (int) ($channel->tenant_id ?? 0) ?: null,
             'distribution_channel_id' => (int) $channel->id,
             'key_id' => 'wp_'.Str::lower(Str::random(18)),
             'secret_ciphertext' => $this->apiKeyCrypto->encrypt($applicationPassword),
@@ -1365,6 +1367,7 @@ class DistributionController extends Controller
     private function createGenericHttpSecret(DistributionChannel $channel, string $secret): void
     {
         DistributionChannelSecret::query()->create([
+            'tenant_id' => (int) ($channel->tenant_id ?? 0) ?: null,
             'distribution_channel_id' => (int) $channel->id,
             'key_id' => 'gapi_'.Str::lower(Str::random(18)),
             'secret_ciphertext' => $this->apiKeyCrypto->encrypt($secret),
@@ -1376,6 +1379,7 @@ class DistributionController extends Controller
     private function createShopifySecret(DistributionChannel $channel, string $accessToken): void
     {
         DistributionChannelSecret::query()->create([
+            'tenant_id' => (int) ($channel->tenant_id ?? 0) ?: null,
             'distribution_channel_id' => (int) $channel->id,
             'key_id' => 'shopify_'.Str::lower(Str::random(18)),
             'secret_ciphertext' => $this->apiKeyCrypto->encrypt($accessToken),

@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\ArticleDistribution;
 use App\Services\GeoFlow\DistributionOrchestrator;
 use App\Services\GeoFlow\DistributionRetryPolicy;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
@@ -20,6 +21,21 @@ class ProcessArticleDistributionJob implements ShouldQueue
     public function __construct(private readonly int $distributionId) {}
 
     public function handle(DistributionOrchestrator $orchestrator, DistributionRetryPolicy $retryPolicy): void
+    {
+        $tenantId = ArticleDistribution::withoutGlobalScopes()
+            ->whereKey($this->distributionId)
+            ->value('tenant_id');
+
+        if ($tenantId === null) {
+            return;
+        }
+
+        TenantContext::run((int) $tenantId, function () use ($orchestrator, $retryPolicy): void {
+            $this->processForTenant($orchestrator, $retryPolicy);
+        });
+    }
+
+    private function processForTenant(DistributionOrchestrator $orchestrator, DistributionRetryPolicy $retryPolicy): void
     {
         $distribution = ArticleDistribution::query()->whereKey($this->distributionId)->first();
         if (! $distribution) {

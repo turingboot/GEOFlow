@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ArticleImage extends Model
 {
+    use BelongsToTenant;
+
     public const UPDATED_AT = null;
 
     protected $table = 'article_images';
 
     protected $fillable = [
+        'tenant_id',
         'article_id',
         'image_id',
         'position',
@@ -21,6 +25,7 @@ class ArticleImage extends Model
     {
         return [
             'article_id' => 'integer',
+            'tenant_id' => 'integer',
             'image_id' => 'integer',
             'position' => 'integer',
         ];

@@ -241,6 +241,7 @@ class AdminTasksPageTest extends TestCase
             ])
             ->assertRedirect(route('admin.tasks.index'));
 
+        $this->initializeDefaultTenantContext();
         $task = Task::query()->where('name', '仅本站任务')->firstOrFail();
         $this->assertSame('local_only', (string) $task->publish_scope);
         $this->assertDatabaseMissing('task_distribution_channels', [
@@ -270,6 +271,7 @@ class AdminTasksPageTest extends TestCase
                 ->assertRedirect(route('admin.tasks.index'))
                 ->assertSessionHasNoErrors();
 
+            $this->initializeDefaultTenantContext();
             $task = Task::query()->where('name', $taskName)->firstOrFail();
             $this->assertSame($knowledgeBaseIds[0] ?? null, $task->knowledge_base_id !== null ? (string) $task->knowledge_base_id : null);
             $this->assertSame(
@@ -321,6 +323,7 @@ class AdminTasksPageTest extends TestCase
             preg_match_all('/<label[^>]*data-knowledge-base-card[^>]*data-knowledge-base-collapsed="true"/', (string) $response->getContent())
         );
 
+        $this->initializeDefaultTenantContext();
         $task = Task::query()->create([
             'name' => '已选后排知识库任务',
             'title_library_id' => $dependencies['title_library']->id,
@@ -386,6 +389,7 @@ class AdminTasksPageTest extends TestCase
             ->assertRedirect(route('admin.tasks.index'))
             ->assertSessionHasNoErrors();
 
+        $this->initializeDefaultTenantContext();
         $task->refresh();
         $this->assertSame((int) $knowledgeBases[2]->id, (int) $task->knowledge_base_id);
         $this->assertSame(
@@ -403,6 +407,7 @@ class AdminTasksPageTest extends TestCase
             ->assertRedirect(route('admin.tasks.index'))
             ->assertSessionHasNoErrors();
 
+        $this->initializeDefaultTenantContext();
         $task->refresh();
         $this->assertNull($task->knowledge_base_id);
         $this->assertSame(0, $task->knowledgeBases()->count());

@@ -9,6 +9,7 @@ use App\Models\KnowledgeChunk;
 use App\Models\Task;
 use App\Services\GeoFlow\KnowledgeChunkSyncService;
 use App\Support\AdminWeb;
+use App\Support\Tenancy\TenantStoragePath;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,8 +18,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rules\File;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -633,7 +634,7 @@ class KnowledgeBaseController extends Controller
      */
     private function storeUploadedKnowledgeFile(UploadedFile $file): string
     {
-        $relativeDirectory = 'uploads/knowledge';
+        $relativeDirectory = TenantStoragePath::prefix('uploads/knowledge');
         $extension = strtolower($file->getClientOriginalExtension() ?: 'txt');
         $filename = uniqid('', true).'.'.$extension;
         $relativePath = Storage::disk('local')->putFileAs($relativeDirectory, $file, $filename);

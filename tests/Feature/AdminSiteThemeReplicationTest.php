@@ -15,6 +15,7 @@ use App\Models\SiteThemeReplicationVersion;
 use App\Services\Admin\SiteThemeReplication\ThemeComplianceGuard;
 use App\Services\Admin\SiteThemeReplication\ThemeReplicationPackageService;
 use App\Support\Site\SiteThemeCatalog;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
@@ -692,13 +693,16 @@ class AdminSiteThemeReplicationTest extends TestCase
         ]);
 
         $replication = $this->runReadyReplication('package-clone');
+        $tenantId = (int) TenantContext::id();
         $package = app(ThemeReplicationPackageService::class)->createPackage($replication);
 
         $this->assertFileExists((string) $package['absolute_path']);
         $zip = new ZipArchive;
         $this->assertTrue($zip->open((string) $package['absolute_path']));
-        $this->assertNotFalse($zip->locateName('resources/views/theme/package-clone/home.blade.php'));
-        $this->assertNotFalse($zip->locateName('public/themes/package-clone/theme.css'));
+        $this->assertNotFalse($zip->locateName("resources/views/theme/tenants/{$tenantId}/package-clone/home.blade.php"));
+        $this->assertNotFalse($zip->locateName("public/themes/tenants/{$tenantId}/package-clone/theme.css"));
+        $this->assertFalse($zip->locateName('resources/views/theme/package-clone/home.blade.php'));
+        $this->assertFalse($zip->locateName('public/themes/package-clone/theme.css'));
         $zip->close();
     }
 
@@ -716,8 +720,9 @@ class AdminSiteThemeReplicationTest extends TestCase
         ]);
 
         $themeId = 'publish-clone-'.strtolower(str_replace('.', '-', uniqid('', true)));
-        $viewsPath = resource_path("views/theme/{$themeId}");
-        $assetsPath = public_path("themes/{$themeId}");
+        $tenantId = (int) TenantContext::id();
+        $viewsPath = resource_path("views/theme/tenants/{$tenantId}/{$themeId}");
+        $assetsPath = public_path("themes/tenants/{$tenantId}/{$themeId}");
         File::deleteDirectory($viewsPath);
         File::deleteDirectory($assetsPath);
 
@@ -735,7 +740,7 @@ class AdminSiteThemeReplicationTest extends TestCase
             $this->assertFileExists($assetsPath.'/theme.css');
 
             $publishedThemeIds = collect(app(SiteThemeCatalog::class)->all())->pluck('id')->all();
-            $this->assertContains($themeId, $publishedThemeIds);
+            $this->assertContains("tenants/{$tenantId}/{$themeId}", $publishedThemeIds);
         } finally {
             File::deleteDirectory($viewsPath);
             File::deleteDirectory($assetsPath);

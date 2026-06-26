@@ -5,17 +5,11 @@ namespace App\Console\Commands;
 use App\Models\Task;
 use App\Models\TaskRun;
 use App\Services\GeoFlow\JobQueueService;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
-/**
- * GeoFlow 任务调度命令（对齐 bak/bin/cron.php 的入队判定）。
- *
- * 目标：
- * 1. 按任务状态与时间窗口筛选“应执行任务”；
- * 2. 为每个任务最多创建一条待执行记录（避免重复入队）；
- * 3. 入队成功后推进 next_run_at，形成周期调度。
- */
 class GeoFlowScheduleTasksCommand extends Command
 {
     protected $signature = 'geoflow:schedule-tasks';
@@ -28,26 +22,54 @@ class GeoFlowScheduleTasksCommand extends Command
         parent::__construct();
     }
 
-    /**
-     * 扫描活跃任务并按条件入队。
-     */
     public function handle(): int
     {
-        $now = now();
         $recoveredCount = $this->jobQueueService->recoverStaleJobs();
+        $queuedCount = 0;
+        $skippedCount = 0;
 
+        $tenantIds = Task::withoutGlobalScopes()
+            ->where('status', 'active')
+            ->whereNotNull('tenant_id')
+            ->distinct()
+            ->pluck('tenant_id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->values();
+
+        foreach ($tenantIds as $tenantId) {
+            [$tenantQueued, $tenantSkipped] = TenantContext::run($tenantId, fn (): array => $this->processTenantTasks());
+            $queuedCount += $tenantQueued;
+            $skippedCount += $tenantSkipped;
+        }
+
+        $this->info(sprintf(
+            'GeoFlow scheduler done: queued=%d, skipped=%d, recovered=%d',
+            $queuedCount,
+            $skippedCount,
+            $recoveredCount
+        ));
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @return array{0:int,1:int}
+     */
+    private function processTenantTasks(): array
+    {
+        $now = now();
         $queuedCount = 0;
         $skippedCount = 0;
 
         $tasks = Task::query()
-            ->select(['id', 'name', 'publish_interval', 'draft_limit', 'article_limit', 'created_count', 'next_run_at', 'next_publish_at', 'schedule_enabled'])
+            ->select(['id', 'tenant_id', 'name', 'publish_interval', 'draft_limit', 'article_limit', 'created_count', 'next_run_at', 'next_publish_at', 'schedule_enabled'])
             ->where('status', 'active')
             ->orderBy('updated_at')
             ->orderBy('id')
             ->get();
 
         $taskIds = $tasks->pluck('id')->map(static fn (mixed $id): int => (int) $id)->all();
-        // 批量获取“已有 pending/running 执行记录”的任务集合，减少循环内 exists 查询。
         $busyTaskLookup = empty($taskIds)
             ? []
             : array_fill_keys(
@@ -63,13 +85,14 @@ class GeoFlowScheduleTasksCommand extends Command
 
         $articleStats = empty($taskIds)
             ? collect()
-            : \Illuminate\Support\Facades\DB::table('articles')
+            : DB::table('articles')
                 ->selectRaw("
                     task_id,
                     SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) AS draft_articles,
                     SUM(CASE WHEN status = 'draft' AND review_status IN ('approved','auto_approved') THEN 1 ELSE 0 END) AS publishable_drafts
                 ")
                 ->whereIn('task_id', $taskIds)
+                ->where('tenant_id', TenantContext::id())
                 ->whereNull('deleted_at')
                 ->groupBy('task_id')
                 ->get()
@@ -110,7 +133,6 @@ class GeoFlowScheduleTasksCommand extends Command
                 continue;
             }
 
-            // 首次无 next_run_at 时仅初始化，不在当前轮直接入队（与 bak 保持一致）。
             if (! $task->next_run_at instanceof Carbon) {
                 $this->jobQueueService->initializeTaskSchedule($taskId);
                 $skippedCount++;
@@ -137,7 +159,6 @@ class GeoFlowScheduleTasksCommand extends Command
                 continue;
             }
 
-            // 生成与发布解耦：调度器保持分钟级扫描，Worker 内部按 next_publish_at 控制发布。
             $nextRunAt = $now->copy()->addSeconds(60);
             Task::query()->whereKey($taskId)->update([
                 'next_run_at' => $nextRunAt,
@@ -146,13 +167,6 @@ class GeoFlowScheduleTasksCommand extends Command
             $queuedCount++;
         }
 
-        $this->info(sprintf(
-            'GeoFlow scheduler done: queued=%d, skipped=%d, recovered=%d',
-            $queuedCount,
-            $skippedCount,
-            $recoveredCount
-        ));
-
-        return self::SUCCESS;
+        return [$queuedCount, $skippedCount];
     }
 }

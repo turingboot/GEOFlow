@@ -4,6 +4,7 @@ namespace App\Services\Api;
 
 use App\Exceptions\ApiException;
 use App\Models\ApiIdempotencyKey;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use JsonException;
@@ -54,6 +55,7 @@ class IdempotencyService
     public static function loadReplay(string $idempotencyKey, string $routeKey, string $requestHash): ?array
     {
         $row = ApiIdempotencyKey::query()
+            ->where('tenant_id', TenantContext::id())
             ->where('idempotency_key', $idempotencyKey)
             ->where('route_key', $routeKey)
             ->first();
@@ -86,6 +88,7 @@ class IdempotencyService
     {
         $now = now();
         $inserted = ApiIdempotencyKey::query()->insertOrIgnore([
+            'tenant_id' => TenantContext::id(),
             'idempotency_key' => $idempotencyKey,
             'route_key' => $routeKey,
             'request_hash' => $requestHash,
@@ -100,6 +103,7 @@ class IdempotencyService
         }
 
         $row = ApiIdempotencyKey::query()
+            ->where('tenant_id', TenantContext::id())
             ->where('idempotency_key', $idempotencyKey)
             ->where('route_key', $routeKey)
             ->first();

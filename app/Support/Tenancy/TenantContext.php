@@ -35,7 +35,7 @@ class TenantContext
 
     public static function shouldBypass(): bool
     {
-        return self::$bypass || self::$tenantId === null;
+        return self::$bypass;
     }
 
     public static function clear(): void

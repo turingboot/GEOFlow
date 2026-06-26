@@ -5,6 +5,7 @@ namespace App\Services\GeoFlow;
 use App\Models\Task;
 use App\Models\TaskRun;
 use App\Models\WorkerHeartbeat;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -137,6 +138,7 @@ class TaskMonitoringQueryService
                 SUM(CASE WHEN status = 'draft' AND review_status IN ('approved','auto_approved') THEN 1 ELSE 0 END) AS publishable_drafts
             ")
             ->whereIn('task_id', $taskIds)
+            ->when(TenantContext::id() !== null, fn ($query) => $query->where('tenant_id', TenantContext::id()))
             ->whereNull('deleted_at')
             ->groupBy('task_id')
             ->get()
@@ -159,6 +161,7 @@ class TaskMonitoringQueryService
                 SUM(CASE WHEN article_distributions.status = 'failed' THEN 1 ELSE 0 END) AS distribution_failed_count
             ")
             ->whereIn('articles.task_id', $taskIds)
+            ->when(TenantContext::id() !== null, fn ($query) => $query->where('article_distributions.tenant_id', TenantContext::id()))
             ->whereNull('articles.deleted_at')
             ->groupBy('articles.task_id')
             ->get()
@@ -203,14 +206,17 @@ class TaskMonitoringQueryService
         // 显示名称映射：减少后续 map 内重复查询。
         $titleNames = DB::table('title_libraries')
             ->whereIn('id', $tasks->pluck('title_library_id')->filter()->all())
+            ->when(TenantContext::id() !== null, fn ($query) => $query->where('tenant_id', TenantContext::id()))
             ->pluck('name', 'id');
 
         $modelNames = DB::table('ai_models')
             ->whereIn('id', $tasks->pluck('ai_model_id')->filter()->all())
+            ->when(TenantContext::id() !== null, fn ($query) => $query->where('tenant_id', TenantContext::id()))
             ->pluck('name', 'id');
 
         $legacyKnowledgeBaseNames = DB::table('knowledge_bases')
             ->whereIn('id', $tasks->pluck('knowledge_base_id')->filter()->all())
+            ->when(TenantContext::id() !== null, fn ($query) => $query->where('tenant_id', TenantContext::id()))
             ->pluck('name', 'id');
 
         $taskKnowledgeBaseLinks = $this->loadTaskKnowledgeBaseLinks($taskIds);
@@ -336,6 +342,7 @@ class TaskMonitoringQueryService
         return DB::table('task_knowledge_bases')
             ->join('knowledge_bases', 'knowledge_bases.id', '=', 'task_knowledge_bases.knowledge_base_id')
             ->whereIn('task_knowledge_bases.task_id', $taskIds)
+            ->when(TenantContext::id() !== null, fn ($query) => $query->where('knowledge_bases.tenant_id', TenantContext::id()))
             ->orderBy('task_knowledge_bases.sort_order')
             ->orderBy('knowledge_bases.id')
             ->get([

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Article;
+use App\Support\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,7 @@ class RecordSiteViewLog
 
         try {
             DB::table('view_logs')->insert([
+                'tenant_id' => TenantContext::id(),
                 'article_id' => $this->resolveArticleId($request, $response),
                 'source' => 'local',
                 'method' => strtoupper((string) $request->method()),
