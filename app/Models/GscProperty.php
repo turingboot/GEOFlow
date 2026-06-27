@@ -4,35 +4,24 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
- * 谷歌搜录监控的「站点/属性」。一个属性对应 GSC 中一个已验证站点 + 一套凭据。
+ * 被监控的 GSC 站点/属性，归属于某个 Google 连接（凭据在连接上）。
  */
 class GscProperty extends Model
 {
     use BelongsToTenant;
 
-    /**
-     * 支持的认证方式。
-     *
-     * @var list<string>
-     */
-    public const AUTH_TYPES = [
-        'service_account',
-        'oauth',
-    ];
-
     protected $fillable = [
         'tenant_id',
+        'gsc_connection_id',
         'name',
         'site_url',
-        'auth_type',
-        'oauth_email',
         'schedule',
         'status',
-        'config',
         'created_by_admin_id',
         'last_fetched_at',
     ];
@@ -41,33 +30,15 @@ class GscProperty extends Model
     {
         return [
             'tenant_id' => 'integer',
-            'config' => 'array',
+            'gsc_connection_id' => 'integer',
             'created_by_admin_id' => 'integer',
             'last_fetched_at' => 'datetime',
         ];
     }
 
-    public function isOauth(): bool
+    public function connection(): BelongsTo
     {
-        return $this->auth_type === 'oauth';
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function resolvedConfig(): array
-    {
-        return is_array($this->config) ? $this->config : [];
-    }
-
-    public function secrets(): HasMany
-    {
-        return $this->hasMany(GscPropertySecret::class);
-    }
-
-    public function activeSecret(): HasOne
-    {
-        return $this->hasOne(GscPropertySecret::class)->where('status', 'active')->latestOfMany();
+        return $this->belongsTo(GscConnection::class, 'gsc_connection_id');
     }
 
     public function snapshots(): HasMany

@@ -2,51 +2,39 @@
 
 namespace App\Services\GeoFlow\GoogleSearchConsole;
 
-use App\Models\GscProperty;
-use App\Models\GscPropertySecret;
+use App\Models\GscConnection;
 use App\Support\GeoFlow\ApiKeyCrypto;
+use App\Support\GeoFlow\GscOauthAppConfig;
 use App\Support\GeoFlow\OutboundHttpProxy;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * 把属性上加密存储的凭据换成可用的 Google OAuth2 access token。
- *
- * 零第三方依赖：
- * - 服务账号：用 SA JSON 里的私钥本地签 RS256 JWT，再向 token 端点换 access token；
- * - OAuth：用 refresh token + 全局应用 client 凭据向 token 端点换 access token。
- *
- * access token 缓存到接近过期（默认按 50 分钟，Google token 通常 60 分钟）。
+ * 把连接上加密存储的凭据换成可用的 Google OAuth2 access token（零第三方依赖）。
+ * - 服务账号：用 SA JSON 私钥本地签 RS256 JWT，再向 token 端点换 access token；
+ * - OAuth：用 refresh token + 平台 OAuth 应用凭据向 token 端点换 access token。
  */
 class GscAuthResolver
 {
-    /** GSC 只读权限，覆盖 searchAnalytics / urlInspection / sitemaps 的读取。 */
     public const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly';
 
     private const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 
     public function __construct(
-        private readonly ApiKeyCrypto $apiKeyCrypto
+        private readonly ApiKeyCrypto $apiKeyCrypto,
+        private readonly GscOauthAppConfig $oauthApp,
     ) {}
 
-    public function accessTokenFor(GscProperty $property): string
+    public function accessTokenFor(GscConnection $connection): string
     {
-        $secret = $property->activeSecret;
-        if (! $secret instanceof GscPropertySecret) {
-            throw new RuntimeException('该属性尚未配置 Google 凭据');
-        }
-
         $cacheKey = sprintf(
-            'gsc:token:%d:%d:%s',
-            (int) $property->getKey(),
-            (int) $secret->getKey(),
-            (string) optional($secret->updated_at)?->timestamp
+            'gsc:token:%d:%s',
+            (int) $connection->getKey(),
+            (string) optional($connection->updated_at)?->timestamp
         );
 
-        $token = Cache::remember($cacheKey, $this->cacheTtlSeconds(), function () use ($secret): string {
-            return $this->resolveToken($secret);
-        });
+        $token = Cache::remember($cacheKey, 50 * 60, fn (): string => $this->resolveToken($connection));
 
         if ($token === '') {
             throw new RuntimeException('获取 Google access token 失败');
@@ -55,14 +43,14 @@ class GscAuthResolver
         return $token;
     }
 
-    private function resolveToken(GscPropertySecret $secret): string
+    private function resolveToken(GscConnection $connection): string
     {
-        $plain = $this->apiKeyCrypto->decrypt((string) $secret->secret_ciphertext);
+        $plain = $this->apiKeyCrypto->decrypt((string) $connection->secret_ciphertext);
         if ($plain === '') {
             throw new RuntimeException('凭据解密失败或为空');
         }
 
-        return $secret->secret_kind === GscPropertySecret::KIND_OAUTH_REFRESH
+        return $connection->secret_kind === GscConnection::KIND_OAUTH_REFRESH
             ? $this->tokenFromRefreshToken($plain)
             : $this->tokenFromServiceAccount($plain);
     }
@@ -105,10 +93,8 @@ class GscAuthResolver
 
     private function tokenFromRefreshToken(string $refreshToken): string
     {
-        $clientId = (string) config('geoflow.google_search_console.oauth_client_id', '');
-        $clientSecret = (string) config('geoflow.google_search_console.oauth_client_secret', '');
-        if ($clientId === '' || $clientSecret === '') {
-            throw new RuntimeException('未配置 Google OAuth 应用凭据（GOOGLE_OAUTH_CLIENT_ID / SECRET）');
+        if (! $this->oauthApp->isConfigured()) {
+            throw new RuntimeException('平台尚未配置 Google OAuth 应用');
         }
 
         $response = Http::asForm()
@@ -117,8 +103,8 @@ class GscAuthResolver
             ->post(self::TOKEN_ENDPOINT, [
                 'grant_type' => 'refresh_token',
                 'refresh_token' => $refreshToken,
-                'client_id' => $clientId,
-                'client_secret' => $clientSecret,
+                'client_id' => $this->oauthApp->clientId(),
+                'client_secret' => $this->oauthApp->clientSecret(),
             ]);
 
         if (! $response->successful()) {
@@ -129,8 +115,6 @@ class GscAuthResolver
     }
 
     /**
-     * 组装并用 RS256 私钥签名 JWT（header.payload.signature，均为 base64url）。
-     *
      * @param  array<string, mixed>  $header
      * @param  array<string, mixed>  $claims
      */
@@ -160,10 +144,5 @@ class GscAuthResolver
     private function httpTimeout(): int
     {
         return max(5, (int) config('geoflow.google_search_console.http_timeout', 30));
-    }
-
-    private function cacheTtlSeconds(): int
-    {
-        return 50 * 60;
     }
 }

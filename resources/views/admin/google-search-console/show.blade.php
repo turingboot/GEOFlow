@@ -1,9 +1,7 @@
 @extends('admin.layouts.app')
 
 @php
-    $currentAdmin = auth('admin')->user();
-    $isSuperAdmin = $currentAdmin && method_exists($currentAdmin, 'isSuperAdmin') && $currentAdmin->isSuperAdmin();
-    $hasSecret = $property->activeSecret !== null;
+    $connection = $property->connection;
     $sitemapStats = $latestSitemap && is_array($latestSitemap->stats) ? $latestSitemap->stats : [];
 @endphp
 
@@ -15,53 +13,26 @@
                 <p class="admin-hero-sub"><span class="font-mono text-xs">{{ $property->site_url }}</span></p>
             </div>
             <div class="admin-hero-actions">
-                <a href="{{ route('admin.google-search-console.edit', $property->id) }}" class="admin-btn admin-btn-secondary">
-                    <i data-lucide="pencil" class="h-4 w-4"></i>{{ __('admin.gsc.button.edit') }}
-                </a>
                 <form method="POST" action="{{ route('admin.google-search-console.fetch', $property->id) }}">
                     @csrf
-                    <button type="submit" class="admin-btn admin-btn-primary" @disabled(! $hasSecret)>
+                    <button type="submit" class="admin-btn admin-btn-primary">
                         <i data-lucide="refresh-cw" class="h-4 w-4"></i>{{ __('admin.gsc.button.fetch') }}
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.google-search-console.remove', $property->id) }}" onsubmit="return confirm(@js(__('admin.gsc.confirm.remove')))">
+                    @csrf
+                    <button type="submit" class="admin-btn admin-btn-secondary">
+                        <i data-lucide="trash-2" class="h-4 w-4"></i>{{ __('admin.gsc.button.remove') }}
                     </button>
                 </form>
             </div>
         </div>
 
-        {{-- 凭据状态 --}}
         <div class="admin-card p-6">
-            <div class="mb-3 flex items-center justify-between">
-                <span class="admin-card-title">{{ __('admin.gsc.section.credential') }}</span>
-                <span class="admin-badge {{ $hasSecret ? 'is-success' : 'is-warning' }}">
-                    {{ $hasSecret ? __('admin.gsc.credential.connected') : __('admin.gsc.credential.missing') }}
-                </span>
+            <div class="text-sm text-gray-700">
+                {{ __('admin.gsc.field.connection') }}：<span class="font-semibold">{{ optional($connection)->name ?? '—' }}</span>
+                <span class="admin-badge is-neutral ml-2">{{ $connection ? __('admin.gsc.auth.'.$connection->provider) : '—' }}</span>
             </div>
-            <div class="grid grid-cols-1 gap-3 text-sm text-gray-700 md:grid-cols-2">
-                <div>{{ __('admin.gsc.field.auth_type') }}：<span class="admin-badge is-neutral">{{ __('admin.gsc.auth.'.$property->auth_type) }}</span></div>
-                @if ($property->oauth_email)
-                    <div>{{ __('admin.gsc.field.oauth_email') }}：<span class="font-mono text-xs">{{ $property->oauth_email }}</span></div>
-                @endif
-            </div>
-
-            @if ($property->auth_type === 'oauth')
-                <a href="{{ route('admin.google-search-console.oauth-connect', $property->id) }}" class="admin-btn admin-btn-secondary mt-4">
-                    <i data-lucide="link" class="h-4 w-4"></i>
-                    {{ $hasSecret ? __('admin.gsc.button.oauth_reconnect') : __('admin.gsc.button.oauth_connect') }}
-                </a>
-            @endif
-
-            @if ($isSuperAdmin && $hasSecret)
-                <form method="POST" action="{{ route('admin.google-search-console.reveal-secret', $property->id) }}" class="mt-4 flex flex-wrap items-end gap-2">
-                    @csrf
-                    <div class="admin-field mb-0">
-                        <label class="admin-label" for="password">{{ __('admin.gsc.field.confirm_password') }}</label>
-                        <input class="admin-input" type="password" id="password" name="password" autocomplete="current-password">
-                    </div>
-                    <button type="submit" class="admin-btn admin-btn-secondary">{{ __('admin.gsc.button.reveal') }}</button>
-                </form>
-                @if (! is_null($revealedSecret))
-                    <pre class="mt-3 max-h-48 overflow-auto rounded-md bg-gray-900 p-3 text-xs text-emerald-200">{{ $revealedSecret }}</pre>
-                @endif
-            @endif
         </div>
 
         {{-- 收录概览（sitemap） --}}
@@ -83,24 +54,17 @@
         <div class="admin-card overflow-hidden">
             <div class="admin-card-head">
                 <span class="admin-card-title">{{ __('admin.gsc.section.search') }}</span>
-                @if ($latestSearch)
-                    <span class="text-xs text-gray-500">{{ optional($latestSearch->ran_at)->format('Y-m-d H:i') }}</span>
-                @endif
+                @if ($latestSearch)<span class="text-xs text-gray-500">{{ optional($latestSearch->ran_at)->format('Y-m-d H:i') }}</span>@endif
             </div>
             @if ($metrics->isEmpty())
                 <div class="p-6 text-sm text-gray-500">{{ __('admin.gsc.search.empty') }}</div>
             @else
                 <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>{{ __('admin.gsc.field.query') }}</th>
-                            <th>{{ __('admin.gsc.field.page') }}</th>
-                            <th>{{ __('admin.gsc.field.clicks') }}</th>
-                            <th>{{ __('admin.gsc.field.impressions') }}</th>
-                            <th>{{ __('admin.gsc.field.ctr') }}</th>
-                            <th>{{ __('admin.gsc.field.position') }}</th>
-                        </tr>
-                    </thead>
+                    <thead><tr>
+                        <th>{{ __('admin.gsc.field.query') }}</th><th>{{ __('admin.gsc.field.page') }}</th>
+                        <th>{{ __('admin.gsc.field.clicks') }}</th><th>{{ __('admin.gsc.field.impressions') }}</th>
+                        <th>{{ __('admin.gsc.field.ctr') }}</th><th>{{ __('admin.gsc.field.position') }}</th>
+                    </tr></thead>
                     <tbody>
                         @foreach ($metrics as $metric)
                             <tr>
@@ -124,21 +88,12 @@
                 @csrf
                 <textarea class="admin-textarea" name="urls" rows="3" placeholder="https://example.com/article/abc"></textarea>
                 <p class="text-xs text-gray-500">{{ __('admin.gsc.help.inspect') }}</p>
-                <button type="submit" class="admin-btn admin-btn-secondary" @disabled(! $hasSecret)>
-                    <i data-lucide="scan-search" class="h-4 w-4"></i>{{ __('admin.gsc.button.inspect') }}
-                </button>
+                <button type="submit" class="admin-btn admin-btn-secondary"><i data-lucide="scan-search" class="h-4 w-4"></i>{{ __('admin.gsc.button.inspect') }}</button>
             </form>
 
             @if ($inspections->isNotEmpty())
                 <table class="admin-table mt-4">
-                    <thead>
-                        <tr>
-                            <th>URL</th>
-                            <th>{{ __('admin.gsc.field.verdict') }}</th>
-                            <th>{{ __('admin.gsc.field.coverage_state') }}</th>
-                            <th>{{ __('admin.gsc.field.last_crawl') }}</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>URL</th><th>{{ __('admin.gsc.field.verdict') }}</th><th>{{ __('admin.gsc.field.coverage_state') }}</th><th>{{ __('admin.gsc.field.last_crawl') }}</th></tr></thead>
                     <tbody>
                         @foreach ($inspections as $inspection)
                             <tr>
@@ -154,9 +109,7 @@
         </div>
 
         <div>
-            <a href="{{ route('admin.google-search-console.index') }}" class="admin-btn admin-btn-secondary">
-                <i data-lucide="arrow-left" class="h-4 w-4"></i>{{ __('admin.gsc.button.back') }}
-            </a>
+            <a href="{{ route('admin.google-search-console.index') }}" class="admin-btn admin-btn-secondary"><i data-lucide="arrow-left" class="h-4 w-4"></i>{{ __('admin.gsc.button.back') }}</a>
         </div>
     </div>
 @endsection

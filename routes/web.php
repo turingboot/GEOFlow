@@ -148,18 +148,21 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
             Route::get('{sourceId}', [KeywordTrendController::class, 'show'])->name('show')->whereNumber('sourceId');
         });
 
-        // 谷歌搜录（Google Search Console 监控：搜索表现 + 收录状态；服务账号 / OAuth 双认证）
+        // 谷歌搜录（Google Search Console 监控：一键连接 Google → 勾选已验证站点；搜索表现 + 收录）
         Route::prefix('google-search-console')->name('google-search-console.')->group(function () {
             Route::get('/', [GoogleSearchConsoleController::class, 'index'])->name('index');
-            Route::get('create', [GoogleSearchConsoleController::class, 'create'])->name('create');
-            Route::post('create', [GoogleSearchConsoleController::class, 'store'])->name('store');
+            Route::get('settings', [GoogleSearchConsoleController::class, 'settings'])->name('settings');
+            Route::post('settings', [GoogleSearchConsoleController::class, 'saveSettings'])->name('settings.save');
+            Route::get('connect', [GoogleSearchConsoleController::class, 'connect'])->name('connect');
             Route::get('oauth/callback', [GoogleSearchConsoleController::class, 'oauthCallback'])->name('oauth-callback');
-            Route::get('{propertyId}/edit', [GoogleSearchConsoleController::class, 'edit'])->name('edit')->whereNumber('propertyId');
-            Route::put('{propertyId}', [GoogleSearchConsoleController::class, 'update'])->name('update')->whereNumber('propertyId');
+            Route::get('service-account', [GoogleSearchConsoleController::class, 'createServiceAccount'])->name('service-account');
+            Route::post('service-account', [GoogleSearchConsoleController::class, 'storeServiceAccount'])->name('service-account.store');
+            Route::get('connections/{connectionId}/sites', [GoogleSearchConsoleController::class, 'sites'])->name('sites')->whereNumber('connectionId');
+            Route::post('connections/{connectionId}/sites', [GoogleSearchConsoleController::class, 'addSites'])->name('add-sites')->whereNumber('connectionId');
+            Route::post('connections/{connectionId}/disconnect', [GoogleSearchConsoleController::class, 'disconnect'])->name('disconnect')->whereNumber('connectionId');
             Route::post('{propertyId}/fetch', [GoogleSearchConsoleController::class, 'fetch'])->name('fetch')->whereNumber('propertyId');
             Route::post('{propertyId}/inspect', [GoogleSearchConsoleController::class, 'inspect'])->name('inspect')->whereNumber('propertyId');
-            Route::get('{propertyId}/oauth/connect', [GoogleSearchConsoleController::class, 'oauthConnect'])->name('oauth-connect')->whereNumber('propertyId');
-            Route::post('{propertyId}/reveal-secret', [GoogleSearchConsoleController::class, 'revealSecret'])->name('reveal-secret')->whereNumber('propertyId');
+            Route::post('{propertyId}/remove', [GoogleSearchConsoleController::class, 'destroyProperty'])->name('remove')->whereNumber('propertyId');
             Route::get('{propertyId}', [GoogleSearchConsoleController::class, 'show'])->name('show')->whereNumber('propertyId');
         });
 

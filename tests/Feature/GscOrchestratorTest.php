@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\GscConnection;
 use App\Models\GscProperty;
-use App\Models\GscPropertySecret;
 use App\Models\GscSearchMetric;
 use App\Models\GscSnapshot;
 use App\Models\GscUrlInspection;
@@ -122,23 +122,26 @@ class GscOrchestratorTest extends TestCase
 
     private function makeOauthProperty(): GscProperty
     {
-        $property = GscProperty::query()->create([
-            'name' => '示例站点',
-            'site_url' => 'sc-domain:example.com',
-            'auth_type' => 'oauth',
-            'status' => 'active',
-        ]);
-
-        $property->secrets()->create([
-            'key_id' => 'gsc_'.bin2hex(random_bytes(6)),
-            'secret_kind' => GscPropertySecret::KIND_OAUTH_REFRESH,
+        $connection = GscConnection::query()->create([
+            'name' => '示例连接',
+            'provider' => GscConnection::PROVIDER_OAUTH,
+            'email' => 'a@b.com',
+            'secret_kind' => GscConnection::KIND_OAUTH_REFRESH,
             'secret_ciphertext' => app(ApiKeyCrypto::class)->encrypt('1//refresh-token'),
             'status' => 'active',
             'scopes' => [GscAuthResolver::SCOPE],
         ]);
 
+        $property = GscProperty::query()->create([
+            'gsc_connection_id' => $connection->id,
+            'name' => '示例站点',
+            'site_url' => 'sc-domain:example.com',
+            'schedule' => 'daily',
+            'status' => 'active',
+        ]);
+
         $this->assertGreaterThan(0, TenantContext::id());
 
-        return $property->fresh(['activeSecret']);
+        return $property->fresh(['connection']);
     }
 }

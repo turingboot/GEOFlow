@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Jobs\FetchGscJob;
+use App\Models\GscConnection;
 use App\Models\GscProperty;
-use App\Models\GscPropertySecret;
 use App\Models\GscSnapshot;
 use App\Services\GeoFlow\GoogleSearchConsole\GscAuthResolver;
 use App\Support\GeoFlow\ApiKeyCrypto;
@@ -71,23 +71,25 @@ class GscCommandTest extends TestCase
 
     private function makeDueProperty(string $schedule = 'daily'): GscProperty
     {
-        $property = GscProperty::query()->create([
-            'name' => '示例站点',
-            'site_url' => 'sc-domain:example.com',
-            'auth_type' => 'oauth',
-            'schedule' => $schedule,
-            'status' => 'active',
-            'last_fetched_at' => null,
-        ]);
-
-        $property->secrets()->create([
-            'key_id' => 'gsc_'.bin2hex(random_bytes(6)),
-            'secret_kind' => GscPropertySecret::KIND_OAUTH_REFRESH,
+        $connection = GscConnection::query()->create([
+            'name' => '示例连接',
+            'provider' => GscConnection::PROVIDER_OAUTH,
+            'email' => 'a@b.com',
+            'secret_kind' => GscConnection::KIND_OAUTH_REFRESH,
             'secret_ciphertext' => app(ApiKeyCrypto::class)->encrypt('1//refresh'),
             'status' => 'active',
             'scopes' => [GscAuthResolver::SCOPE],
         ]);
 
-        return $property->fresh(['activeSecret']);
+        $property = GscProperty::query()->create([
+            'gsc_connection_id' => $connection->id,
+            'name' => '示例站点',
+            'site_url' => 'sc-domain:example.com',
+            'schedule' => $schedule,
+            'status' => 'active',
+            'last_fetched_at' => null,
+        ]);
+
+        return $property->fresh(['connection']);
     }
 }

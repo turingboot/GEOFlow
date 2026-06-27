@@ -4,113 +4,272 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\FetchGscJob;
+use App\Models\GscConnection;
 use App\Models\GscProperty;
-use App\Models\GscPropertySecret;
 use App\Models\GscSearchMetric;
 use App\Models\GscSnapshot;
 use App\Models\GscUrlInspection;
+use App\Services\GeoFlow\GoogleSearchConsole\GoogleSearchConsoleClient;
 use App\Services\GeoFlow\GoogleSearchConsole\GscAuthResolver;
 use App\Services\GeoFlow\GoogleSearchConsole\GscOrchestrator;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\ApiKeyCrypto;
+use App\Support\GeoFlow\GscOauthAppConfig;
 use App\Support\GeoFlow\OutboundHttpProxy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Throwable;
 
 /**
- * 谷歌搜录（Google Search Console 监控）后台控制器。
- * 支持服务账号（粘贴 SA JSON）与 OAuth（连接 Google 账号）两种认证。
+ * 谷歌搜录后台：以「连接」为中心。
+ * 平台超管一次性配置 OAuth 应用（DB），租户用户一键连接 Google → 勾选已验证站点。
  */
 class GoogleSearchConsoleController extends Controller
 {
     public function __construct(
         private readonly ApiKeyCrypto $apiKeyCrypto,
+        private readonly GscOauthAppConfig $oauthApp,
+        private readonly GoogleSearchConsoleClient $client,
         private readonly GscOrchestrator $orchestrator,
     ) {}
 
     public function index(): View
     {
-        $properties = GscProperty::query()
-            ->with(['latestSnapshot'])
-            ->orderByDesc('id')
-            ->get();
+        $connections = GscConnection::query()->with('properties.latestSnapshot')->orderByDesc('id')->get();
+        $properties = GscProperty::query()->with('latestSnapshot')->orderByDesc('id')->get();
 
         return view('admin.google-search-console.index', [
             'pageTitle' => __('admin.gsc.page_title'),
             'activeMenu' => 'google_search_console',
             'adminSiteName' => AdminWeb::siteName(),
+            'connections' => $connections,
             'properties' => $properties,
+            'oauthConfigured' => $this->oauthApp->isConfigured(),
+            'isSuperAdmin' => $this->isSuperAdmin(),
             'stats' => [
-                'total' => $properties->count(),
+                'connections' => $connections->count(),
+                'properties' => $properties->count(),
                 'active' => $properties->where('status', 'active')->count(),
-                'oauth' => $properties->where('auth_type', 'oauth')->count(),
-                'service_account' => $properties->where('auth_type', 'service_account')->count(),
             ],
         ]);
     }
 
-    public function create(): View
+    public function settings(): View|RedirectResponse
     {
-        return view('admin.google-search-console.create', $this->formData(null));
+        if (! $this->isSuperAdmin()) {
+            abort(403);
+        }
+
+        return view('admin.google-search-console.settings', [
+            'pageTitle' => __('admin.gsc.settings_heading'),
+            'activeMenu' => 'google_search_console',
+            'adminSiteName' => AdminWeb::siteName(),
+            'clientId' => $this->oauthApp->clientId(),
+            'hasSecret' => $this->oauthApp->clientSecret() !== '',
+            'redirectUri' => $this->oauthApp->redirectUri(),
+        ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function saveSettings(Request $request): RedirectResponse
     {
-        $data = $this->validateProperty($request);
+        if (! $this->isSuperAdmin()) {
+            abort(403);
+        }
 
-        $property = GscProperty::query()->create([
-            'name' => $data['name'],
-            'site_url' => trim((string) $data['site_url']),
-            'auth_type' => $data['auth_type'],
-            'schedule' => $data['schedule'] ?? 'manual',
+        $data = $request->validate([
+            'client_id' => ['required', 'string', 'max:300'],
+            'client_secret' => ['nullable', 'string', 'max:300'],
+            'redirect_uri' => ['nullable', 'string', 'max:300'],
+        ]);
+
+        $this->oauthApp->update(
+            (string) $data['client_id'],
+            (string) ($data['client_secret'] ?? ''),
+            (string) ($data['redirect_uri'] ?? $this->oauthApp->redirectUri()),
+        );
+
+        return redirect()->route('admin.google-search-console.settings')
+            ->with('message', __('admin.gsc.message.settings_saved'));
+    }
+
+    /**
+     * 一键连接：跳转 Google 同意页（offline 以取 refresh token）。
+     */
+    public function connect(): RedirectResponse
+    {
+        if (! $this->oauthApp->isConfigured()) {
+            return redirect()->route('admin.google-search-console.index')
+                ->withErrors(__('admin.gsc.message.oauth_not_configured'));
+        }
+
+        $state = Str::random(40);
+        session(['gsc_oauth_state' => $state]);
+
+        $query = http_build_query([
+            'client_id' => $this->oauthApp->clientId(),
+            'redirect_uri' => $this->oauthApp->redirectUri(),
+            'response_type' => 'code',
+            'scope' => GscAuthResolver::SCOPE.' openid email',
+            'access_type' => 'offline',
+            'prompt' => 'consent',
+            'include_granted_scopes' => 'true',
+            'state' => $state,
+        ]);
+
+        return redirect()->away('https://accounts.google.com/o/oauth2/v2/auth?'.$query);
+    }
+
+    public function oauthCallback(Request $request): RedirectResponse
+    {
+        $expectedState = (string) session('gsc_oauth_state');
+        session()->forget('gsc_oauth_state');
+
+        if ($request->filled('error') || ! $request->filled('code') || (string) $request->input('state') !== $expectedState || $expectedState === '') {
+            return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.oauth_denied'));
+        }
+
+        $tokenUri = 'https://oauth2.googleapis.com/token';
+        $response = Http::asForm()
+            ->withOptions(OutboundHttpProxy::httpClientOptionsForUrl($tokenUri))
+            ->post($tokenUri, [
+                'code' => (string) $request->input('code'),
+                'client_id' => $this->oauthApp->clientId(),
+                'client_secret' => $this->oauthApp->clientSecret(),
+                'redirect_uri' => $this->oauthApp->redirectUri(),
+                'grant_type' => 'authorization_code',
+            ]);
+
+        $refreshToken = (string) $response->json('refresh_token', '');
+        if (! $response->successful() || $refreshToken === '') {
+            return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.oauth_no_refresh'));
+        }
+
+        $email = $this->emailFromIdToken((string) $response->json('id_token', ''));
+        $connection = GscConnection::query()->updateOrCreate(
+            ['provider' => GscConnection::PROVIDER_OAUTH, 'email' => $email],
+            [
+                'name' => $email ?: __('admin.gsc.connection.oauth_default_name'),
+                'secret_kind' => GscConnection::KIND_OAUTH_REFRESH,
+                'secret_ciphertext' => $this->apiKeyCrypto->encrypt($refreshToken),
+                'status' => 'active',
+                'scopes' => [GscAuthResolver::SCOPE],
+                'created_by_admin_id' => auth('admin')->id(),
+            ],
+        );
+
+        return redirect()->route('admin.google-search-console.sites', $connection->id)
+            ->with('message', __('admin.gsc.message.oauth_connected'));
+    }
+
+    public function createServiceAccount(): View
+    {
+        return view('admin.google-search-console.service-account', [
+            'pageTitle' => __('admin.gsc.sa_heading'),
+            'activeMenu' => 'google_search_console',
+            'adminSiteName' => AdminWeb::siteName(),
+        ]);
+    }
+
+    public function storeServiceAccount(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['nullable', 'string', 'max:120'],
+            'service_account_json' => ['required', 'string', 'max:8000'],
+        ]);
+
+        $sa = json_decode((string) $data['service_account_json'], true);
+        if (! is_array($sa) || empty($sa['client_email']) || empty($sa['private_key'])) {
+            return back()->withErrors(__('admin.gsc.message.sa_invalid'))->withInput();
+        }
+
+        $connection = GscConnection::query()->create([
+            'name' => $data['name'] ?: (string) $sa['client_email'],
+            'provider' => GscConnection::PROVIDER_SERVICE_ACCOUNT,
+            'email' => (string) $sa['client_email'],
+            'secret_kind' => GscConnection::KIND_SERVICE_ACCOUNT,
+            'secret_ciphertext' => $this->apiKeyCrypto->encrypt((string) $data['service_account_json']),
             'status' => 'active',
+            'scopes' => [GscAuthResolver::SCOPE],
             'created_by_admin_id' => auth('admin')->id(),
         ]);
 
-        $this->maybeStoreServiceAccount($property, $data);
-
-        return redirect()->route('admin.google-search-console.show', $property->id)
-            ->with('message', __('admin.gsc.message.created'));
+        return redirect()->route('admin.google-search-console.sites', $connection->id)
+            ->with('message', __('admin.gsc.message.sa_connected'));
     }
 
-    public function edit(int $propertyId): View|RedirectResponse
+    /**
+     * 列出连接名下已验证站点，供勾选加入监控。
+     */
+    public function sites(int $connectionId): View|RedirectResponse
     {
-        $property = GscProperty::query()->whereKey($propertyId)->first();
-        if ($property === null) {
-            return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.not_found'));
+        $connection = GscConnection::query()->whereKey($connectionId)->first();
+        if ($connection === null) {
+            return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.connection_not_found'));
         }
 
-        return view('admin.google-search-console.edit', $this->formData($property));
+        $verified = [];
+        $error = null;
+        try {
+            $verified = $this->client->listSites($connection);
+        } catch (Throwable $e) {
+            $error = $e->getMessage();
+        }
+
+        $existing = GscProperty::query()->where('gsc_connection_id', $connection->id)->pluck('site_url')->all();
+
+        return view('admin.google-search-console.sites', [
+            'pageTitle' => __('admin.gsc.sites_heading'),
+            'activeMenu' => 'google_search_console',
+            'adminSiteName' => AdminWeb::siteName(),
+            'connection' => $connection,
+            'verified' => $verified,
+            'existing' => $existing,
+            'listError' => $error,
+        ]);
     }
 
-    public function update(Request $request, int $propertyId): RedirectResponse
+    public function addSites(Request $request, int $connectionId): RedirectResponse
     {
-        $property = GscProperty::query()->whereKey($propertyId)->first();
-        if ($property === null) {
-            return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.not_found'));
+        $connection = GscConnection::query()->whereKey($connectionId)->first();
+        if ($connection === null) {
+            return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.connection_not_found'));
         }
 
-        $data = $this->validateProperty($request);
-        $property->update([
-            'name' => $data['name'],
-            'site_url' => trim((string) $data['site_url']),
-            'auth_type' => $data['auth_type'],
-            'schedule' => $data['schedule'] ?? 'manual',
+        $data = $request->validate([
+            'sites' => ['required', 'array', 'min:1'],
+            'sites.*' => ['string', 'max:300'],
         ]);
 
-        $this->maybeStoreServiceAccount($property, $data);
+        $added = 0;
+        foreach (array_unique($data['sites']) as $siteUrl) {
+            $siteUrl = trim((string) $siteUrl);
+            if ($siteUrl === '') {
+                continue;
+            }
+            $property = GscProperty::query()->firstOrCreate(
+                ['gsc_connection_id' => $connection->id, 'site_url' => $siteUrl],
+                [
+                    'name' => $siteUrl,
+                    'schedule' => 'daily',
+                    'status' => 'active',
+                    'created_by_admin_id' => auth('admin')->id(),
+                ],
+            );
+            if ($property->wasRecentlyCreated) {
+                $added++;
+            }
+        }
 
-        return redirect()->route('admin.google-search-console.show', $property->id)
-            ->with('message', __('admin.gsc.message.updated'));
+        return redirect()->route('admin.google-search-console.index')
+            ->with('message', __('admin.gsc.message.sites_added', ['count' => $added]));
     }
 
     public function show(int $propertyId): View|RedirectResponse
     {
-        $property = GscProperty::query()->with(['activeSecret'])->whereKey($propertyId)->first();
+        $property = GscProperty::query()->with('connection')->whereKey($propertyId)->first();
         if ($property === null) {
             return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.not_found'));
         }
@@ -136,7 +295,6 @@ class GoogleSearchConsoleController extends Controller
             'latestInspection' => $latestInspection,
             'metrics' => $metrics,
             'inspections' => $inspections,
-            'revealedSecret' => session('gsc_secret'),
         ]);
     }
 
@@ -155,7 +313,7 @@ class GoogleSearchConsoleController extends Controller
 
     public function inspect(Request $request, int $propertyId): RedirectResponse
     {
-        $property = GscProperty::query()->whereKey($propertyId)->first();
+        $property = GscProperty::query()->with('connection')->whereKey($propertyId)->first();
         if ($property === null) {
             return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.not_found'));
         }
@@ -171,177 +329,41 @@ class GoogleSearchConsoleController extends Controller
                 ->withErrors(__('admin.gsc.message.inspect_empty'));
         }
 
-        // 收录抽样为逐 URL 调用 Google，受配额限制，单次后台请求上限 20 条，直接内联执行。
         $this->orchestrator->inspectUrls($property, $urls);
 
         return redirect()->route('admin.google-search-console.show', $property->id)
             ->with('message', __('admin.gsc.message.inspect_done', ['count' => count($urls)]));
     }
 
-    public function revealSecret(Request $request, int $propertyId): RedirectResponse
-    {
-        $admin = auth('admin')->user();
-        if (! $admin || ! method_exists($admin, 'isSuperAdmin') || ! $admin->isSuperAdmin()) {
-            abort(403);
-        }
-
-        $property = GscProperty::query()->with('activeSecret')->whereKey($propertyId)->first();
-        if ($property === null) {
-            return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.not_found'));
-        }
-
-        $request->validate(['password' => ['required', 'string']]);
-        if (! Hash::check((string) $request->input('password'), (string) $admin->password)) {
-            return redirect()->route('admin.google-search-console.show', $property->id)
-                ->withErrors(['password' => __('admin.gsc.message.bad_password')]);
-        }
-
-        $secret = $property->activeSecret;
-        $plain = $secret ? $this->apiKeyCrypto->decrypt((string) $secret->secret_ciphertext) : '';
-
-        return redirect()->route('admin.google-search-console.show', $property->id)
-            ->with('gsc_secret', $plain);
-    }
-
-    /**
-     * OAuth：跳转到 Google 同意页（access_type=offline 以拿到 refresh token）。
-     */
-    public function oauthConnect(int $propertyId): RedirectResponse
+    public function destroyProperty(int $propertyId): RedirectResponse
     {
         $property = GscProperty::query()->whereKey($propertyId)->first();
-        if ($property === null) {
-            return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.not_found'));
+        if ($property !== null) {
+            $property->delete();
         }
 
-        $clientId = (string) config('geoflow.google_search_console.oauth_client_id', '');
-        if ($clientId === '') {
-            return redirect()->route('admin.google-search-console.show', $property->id)
-                ->withErrors(__('admin.gsc.message.oauth_not_configured'));
+        return redirect()->route('admin.google-search-console.index')
+            ->with('message', __('admin.gsc.message.property_removed'));
+    }
+
+    public function disconnect(int $connectionId): RedirectResponse
+    {
+        $connection = GscConnection::query()->whereKey($connectionId)->first();
+        if ($connection !== null) {
+            $connection->delete();
         }
 
-        session(['gsc_oauth_property_id' => (int) $property->id]);
-
-        $query = http_build_query([
-            'client_id' => $clientId,
-            'redirect_uri' => $this->oauthRedirectUri(),
-            'response_type' => 'code',
-            'scope' => GscAuthResolver::SCOPE,
-            'access_type' => 'offline',
-            'prompt' => 'consent',
-            'include_granted_scopes' => 'true',
-        ]);
-
-        return redirect()->away('https://accounts.google.com/o/oauth2/v2/auth?'.$query);
+        return redirect()->route('admin.google-search-console.index')
+            ->with('message', __('admin.gsc.message.disconnected'));
     }
 
-    /**
-     * OAuth 回调：用授权码换 refresh token 并加密落库。
-     */
-    public function oauthCallback(Request $request): RedirectResponse
+    private function isSuperAdmin(): bool
     {
-        $propertyId = (int) session('gsc_oauth_property_id');
-        session()->forget('gsc_oauth_property_id');
-        $property = $propertyId > 0 ? GscProperty::query()->whereKey($propertyId)->first() : null;
-        if ($property === null) {
-            return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.not_found'));
-        }
+        $admin = auth('admin')->user();
 
-        if ($request->filled('error') || ! $request->filled('code')) {
-            return redirect()->route('admin.google-search-console.show', $property->id)
-                ->withErrors(__('admin.gsc.message.oauth_denied'));
-        }
-
-        $tokenUri = 'https://oauth2.googleapis.com/token';
-        $response = Http::asForm()
-            ->withOptions(OutboundHttpProxy::httpClientOptionsForUrl($tokenUri))
-            ->post($tokenUri, [
-                'code' => (string) $request->input('code'),
-                'client_id' => (string) config('geoflow.google_search_console.oauth_client_id', ''),
-                'client_secret' => (string) config('geoflow.google_search_console.oauth_client_secret', ''),
-                'redirect_uri' => $this->oauthRedirectUri(),
-                'grant_type' => 'authorization_code',
-            ]);
-
-        $refreshToken = (string) $response->json('refresh_token', '');
-        if (! $response->successful() || $refreshToken === '') {
-            return redirect()->route('admin.google-search-console.show', $property->id)
-                ->withErrors(__('admin.gsc.message.oauth_no_refresh'));
-        }
-
-        $property->update([
-            'auth_type' => 'oauth',
-            'oauth_email' => $this->emailFromIdToken((string) $response->json('id_token', '')),
-        ]);
-        $this->storeSecret($property, $refreshToken, GscPropertySecret::KIND_OAUTH_REFRESH);
-
-        return redirect()->route('admin.google-search-console.show', $property->id)
-            ->with('message', __('admin.gsc.message.oauth_connected'));
+        return $admin !== null && method_exists($admin, 'isSuperAdmin') && $admin->isSuperAdmin();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function formData(?GscProperty $property): array
-    {
-        return [
-            'pageTitle' => __('admin.gsc.page_title'),
-            'activeMenu' => 'google_search_console',
-            'adminSiteName' => AdminWeb::siteName(),
-            'property' => $property,
-            'authTypes' => GscProperty::AUTH_TYPES,
-            'schedules' => ['manual', 'daily', 'weekly'],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function validateProperty(Request $request): array
-    {
-        return $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'site_url' => ['required', 'string', 'max:300'],
-            'auth_type' => ['required', 'string', 'in:'.implode(',', GscProperty::AUTH_TYPES)],
-            'schedule' => ['nullable', 'string', 'in:manual,daily,weekly'],
-            'service_account_json' => ['nullable', 'string', 'max:8000'],
-        ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function maybeStoreServiceAccount(GscProperty $property, array $data): void
-    {
-        $json = trim((string) ($data['service_account_json'] ?? ''));
-        if ($json === '' || $data['auth_type'] !== 'service_account') {
-            return;
-        }
-
-        $this->storeSecret($property, $json, GscPropertySecret::KIND_SERVICE_ACCOUNT);
-    }
-
-    private function storeSecret(GscProperty $property, string $plain, string $kind): void
-    {
-        $property->secrets()->update(['status' => 'revoked']);
-        $property->secrets()->create([
-            'key_id' => 'gsc_'.Str::lower(Str::random(18)),
-            'secret_kind' => $kind,
-            'secret_ciphertext' => $this->apiKeyCrypto->encrypt($plain),
-            'status' => 'active',
-            'scopes' => [GscAuthResolver::SCOPE],
-        ]);
-    }
-
-    private function oauthRedirectUri(): string
-    {
-        $configured = trim((string) config('geoflow.google_search_console.oauth_redirect_uri', ''));
-
-        return $configured !== '' ? $configured : route('admin.google-search-console.oauth-callback');
-    }
-
-    /**
-     * 从 id_token（JWT）解析登录邮箱，仅用于展示，不做签名校验。
-     */
     private function emailFromIdToken(string $idToken): ?string
     {
         $parts = explode('.', $idToken);
