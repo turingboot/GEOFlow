@@ -62,7 +62,10 @@ class AdminWelcomeModalService
     private function resolveWelcomeState(): array
     {
         $introVersion = (string) config('geoflow.welcome_intro_version', '2.0');
-        $updateState = $this->updateMetadataService->fetchState($introVersion);
+        // 更新检测须以真实部署版本（app_version，如 2.1.0）为基线，
+        // 不能用更粗粒度的欢迎文案版本（welcome_intro_version，如 2.1），
+        // 否则 version_compare('2.1.0', '2.1', '>') 会把已是最新的安装误判为有更新。
+        $updateState = $this->updateMetadataService->fetchState();
 
         if (! empty($updateState['is_update_available']) && empty($updateState['is_ignored'])) {
             return [

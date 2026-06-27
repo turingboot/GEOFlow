@@ -13,6 +13,7 @@ use App\Models\Image;
 use App\Models\ImageLibrary;
 use App\Models\SiteSetting;
 use App\Support\AdminWeb;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -187,8 +188,9 @@ class AdminArticlesPageTest extends TestCase
         $markdown = (string) $response->json('image.markdown');
         $url = (string) $response->json('image.url');
 
-        $this->assertStringStartsWith('![GEOFlow 编辑器截图](/storage/uploads/images/', $markdown);
-        $this->assertStringStartsWith('/storage/uploads/images/', $url);
+        $tenantImagePrefix = 'tenants/'.TenantContext::id().'/uploads/images/';
+        $this->assertStringStartsWith('![GEOFlow 编辑器截图](/storage/'.$tenantImagePrefix, $markdown);
+        $this->assertStringStartsWith('/storage/'.$tenantImagePrefix, $url);
         $this->assertSame(1, ImageLibrary::query()->where('name', '文章编辑器图片')->count());
         $this->assertSame(1, Image::query()->where('original_name', 'GEOFlow 编辑器截图')->count());
         $this->assertSame(1, ArticleImage::query()->where('article_id', (int) $article->id)->count());

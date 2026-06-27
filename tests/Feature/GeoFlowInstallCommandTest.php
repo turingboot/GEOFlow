@@ -77,7 +77,9 @@ class GeoFlowInstallCommandTest extends TestCase
 
     public function test_install_command_ignores_migration_default_site_settings_when_detecting_empty_database(): void
     {
-        $this->assertTrue(SiteSetting::query()->where('setting_key', 'active_theme')->exists());
+        // 迁移写入的 active_theme 基线归属默认租户（id 1），属于跨租户的 schema 基线；
+        // 测试运行在 test-default 租户（id 2），故需绕过 TenantScope 才能观察到该行。
+        $this->assertTrue(SiteSetting::withoutGlobalScopes()->where('setting_key', 'active_theme')->exists());
 
         $this->artisan('geoflow:install')
             ->assertExitCode(0);

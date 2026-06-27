@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\SensitiveWord;
 use App\Support\AdminWeb;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -71,9 +72,11 @@ class SecuritySettingsController extends Controller
                 ->pluck('word')
                 ->all();
 
+            $tenantId = TenantContext::id();
             $wordsToInsert = $submittedWords
                 ->reject(static fn (string $word): bool => in_array($word, $existingWords, true))
                 ->map(static fn (string $word): array => [
+                    'tenant_id' => $tenantId,
                     'word' => $word,
                     'created_at' => now(),
                 ])

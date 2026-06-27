@@ -162,6 +162,10 @@ class AdminDashboardQuickStartTest extends TestCase
 
     public function test_project_intro_auto_opens_once_and_footer_link_remains_available(): void
     {
+        // 本用例验证“介绍弹窗”流程，须关闭在线更新检测，避免欢迎弹窗因检测到新版本而切到 update 模式
+        // （检测开关默认随 .env/网络变化，会让本测试变得不确定）。
+        config(['geoflow.update_check_enabled' => false]);
+
         $admin = Admin::query()->create([
             'username' => 'dashboard_project_intro_admin',
             'password' => 'secret-123',

@@ -8,6 +8,7 @@ use App\Models\KnowledgeBase;
 use App\Models\KnowledgeChunk;
 use App\Models\UrlImportJob;
 use App\Services\GeoFlow\UrlImportProcessingService;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -162,7 +163,7 @@ class UrlImportCrawlTest extends TestCase
 
         $image = Image::query()->where('library_id', $library->id)->firstOrFail();
         $this->assertSame(300, (int) $image->width);
-        $this->assertStringStartsWith('storage/uploads/images/', (string) $image->file_path);
+        $this->assertStringStartsWith('storage/tenants/'.TenantContext::id().'/uploads/images/', (string) $image->file_path);
     }
 
     private function invoke(string $method, array $args): mixed

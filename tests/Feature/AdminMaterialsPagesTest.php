@@ -15,6 +15,7 @@ use App\Models\UrlImportJob;
 use App\Models\UrlImportJobLog;
 use App\Services\GeoFlow\KnowledgeChunkSyncService;
 use App\Support\GeoFlow\ApiKeyCrypto;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -224,7 +225,7 @@ class AdminMaterialsPagesTest extends TestCase
                 'content' => "手动输入的 GEO 背景。\n\n第二段。",
                 'knowledge_files' => [
                     UploadedFile::fake()->createWithContent('alpha.md', "# Alpha\nMarkdown 内容"),
-                    UploadedFile::fake()->createWithContent('beta.txt', "Beta 文本内容"),
+                    UploadedFile::fake()->createWithContent('beta.txt', 'Beta 文本内容'),
                 ],
             ])
             ->assertRedirect(route('admin.knowledge-bases.index'));
@@ -1432,7 +1433,7 @@ class AdminMaterialsPagesTest extends TestCase
             ->where('library_id', (int) $imageLibrary->id)
             ->where('original_name', 'banner.png')
             ->firstOrFail();
-        $this->assertStringStartsWith('storage/uploads/images/', (string) $storedImage->file_path);
+        $this->assertStringStartsWith('storage/tenants/'.TenantContext::id().'/uploads/images/', (string) $storedImage->file_path);
         Storage::disk('public')->assertExists(str_replace('storage/', '', (string) $storedImage->file_path));
 
         $knowledgeFile = UploadedFile::fake()->createWithContent('manual.md', "# 标题\n内容段落");

@@ -7,6 +7,7 @@ use App\Models\Author;
 use App\Models\Category;
 use App\Models\SiteSetting;
 use App\Support\Site\SiteSettingsBag;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 
 class FrontendDemoSeeder extends Seeder
@@ -51,6 +52,7 @@ class FrontendDemoSeeder extends Seeder
         }
 
         return Author::query()->create([
+            'tenant_id' => TenantContext::id(),
             'email' => 'demo@geoflow.local',
             ...$values,
         ]);
@@ -111,6 +113,7 @@ class FrontendDemoSeeder extends Seeder
             }
 
             SiteSetting::query()->create([
+                'tenant_id' => TenantContext::id(),
                 'setting_key' => $key,
                 'setting_value' => $value,
             ]);
@@ -167,6 +170,7 @@ class FrontendDemoSeeder extends Seeder
             }
 
             $categories[$row['slug']] = Category::query()->create([
+                'tenant_id' => TenantContext::id(),
                 'slug' => $row['slug'],
                 'name' => $row['name'],
                 'description' => $row['description'],
@@ -218,6 +222,7 @@ class FrontendDemoSeeder extends Seeder
         }
 
         Article::query()->create([
+            'tenant_id' => TenantContext::id(),
             'slug' => $article['slug'],
             ...$values,
         ]);
