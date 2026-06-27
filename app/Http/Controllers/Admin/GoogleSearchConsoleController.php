@@ -38,8 +38,9 @@ class GoogleSearchConsoleController extends Controller
 
     public function index(): View
     {
-        $connections = GscConnection::query()->with('properties.latestSnapshot')->orderByDesc('id')->get();
-        $properties = GscProperty::query()->with('latestSnapshot')->orderByDesc('id')->get();
+        // 超管跨租户只读总览：TenantScope 对 super_admin 自动放行，查询即返回全部租户的连接/站点。
+        $connections = GscConnection::query()->with(['tenant', 'properties.latestSnapshot'])->orderByDesc('id')->get();
+        $properties = GscProperty::query()->with(['tenant', 'latestSnapshot'])->orderByDesc('id')->get();
 
         return view('admin.google-search-console.index', [
             'pageTitle' => __('admin.gsc.page_title'),
@@ -100,6 +101,9 @@ class GoogleSearchConsoleController extends Controller
      */
     public function connect(): RedirectResponse
     {
+        if ($block = $this->denySuperAdminManage()) {
+            return $block;
+        }
         if (! $this->oauthApp->isConfigured()) {
             return redirect()->route('admin.google-search-console.index')
                 ->withErrors(__('admin.gsc.message.oauth_not_configured'));
@@ -164,8 +168,12 @@ class GoogleSearchConsoleController extends Controller
             ->with('message', __('admin.gsc.message.oauth_connected'));
     }
 
-    public function createServiceAccount(): View
+    public function createServiceAccount(): View|RedirectResponse
     {
+        if ($block = $this->denySuperAdminManage()) {
+            return $block;
+        }
+
         return view('admin.google-search-console.service-account', [
             'pageTitle' => __('admin.gsc.sa_heading'),
             'activeMenu' => 'google_search_console',
@@ -175,6 +183,10 @@ class GoogleSearchConsoleController extends Controller
 
     public function storeServiceAccount(Request $request): RedirectResponse
     {
+        if ($block = $this->denySuperAdminManage()) {
+            return $block;
+        }
+
         $data = $request->validate([
             'name' => ['nullable', 'string', 'max:120'],
             'service_account_json' => ['required', 'string', 'max:8000'],
@@ -205,6 +217,10 @@ class GoogleSearchConsoleController extends Controller
      */
     public function sites(int $connectionId): View|RedirectResponse
     {
+        if ($block = $this->denySuperAdminManage()) {
+            return $block;
+        }
+
         $connection = GscConnection::query()->whereKey($connectionId)->first();
         if ($connection === null) {
             return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.connection_not_found'));
@@ -233,6 +249,10 @@ class GoogleSearchConsoleController extends Controller
 
     public function addSites(Request $request, int $connectionId): RedirectResponse
     {
+        if ($block = $this->denySuperAdminManage()) {
+            return $block;
+        }
+
         $connection = GscConnection::query()->whereKey($connectionId)->first();
         if ($connection === null) {
             return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.connection_not_found'));
@@ -295,6 +315,7 @@ class GoogleSearchConsoleController extends Controller
             'latestInspection' => $latestInspection,
             'metrics' => $metrics,
             'inspections' => $inspections,
+            'isSuperAdmin' => $this->isSuperAdmin(),
         ]);
     }
 
@@ -362,6 +383,19 @@ class GoogleSearchConsoleController extends Controller
         $admin = auth('admin')->user();
 
         return $admin !== null && method_exists($admin, 'isSuperAdmin') && $admin->isSuperAdmin();
+    }
+
+    /**
+     * 超管为跨租户只读总览：自助创建/接入类动作只属于具体租户，超管一律拦回。
+     */
+    private function denySuperAdminManage(): ?RedirectResponse
+    {
+        if ($this->isSuperAdmin()) {
+            return redirect()->route('admin.google-search-console.index')
+                ->withErrors(__('admin.gsc.message.super_readonly'));
+        }
+
+        return null;
     }
 
     private function emailFromIdToken(string $idToken): ?string

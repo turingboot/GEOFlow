@@ -4832,6 +4832,7 @@ return [
         ],
         'notice' => [
             'oauth_not_configured' => 'The platform Google OAuth app is not configured yet, so one-click connect is unavailable.',
+            'super_overview' => 'You are a super admin; this is a read-only cross-tenant overview. Connecting and management happen in each tenant\'s own admin.',
         ],
         'empty' => [
             'connections' => 'No Google connections yet. Click "Connect Google account" to start.',
@@ -4839,6 +4840,7 @@ return [
         ],
         'field' => [
             'connection' => 'Connection',
+            'tenant' => 'Tenant',
             'auth_type' => 'Auth method',
             'sites_count' => 'Sites',
             'name' => 'Name',
@@ -4899,6 +4901,7 @@ return [
         ],
         'message' => [
             'settings_saved' => 'OAuth app saved.',
+            'super_readonly' => 'Super admin is a read-only cross-tenant overview; connect and manage from a specific tenant\'s admin.',
             'oauth_not_configured' => 'The platform Google OAuth app is not configured.',
             'oauth_denied' => 'Google authorization was cancelled or failed.',
             'oauth_no_refresh' => 'No refresh token received; retry and allow offline access.',

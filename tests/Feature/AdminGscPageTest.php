@@ -7,9 +7,11 @@ use App\Models\Admin;
 use App\Models\GscConnection;
 use App\Models\GscProperty;
 use App\Models\SystemState;
+use App\Models\Tenant;
 use App\Services\GeoFlow\GoogleSearchConsole\GscAuthResolver;
 use App\Support\GeoFlow\ApiKeyCrypto;
 use App\Support\GeoFlow\GscOauthAppConfig;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -161,6 +163,45 @@ class AdminGscPageTest extends TestCase
 
         $this->assertSame(0, GscConnection::query()->count());
         $this->assertSame(0, GscProperty::query()->count());
+    }
+
+    public function test_super_admin_sees_cross_tenant_overview(): void
+    {
+        $this->makeOauthConnection(); // 当前测试租户下的连接
+
+        $other = Tenant::query()->create(['name' => '租户B', 'slug' => 'tenant-b', 'status' => 'active']);
+        TenantContext::run((int) $other->id, function (): void {
+            GscConnection::query()->create([
+                'name' => 'conn-b',
+                'provider' => GscConnection::PROVIDER_OAUTH,
+                'email' => 'b@b.com',
+                'secret_kind' => GscConnection::KIND_OAUTH_REFRESH,
+                'secret_ciphertext' => app(ApiKeyCrypto::class)->encrypt('1//rt-b'),
+                'status' => 'active',
+                'scopes' => [GscAuthResolver::SCOPE],
+            ]);
+        });
+
+        $this->actingAs($this->makeAdmin('super_admin'), 'admin')
+            ->get(route('admin.google-search-console.index'))
+            ->assertOk()
+            ->assertSee(__('admin.gsc.notice.super_overview'))
+            ->assertSee('conn-b')
+            ->assertSee('租户B');
+    }
+
+    public function test_super_admin_cannot_use_self_service_actions(): void
+    {
+        $super = $this->makeAdmin('super_admin');
+
+        $this->actingAs($super, 'admin')
+            ->get(route('admin.google-search-console.connect'))
+            ->assertRedirect(route('admin.google-search-console.index'))
+            ->assertSessionHasErrors();
+
+        $this->actingAs($super, 'admin')
+            ->get(route('admin.google-search-console.service-account'))
+            ->assertRedirect(route('admin.google-search-console.index'));
     }
 
     private function makeOauthConnection(): GscConnection

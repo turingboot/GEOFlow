@@ -19,12 +19,14 @@
                         <i data-lucide="refresh-cw" class="h-4 w-4"></i>{{ __('admin.gsc.button.fetch') }}
                     </button>
                 </form>
-                <form method="POST" action="{{ route('admin.google-search-console.remove', $property->id) }}" onsubmit="return confirm(@js(__('admin.gsc.confirm.remove')))">
-                    @csrf
-                    <button type="submit" class="admin-btn admin-btn-secondary">
-                        <i data-lucide="trash-2" class="h-4 w-4"></i>{{ __('admin.gsc.button.remove') }}
-                    </button>
-                </form>
+                @unless ($isSuperAdmin)
+                    <form method="POST" action="{{ route('admin.google-search-console.remove', $property->id) }}" onsubmit="return confirm(@js(__('admin.gsc.confirm.remove')))">
+                        @csrf
+                        <button type="submit" class="admin-btn admin-btn-secondary">
+                            <i data-lucide="trash-2" class="h-4 w-4"></i>{{ __('admin.gsc.button.remove') }}
+                        </button>
+                    </form>
+                @endunless
             </div>
         </div>
 

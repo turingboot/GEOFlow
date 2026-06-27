@@ -4832,6 +4832,7 @@ return [
         ],
         'notice' => [
             'oauth_not_configured' => '平台尚未配置 Google OAuth 应用，暂不能一键授权。',
+            'super_overview' => '你是超级管理员，这里是所有租户的跨租户只读总览；接入与管理请各租户在自己后台进行。',
         ],
         'empty' => [
             'connections' => '还没有任何 Google 连接。点右上角「连接 Google 账号」开始。',
@@ -4839,6 +4840,7 @@ return [
         ],
         'field' => [
             'connection' => '连接',
+            'tenant' => '租户',
             'auth_type' => '认证方式',
             'sites_count' => '站点数',
             'name' => '名称',
@@ -4899,6 +4901,7 @@ return [
         ],
         'message' => [
             'settings_saved' => 'OAuth 应用已保存。',
+            'super_readonly' => '超级管理员为跨租户只读总览，接入与管理请在具体租户后台操作。',
             'oauth_not_configured' => '平台尚未配置 Google OAuth 应用。',
             'oauth_denied' => 'Google 授权被取消或失败。',
             'oauth_no_refresh' => '未获取到 refresh token，请重试并允许离线访问。',

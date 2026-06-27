@@ -12,14 +12,15 @@
                     <a href="{{ route('admin.google-search-console.settings') }}" class="admin-btn admin-btn-secondary">
                         <i data-lucide="settings" class="h-4 w-4"></i>{{ __('admin.gsc.button.settings') }}
                     </a>
-                @endif
-                <a href="{{ route('admin.google-search-console.service-account') }}" class="admin-btn admin-btn-secondary">
-                    <i data-lucide="shield-check" class="h-4 w-4"></i>{{ __('admin.gsc.button.add_service_account') }}
-                </a>
-                @if ($oauthConfigured)
-                    <a href="{{ route('admin.google-search-console.connect') }}" class="admin-btn admin-btn-primary">
-                        <i data-lucide="link" class="h-4 w-4"></i>{{ __('admin.gsc.button.connect') }}
+                @else
+                    <a href="{{ route('admin.google-search-console.service-account') }}" class="admin-btn admin-btn-secondary">
+                        <i data-lucide="shield-check" class="h-4 w-4"></i>{{ __('admin.gsc.button.add_service_account') }}
                     </a>
+                    @if ($oauthConfigured)
+                        <a href="{{ route('admin.google-search-console.connect') }}" class="admin-btn admin-btn-primary">
+                            <i data-lucide="link" class="h-4 w-4"></i>{{ __('admin.gsc.button.connect') }}
+                        </a>
+                    @endif
                 @endif
             </div>
         </div>
@@ -32,6 +33,12 @@
                 @endif
             </div>
         @endunless
+
+        @if ($isSuperAdmin)
+            <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                {{ __('admin.gsc.notice.super_overview') }}
+            </div>
+        @endif
 
         <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
             <div class="admin-vstat grad-indigo">
@@ -55,20 +62,27 @@
                 <div class="p-6 text-sm text-gray-500">{{ __('admin.gsc.empty.connections') }}</div>
             @else
                 <table class="admin-table">
-                    <thead><tr><th>{{ __('admin.gsc.field.connection') }}</th><th>{{ __('admin.gsc.field.auth_type') }}</th><th>{{ __('admin.gsc.field.sites_count') }}</th><th></th></tr></thead>
+                    <thead><tr>
+                        @if ($isSuperAdmin)<th>{{ __('admin.gsc.field.tenant') }}</th>@endif
+                        <th>{{ __('admin.gsc.field.connection') }}</th><th>{{ __('admin.gsc.field.auth_type') }}</th><th>{{ __('admin.gsc.field.sites_count') }}</th>
+                        @unless ($isSuperAdmin)<th></th>@endunless
+                    </tr></thead>
                     <tbody>
                         @foreach ($connections as $connection)
                             <tr>
+                                @if ($isSuperAdmin)<td class="text-xs text-gray-500">{{ optional($connection->tenant)->name ?? '#'.$connection->tenant_id }}</td>@endif
                                 <td><span class="font-semibold">{{ $connection->name }}</span></td>
                                 <td><span class="admin-badge is-neutral">{{ __('admin.gsc.auth.'.$connection->provider) }}</span></td>
                                 <td>{{ $connection->properties->count() }}</td>
-                                <td class="text-right">
-                                    <a href="{{ route('admin.google-search-console.sites', $connection->id) }}" class="text-blue-600 hover:underline">{{ __('admin.gsc.button.pick_sites') }}</a>
-                                    <form method="POST" action="{{ route('admin.google-search-console.disconnect', $connection->id) }}" class="ml-3 inline" onsubmit="return confirm(@js(__('admin.gsc.confirm.disconnect')))">
-                                        @csrf
-                                        <button type="submit" class="text-red-600 hover:underline">{{ __('admin.gsc.button.disconnect') }}</button>
-                                    </form>
-                                </td>
+                                @unless ($isSuperAdmin)
+                                    <td class="text-right">
+                                        <a href="{{ route('admin.google-search-console.sites', $connection->id) }}" class="text-blue-600 hover:underline">{{ __('admin.gsc.button.pick_sites') }}</a>
+                                        <form method="POST" action="{{ route('admin.google-search-console.disconnect', $connection->id) }}" class="ml-3 inline" onsubmit="return confirm(@js(__('admin.gsc.confirm.disconnect')))">
+                                            @csrf
+                                            <button type="submit" class="text-red-600 hover:underline">{{ __('admin.gsc.button.disconnect') }}</button>
+                                        </form>
+                                    </td>
+                                @endunless
                             </tr>
                         @endforeach
                     </tbody>
@@ -83,10 +97,14 @@
                 <div class="p-6 text-sm text-gray-500">{{ __('admin.gsc.empty.properties') }}</div>
             @else
                 <table class="admin-table">
-                    <thead><tr><th>{{ __('admin.gsc.field.name') }}</th><th>{{ __('admin.gsc.field.schedule') }}</th><th>{{ __('admin.gsc.snapshot.title') }}</th></tr></thead>
+                    <thead><tr>
+                        @if ($isSuperAdmin)<th>{{ __('admin.gsc.field.tenant') }}</th>@endif
+                        <th>{{ __('admin.gsc.field.name') }}</th><th>{{ __('admin.gsc.field.schedule') }}</th><th>{{ __('admin.gsc.snapshot.title') }}</th>
+                    </tr></thead>
                     <tbody>
                         @foreach ($properties as $property)
                             <tr>
+                                @if ($isSuperAdmin)<td class="text-xs text-gray-500">{{ optional($property->tenant)->name ?? '#'.$property->tenant_id }}</td>@endif
                                 <td><a href="{{ route('admin.google-search-console.show', $property->id) }}" class="font-semibold text-blue-600 hover:underline">{{ $property->site_url }}</a></td>
                                 <td><span class="admin-badge is-neutral">{{ __('admin.gsc.schedule.'.($property->schedule ?: 'manual')) }}</span></td>
                                 <td>

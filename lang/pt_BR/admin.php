@@ -4840,6 +4840,7 @@ return array_replace_recursive($base, [
         ],
         'notice' => [
             'oauth_not_configured' => 'O app OAuth do Google da plataforma ainda não foi configurado; a conexão em um clique está indisponível.',
+            'super_overview' => 'Você é super admin; esta é uma visão geral somente leitura entre inquilinos. A conexão e o gerenciamento ocorrem no admin de cada inquilino.',
         ],
         'empty' => [
             'connections' => 'Nenhuma conexão Google ainda. Clique em "Conectar conta Google" para começar.',
@@ -4847,6 +4848,7 @@ return array_replace_recursive($base, [
         ],
         'field' => [
             'connection' => 'Conexão',
+            'tenant' => 'Inquilino',
             'auth_type' => 'Método de autenticação',
             'sites_count' => 'Sites',
             'name' => 'Nome',
@@ -4907,6 +4909,7 @@ return array_replace_recursive($base, [
         ],
         'message' => [
             'settings_saved' => 'App OAuth salvo.',
+            'super_readonly' => 'O super admin é uma visão somente leitura entre inquilinos; conecte e gerencie no admin de um inquilino específico.',
             'oauth_not_configured' => 'O app OAuth do Google da plataforma não está configurado.',
             'oauth_denied' => 'A autorização do Google foi cancelada ou falhou.',
             'oauth_no_refresh' => 'Nenhum refresh token recebido; tente novamente permitindo acesso offline.',
