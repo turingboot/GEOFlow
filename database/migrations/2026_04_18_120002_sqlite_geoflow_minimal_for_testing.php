@@ -266,6 +266,14 @@ return new class extends Migration
             $table->timestamp('finished_at')->nullable();
             $table->timestamp('created_at')->nullable();
         });
+
+        Schema::create('worker_heartbeats', function (Blueprint $table) {
+            $table->string('worker_id', 100)->primary();
+            $table->string('status', 20)->default('idle');
+            $table->timestamp('last_seen_at')->nullable();
+            $table->text('meta')->nullable();
+            $table->timestamps();
+        });
     }
 
     public function down(): void
@@ -274,6 +282,7 @@ return new class extends Migration
             return;
         }
 
+        Schema::dropIfExists('worker_heartbeats');
         Schema::dropIfExists('task_runs');
         Schema::dropIfExists('articles');
         Schema::dropIfExists('tasks');

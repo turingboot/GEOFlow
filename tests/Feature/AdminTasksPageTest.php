@@ -13,6 +13,7 @@ use App\Models\KnowledgeBase;
 use App\Models\Prompt;
 use App\Models\Task;
 use App\Models\TitleLibrary;
+use App\Models\WorkerHeartbeat;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\ApiKeyCrypto;
 use Illuminate\Database\Eloquent\Collection;
@@ -50,6 +51,72 @@ class AdminTasksPageTest extends TestCase
             ->assertSee(__('admin.tasks.empty_title'))
             ->assertViewHas('tasks')
             ->assertViewHas('taskI18n');
+    }
+
+    public function test_worker_overview_is_visible_to_super_admin(): void
+    {
+        $superAdmin = Admin::query()->create([
+            'username' => 'tasks_super_admin',
+            'password' => 'secret-123',
+            'email' => 'tasks-super-admin@example.com',
+            'display_name' => 'Tasks Super Admin',
+            'role' => 'super_admin',
+            'status' => 'active',
+        ]);
+
+        WorkerHeartbeat::query()->create([
+            'worker_id' => 'worker-superonly:queue:1',
+            'status' => 'running',
+            'last_seen_at' => now(),
+            'meta' => '',
+        ]);
+
+        // 任务页渲染 Worker 面板，超级管理员可见全局 worker。
+        $this->actingAs($superAdmin, 'admin')
+            ->get(route('admin.tasks.index'))
+            ->assertOk()
+            ->assertSee('worker-superonly:queue:1');
+
+        // 监控快照接口同样下发 worker_overview。
+        $this->actingAs($superAdmin, 'admin')
+            ->getJson(route('admin.tasks.health'))
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'worker_overview')
+            ->assertJsonPath('worker_overview.0.worker_id', 'worker-superonly:queue:1');
+    }
+
+    public function test_worker_overview_is_hidden_from_non_super_admin(): void
+    {
+        $admin = Admin::query()->create([
+            'username' => 'tasks_tenant_admin',
+            'password' => 'secret-123',
+            'email' => 'tasks-tenant-admin@example.com',
+            'display_name' => 'Tasks Tenant Admin',
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+
+        WorkerHeartbeat::query()->create([
+            'worker_id' => 'worker-superonly:queue:1',
+            'status' => 'running',
+            'last_seen_at' => now(),
+            'meta' => '',
+        ]);
+
+        // 普通租户管理员：Worker 属于跨租户共享基建，任务页不渲染任何 worker_id。
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.tasks.index'))
+            ->assertOk()
+            ->assertDontSee('worker-superonly:queue:1')
+            ->assertSee(__('admin.tasks.worker.none'));
+
+        // 监控快照接口的 worker_overview 为空。
+        $this->actingAs($admin, 'admin')
+            ->getJson(route('admin.tasks.health'))
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(0, 'worker_overview');
     }
 
     public function test_authenticated_admin_can_open_task_create_page(): void

@@ -53,7 +53,7 @@ class TaskController extends Controller
         try {
             $overview = $this->taskMonitoringQueryService->buildAdminOverview();
             $tasks = $overview['tasks'];
-            $workers = $overview['worker_overview'];
+            $workers = $this->visibleWorkerOverview($overview['worker_overview']);
             $queueStats = $overview['queue_overview'];
             $recentJobs = $overview['recent_runs'];
             $error = null;
@@ -265,7 +265,7 @@ class TaskController extends Controller
                 'success' => true,
                 'tasks' => $overview['tasks'],
                 'queue_overview' => $overview['queue_overview'],
-                'worker_overview' => $overview['worker_overview'],
+                'worker_overview' => $this->visibleWorkerOverview($overview['worker_overview']),
                 'recent_runs' => $overview['recent_runs'],
             ]);
         } catch (Throwable $e) {
@@ -304,6 +304,20 @@ class TaskController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    /**
+     * Worker 状态是所有租户共享的基建信息（队列进程存活情况），仅超级管理员可见。
+     * 普通租户管理员一律拿到空列表，避免任务页与监控快照接口跨租户暴露全局 worker。
+     *
+     * @param  list<array<string, mixed>>  $workerOverview
+     * @return list<array<string, mixed>>
+     */
+    private function visibleWorkerOverview(array $workerOverview): array
+    {
+        $admin = Auth::guard('admin')->user();
+
+        return $admin instanceof Admin && $admin->isSuperAdmin() ? $workerOverview : [];
     }
 
     /**
