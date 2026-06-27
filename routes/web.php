@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DistributionController;
 use App\Http\Controllers\Admin\EnterpriseKnowledgeController;
 use App\Http\Controllers\Admin\GeoAuditController;
+use App\Http\Controllers\Admin\GoogleSearchConsoleController;
 use App\Http\Controllers\Admin\ImageLibraryController;
 use App\Http\Controllers\Admin\KeywordLibraryController;
 use App\Http\Controllers\Admin\KeywordTrendController;
@@ -145,6 +146,21 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
             Route::post('{sourceId}/import', [KeywordTrendController::class, 'import'])->name('import')->whereNumber('sourceId');
             Route::post('{sourceId}/reveal-secret', [KeywordTrendController::class, 'revealSecret'])->name('reveal-secret')->whereNumber('sourceId');
             Route::get('{sourceId}', [KeywordTrendController::class, 'show'])->name('show')->whereNumber('sourceId');
+        });
+
+        // 谷歌搜录（Google Search Console 监控：搜索表现 + 收录状态；服务账号 / OAuth 双认证）
+        Route::prefix('google-search-console')->name('google-search-console.')->group(function () {
+            Route::get('/', [GoogleSearchConsoleController::class, 'index'])->name('index');
+            Route::get('create', [GoogleSearchConsoleController::class, 'create'])->name('create');
+            Route::post('create', [GoogleSearchConsoleController::class, 'store'])->name('store');
+            Route::get('oauth/callback', [GoogleSearchConsoleController::class, 'oauthCallback'])->name('oauth-callback');
+            Route::get('{propertyId}/edit', [GoogleSearchConsoleController::class, 'edit'])->name('edit')->whereNumber('propertyId');
+            Route::put('{propertyId}', [GoogleSearchConsoleController::class, 'update'])->name('update')->whereNumber('propertyId');
+            Route::post('{propertyId}/fetch', [GoogleSearchConsoleController::class, 'fetch'])->name('fetch')->whereNumber('propertyId');
+            Route::post('{propertyId}/inspect', [GoogleSearchConsoleController::class, 'inspect'])->name('inspect')->whereNumber('propertyId');
+            Route::get('{propertyId}/oauth/connect', [GoogleSearchConsoleController::class, 'oauthConnect'])->name('oauth-connect')->whereNumber('propertyId');
+            Route::post('{propertyId}/reveal-secret', [GoogleSearchConsoleController::class, 'revealSecret'])->name('reveal-secret')->whereNumber('propertyId');
+            Route::get('{propertyId}', [GoogleSearchConsoleController::class, 'show'])->name('show')->whereNumber('propertyId');
         });
 
         // 选题规划层：月度选题规划 + 确认排期（外挂式扩展）
