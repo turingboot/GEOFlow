@@ -92,7 +92,7 @@ return [
     // 默认仅让 AI/Embedding 供应商走代理，避免 WordPress REST、目标站 Agent 等站点通信被本机代理截获；如需全局代理可设为 *。
     'outbound_proxy_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env(
         'GEOFLOW_PROXY_HOSTS',
-        'generativelanguage.googleapis.com,api.openai.com,api.deepseek.com,openrouter.ai,api.anthropic.com,api.mistral.ai,api.groq.com,api.x.ai,api.minimax.io,api.minimaxi.com,api.siliconflow.cn,ark.cn-beijing.volces.com,dashscope.aliyuncs.com,open.bigmodel.cn,api.dataforseo.com,serpapi.com,api.semrush.com,apiv2.ahrefs.com,api.keywordseverywhere.com,trends.google.com,googleads.googleapis.com'
+        'generativelanguage.googleapis.com,api.openai.com,api.deepseek.com,openrouter.ai,api.anthropic.com,api.mistral.ai,api.groq.com,api.x.ai,api.minimax.io,api.minimaxi.com,api.siliconflow.cn,ark.cn-beijing.volces.com,dashscope.aliyuncs.com,open.bigmodel.cn,api.dataforseo.com,serpapi.com,api.semrush.com,apiv2.ahrefs.com,api.keywordseverywhere.com,trends.google.com,googleads.googleapis.com,searchconsole.googleapis.com,www.googleapis.com,oauth2.googleapis.com'
     ))), static fn (string $host): bool => $host !== '')),
     // 关键词趋势模块默认参数（设定行业品类 → 拉取国外平台关键词热度 → 近期高热度词入库）。
     'keyword_trends' => [
@@ -102,6 +102,20 @@ return [
         'heat_threshold' => max(0, min(100, (int) env('GEOFLOW_TRENDS_HEAT_THRESHOLD', 60))),
         'top_n' => max(1, (int) env('GEOFLOW_TRENDS_TOP_N', 50)),
         'http_timeout' => max(5, (int) env('GEOFLOW_TRENDS_HTTP_TIMEOUT', 30)),
+    ],
+    // 谷歌搜录（Google Search Console 监控）模块默认参数与全局 OAuth 应用凭据。
+    'google_search_console' => [
+        // 全局 OAuth 应用（所有租户共用此应用，各自授权自己的 Google 账号）。
+        'oauth_client_id' => (string) env('GOOGLE_OAUTH_CLIENT_ID', ''),
+        'oauth_client_secret' => (string) env('GOOGLE_OAUTH_CLIENT_SECRET', ''),
+        // OAuth 回调地址（需与 Google Cloud 控制台登记一致；留空则按当前域名 + 后台路由自动推导）。
+        'oauth_redirect_uri' => (string) env('GOOGLE_OAUTH_REDIRECT_URI', ''),
+        // 搜索表现默认回溯天数与单次拉取行数上限（GSC 单请求最多 25000 行）。
+        'default_range_days' => max(1, (int) env('GSC_DEFAULT_RANGE_DAYS', 28)),
+        'row_limit' => max(1, min(25000, (int) env('GSC_ROW_LIMIT', 1000))),
+        // URL Inspection 每属性每天配额（Google 限制 2000/天），用于收录抽样上限保护。
+        'url_inspection_daily_quota' => max(0, (int) env('GSC_URL_INSPECTION_DAILY_QUOTA', 2000)),
+        'http_timeout' => max(5, (int) env('GSC_HTTP_TIMEOUT', 30)),
     ],
     // 为 true 时记录知识库「查询向量」是否由默认 embedding 接口生成（便于对照 bak 验证；默认关闭）
     'debug_knowledge_query_embedding' => filter_var(env('GEOFLOW_DEBUG_KNOWLEDGE_QUERY_EMBEDDING', false), FILTER_VALIDATE_BOOLEAN),
