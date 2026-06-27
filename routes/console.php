@@ -26,3 +26,9 @@ Schedule::command('geoflow:schedule-tasks')->everyMinute();
  * 关键词趋势：每小时扫描一次到期的趋势数据源，入队抓取近期高热度关键词。
  */
 Schedule::command('geoflow:fetch-keyword-trends')->hourly();
+
+/**
+ * 谷歌搜录：每天扫描一次到期的 GSC 属性，入队拉取搜索表现与收录概览
+ *（GSC 数据本身约 2 天延迟，每天一次即可）。
+ */
+Schedule::command('geoflow:fetch-gsc')->daily();
