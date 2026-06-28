@@ -39,6 +39,8 @@ return [
     'public_locale' => env('GEOFLOW_PUBLIC_LOCALE', 'zh_CN'),
     // 默认前台主题；后台未显式选择主题时使用
     'default_theme' => env('GEOFLOW_DEFAULT_THEME', 'toutiao-news-20260426'),
+    // 前台站点总开关：false 时暂停挂载前台路由（访问 404），不影响后台与分发；默认开启。
+    'public_site_enabled' => filter_var(env('GEOFLOW_PUBLIC_SITE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
     // 是否在默认 db:seed 中写入前台演示分类和文章。生产环境默认关闭，避免重启/初始化时污染真实内容。
     'seed_frontend_demo' => filter_var(env('GEOFLOW_SEED_FRONTEND_DEMO', false), FILTER_VALIDATE_BOOLEAN),
     // 演示数据默认只补缺，不覆盖用户已修改的网站设置、广告、分类和文章；仅调试演示库时才显式开启覆盖。

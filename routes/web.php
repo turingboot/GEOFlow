@@ -44,15 +44,26 @@ use App\Http\Controllers\Site\HomeController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['site.tenant_context', 'site.locale', 'site.view_log'])->group(function (): void {
-    Route::get('/', [HomeController::class, 'index'])->name('site.home');
-    Route::get('/archive', [ArchiveController::class, 'index'])->name('site.archive');
-    Route::get('/archive/{year}/{month}', [ArchiveController::class, 'month'])
-        ->name('site.archive.month')
-        ->where(['year' => '[0-9]{4}', 'month' => '[0-9]{2}']);
-    Route::get('/category/{slug}', [SiteCategoryController::class, 'show'])->name('site.category');
-    Route::get('/article/{slug}', [SiteArticleController::class, 'show'])->name('site.article');
-});
+// 本站（前台）分发路径开关：geoflow.public_site_enabled=false 时暂停挂载前台站点，
+// 原路由整段保留（仅不注册），改用同名占位路由让 route('site.*') 仍可生成 URL，访问一律 404。
+// 通过环境变量 GEOFLOW_PUBLIC_SITE_ENABLED 控制，默认开启；不删除任何代码，随时可恢复。
+if ((bool) config('geoflow.public_site_enabled', true)) {
+    Route::middleware(['site.tenant_context', 'site.locale', 'site.view_log'])->group(function (): void {
+        Route::get('/', [HomeController::class, 'index'])->name('site.home');
+        Route::get('/archive', [ArchiveController::class, 'index'])->name('site.archive');
+        Route::get('/archive/{year}/{month}', [ArchiveController::class, 'month'])
+            ->name('site.archive.month')
+            ->where(['year' => '[0-9]{4}', 'month' => '[0-9]{2}']);
+        Route::get('/category/{slug}', [SiteCategoryController::class, 'show'])->name('site.category');
+        Route::get('/article/{slug}', [SiteArticleController::class, 'show'])->name('site.article');
+    });
+} else {
+    Route::get('/', static fn () => abort(404))->name('site.home');
+    Route::get('/archive', static fn () => abort(404))->name('site.archive');
+    Route::get('/archive/{year}/{month}', static fn () => abort(404))->name('site.archive.month');
+    Route::get('/category/{slug}', static fn () => abort(404))->name('site.category');
+    Route::get('/article/{slug}', static fn () => abort(404))->name('site.article');
+}
 
 $adminPrefix = trim((string) config('geoflow.admin_base_path', '/geo_admin'), '/');
 

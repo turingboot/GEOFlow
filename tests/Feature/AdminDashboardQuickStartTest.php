@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Admin;
+use App\Models\Tenant;
 use App\Support\AdminWeb;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -105,6 +106,36 @@ class AdminDashboardQuickStartTest extends TestCase
         $this->assertStringNotContainsString(__('admin.dashboard.automation.metric_materials', ['count' => 449]), $html);
         $this->assertStringNotContainsString(__('admin.dashboard.automation.metric_vectorized', ['done' => 584, 'total' => 612]), $html);
         $this->assertStringNotContainsString(__('admin.dashboard.automation.metric_ai_today', ['count' => 74]), $html);
+    }
+
+    public function test_site_settings_and_admin_users_are_hidden_from_non_super_admin(): void
+    {
+        $tenant = Tenant::query()->create([
+            'name' => 'tenant_dashboard',
+            'slug' => 'tenant-dashboard',
+            'status' => 'active',
+        ]);
+
+        $tenantAdmin = Admin::query()->create([
+            'tenant_id' => (int) $tenant->id,
+            'username' => 'tenant_dashboard_admin',
+            'password' => 'secret-123',
+            'email' => 'tenant-dashboard@example.com',
+            'display_name' => 'Tenant Dashboard Admin',
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($tenantAdmin, 'admin')
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            // 普通租户管理员看不到「本站设置 / 用户管理」入口（卡片、自动化按钮、侧边栏均隐藏）
+            ->assertDontSee(route('admin.site-settings.index'), false)
+            ->assertDontSee(route('admin.admin-users.index'), false)
+            ->assertDontSee(__('admin.dashboard.navigation.admin_users_title'))
+            // 但常规运营入口仍可见
+            ->assertSee(route('admin.ai-models.index'), false)
+            ->assertSee(route('admin.articles.index'), false);
     }
 
     public function test_welcome_modal_dismiss_url_is_relative_when_app_url_differs_from_origin(): void

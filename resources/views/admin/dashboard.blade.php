@@ -283,6 +283,9 @@
             ],
         ];
 
+        $dashboardCurrentAdmin = auth('admin')->user();
+        $dashboardIsSuperAdmin = $dashboardCurrentAdmin && method_exists($dashboardCurrentAdmin, 'isSuperAdmin') && $dashboardCurrentAdmin->isSuperAdmin();
+
         $lanes = [
             [
                 'title' => __('admin.dashboard.automation.lane_single_title'),
@@ -293,8 +296,11 @@
                     ['title' => __('admin.dashboard.navigation.create_task_title'), 'desc' => __('admin.dashboard.navigation.create_task_desc'), 'href' => route('admin.tasks.create'), 'icon' => 'plus-circle', 'count' => $totalTasks],
                     ['title' => __('admin.dashboard.navigation.articles_title'), 'desc' => __('admin.dashboard.automation.lane_articles_desc'), 'href' => route('admin.articles.index'), 'icon' => 'file-text', 'count' => $totalArticles],
                     ['title' => __('admin.dashboard.navigation.prompt_config_title'), 'desc' => __('admin.dashboard.navigation.prompt_config_desc'), 'href' => route('admin.ai-prompts'), 'icon' => 'message-square-text', 'count' => $totalPrompts],
-                    ['title' => __('admin.dashboard.navigation.site_settings_title'), 'desc' => __('admin.dashboard.navigation.site_settings_desc'), 'href' => route('admin.site-settings.index'), 'icon' => 'settings', 'count' => 'SEO'],
-                    ['title' => __('admin.dashboard.navigation.admin_users_title'), 'desc' => __('admin.dashboard.navigation.admin_users_desc'), 'href' => route('admin.admin-users.index'), 'icon' => 'users', 'count' => 'Admin'],
+                    // 本站设置 / 用户管理 仅超级管理员可见
+                    ...($dashboardIsSuperAdmin ? [
+                        ['title' => __('admin.dashboard.navigation.site_settings_title'), 'desc' => __('admin.dashboard.navigation.site_settings_desc'), 'href' => route('admin.site-settings.index'), 'icon' => 'settings', 'count' => 'SEO'],
+                        ['title' => __('admin.dashboard.navigation.admin_users_title'), 'desc' => __('admin.dashboard.navigation.admin_users_desc'), 'href' => route('admin.admin-users.index'), 'icon' => 'users', 'count' => 'Admin'],
+                    ] : []),
                 ],
             ],
             [
@@ -447,10 +453,12 @@
                             <h3 class="text-base font-semibold text-gray-900">{{ __('admin.dashboard.automation.flow_title') }}</h3>
                             <p class="mt-1 text-sm leading-6 text-gray-500">{{ __('admin.dashboard.automation.flow_desc') }}</p>
                         </div>
-                        <a href="{{ route('admin.site-settings.index') }}" class="inline-flex h-9 w-fit items-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                            <i data-lucide="settings-2" class="mr-2 h-4 w-4"></i>
-                            {{ __('admin.dashboard.automation.automation_settings') }}
-                        </a>
+                        @if ($dashboardIsSuperAdmin)
+                            <a href="{{ route('admin.site-settings.index') }}" class="inline-flex h-9 w-fit items-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                                <i data-lucide="settings-2" class="mr-2 h-4 w-4"></i>
+                                {{ __('admin.dashboard.automation.automation_settings') }}
+                            </a>
+                        @endif
                     </div>
 
                     <div class="relative grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">

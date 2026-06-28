@@ -14,9 +14,10 @@
         'topic_plans' => ['route' => 'admin.topic-plans.index', 'name' => __('admin.nav.topic_plans')],
         'geo_audit' => ['route' => 'admin.geo-audits.index', 'name' => __('admin.nav.geo_audit')],
         'ai_config' => ['route' => 'admin.ai.configurator', 'name' => __('admin.nav.ai_config')],
-        'site_settings' => ['route' => 'admin.site-settings.index', 'name' => __('admin.nav.site_settings')],
     ];
     if ($isSuperAdmin) {
+        // 本站设置 / 用户管理 仅超级管理员可见
+        $menu['site_settings'] = ['route' => 'admin.site-settings.index', 'name' => __('admin.nav.site_settings')];
         $menu['admin_users'] = ['route' => 'admin.admin-users.index', 'name' => __('admin.nav.admin_users')];
     }
     $menuIcons = [
