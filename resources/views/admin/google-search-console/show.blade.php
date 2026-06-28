@@ -7,19 +7,25 @@
     $dropouts = $insights['indexingDropouts'] ?? [];
     $indexingTrend = $insights['indexingTrend'] ?? [];
     $maxIndexed = collect($indexingTrend)->max('indexed') ?: 1;
-    $segments = [
-        ['data' => $insights['topQueries'] ?? [], 'label' => 'insights.top_clicks', 'desc' => 'insights.top_clicks_desc'],
-        ['data' => $insights['opportunityQueries'] ?? [], 'label' => 'insights.opportunity', 'desc' => 'insights.opportunity_desc'],
-        ['data' => $insights['strikingDistance'] ?? [], 'label' => 'insights.striking', 'desc' => 'insights.striking_desc'],
-    ];
     $dateSeries = $insights['dateSeries'] ?? [];
     $maxDateClicks = collect($dateSeries)->max('clicks') ?: 1;
     $breakdowns = $insights['breakdowns'] ?? [];
-    $breakdownDims = [
-        'page' => 'field.page',
-        'country' => 'insights.dim_country',
-        'device' => 'insights.dim_device',
-        'search_appearance' => 'insights.dim_appearance',
+    $asValueRows = fn (array $rows, string $key) => collect($rows)->map(fn ($r) => [
+        'value' => (string) ($r[$key] ?? ''),
+        'clicks' => (int) ($r['clicks'] ?? 0),
+        'impressions' => (int) ($r['impressions'] ?? 0),
+        'ctr' => (float) ($r['ctr'] ?? 0),
+        'position' => (float) ($r['position'] ?? 0),
+    ])->all();
+    $searchTabs = [
+        ['key' => 'query', 'label' => __('admin.gsc.field.query'), 'col' => __('admin.gsc.field.query'), 'rows' => $asValueRows($insights['topQueries'] ?? [], 'query')],
+        ['key' => 'opportunity', 'label' => __('admin.gsc.insights.opportunity'), 'col' => __('admin.gsc.field.query'), 'rows' => $asValueRows($insights['opportunityQueries'] ?? [], 'query')],
+        ['key' => 'striking', 'label' => __('admin.gsc.insights.striking'), 'col' => __('admin.gsc.field.query'), 'rows' => $asValueRows($insights['strikingDistance'] ?? [], 'query')],
+        ['key' => 'page', 'label' => __('admin.gsc.field.page'), 'col' => __('admin.gsc.field.page'), 'rows' => $breakdowns['page'] ?? []],
+        ['key' => 'country', 'label' => __('admin.gsc.insights.dim_country'), 'col' => __('admin.gsc.insights.dim_country'), 'rows' => $breakdowns['country'] ?? []],
+        ['key' => 'device', 'label' => __('admin.gsc.insights.dim_device'), 'col' => __('admin.gsc.insights.dim_device'), 'rows' => $breakdowns['device'] ?? []],
+        ['key' => 'appearance', 'label' => __('admin.gsc.insights.dim_appearance'), 'col' => __('admin.gsc.insights.dim_appearance'), 'rows' => $breakdowns['search_appearance'] ?? []],
+        ['key' => 'date', 'label' => __('admin.gsc.insights.dim_date'), 'col' => __('admin.gsc.insights.dim_date'), 'rows' => $asValueRows($dateSeries, 'date')],
     ];
 @endphp
 
@@ -52,6 +58,65 @@
             <div class="text-sm text-gray-700">
                 {{ __('admin.gsc.field.connection') }}：<span class="font-semibold">{{ optional($connection)->name ?? '—' }}</span>
                 <span class="admin-badge is-neutral ml-2">{{ $connection ? __('admin.gsc.auth.'.$connection->provider) : '—' }}</span>
+            </div>
+        </div>
+
+        {{-- 搜索表现：图在最上面 + 横向 tab 切换 --}}
+        <div class="admin-card p-6">
+            <div class="mb-4 flex items-center justify-between">
+                <span class="admin-card-title">{{ __('admin.gsc.section.search') }}</span>
+                @if ($latestSearch)<span class="text-xs text-gray-500">{{ optional($latestSearch->ran_at)->format('Y-m-d H:i') }}</span>@endif
+            </div>
+
+            @if (! empty($dateSeries))
+                <div class="flex h-28 items-end gap-px">
+                    @foreach ($dateSeries as $pt)
+                        <div class="flex flex-1 flex-col items-center justify-end" title="{{ $pt['date'] }} · {{ __('admin.gsc.field.clicks') }} {{ $pt['clicks'] }} · {{ __('admin.gsc.field.impressions') }} {{ $pt['impressions'] }}">
+                            <div class="w-full rounded-t bg-indigo-400 hover:bg-indigo-500" style="height: {{ max(2, (int) round(($pt['clicks'] / $maxDateClicks) * 100)) }}px"></div>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="mb-5 mt-1 flex justify-between text-[10px] text-gray-400">
+                    <span>{{ $dateSeries[0]['date'] ?? '' }}</span>
+                    <span>{{ __('admin.gsc.field.clicks') }}</span>
+                    <span>{{ $dateSeries[count($dateSeries) - 1]['date'] ?? '' }}</span>
+                </div>
+            @endif
+
+            <div data-gsc-tabs>
+                <div class="flex flex-wrap gap-1 border-b border-gray-200">
+                    @foreach ($searchTabs as $i => $tab)
+                        <button type="button" data-gsc-tab="{{ $tab['key'] }}"
+                            class="-mb-px border-b-2 px-3 py-2 text-sm {{ $i === 0 ? 'border-indigo-500 font-medium text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}">
+                            {{ $tab['label'] }}
+                        </button>
+                    @endforeach
+                </div>
+                @foreach ($searchTabs as $i => $tab)
+                    <div data-gsc-panel="{{ $tab['key'] }}" class="{{ $i === 0 ? '' : 'hidden' }} pt-3">
+                        @if (empty($tab['rows']))
+                            <p class="p-4 text-sm text-gray-500">{{ __('admin.gsc.insights.empty') }}</p>
+                        @else
+                            <table class="admin-table">
+                                <thead><tr>
+                                    <th>{{ $tab['col'] }}</th><th>{{ __('admin.gsc.field.clicks') }}</th>
+                                    <th>{{ __('admin.gsc.field.impressions') }}</th><th>{{ __('admin.gsc.field.ctr') }}</th><th>{{ __('admin.gsc.field.position') }}</th>
+                                </tr></thead>
+                                <tbody>
+                                    @foreach ($tab['rows'] as $r)
+                                        <tr>
+                                            <td><span class="{{ $tab['key'] === 'page' ? 'font-mono text-xs' : '' }}">{{ \Illuminate\Support\Str::limit($r['value'] ?: '—', 60) }}</span></td>
+                                            <td>{{ $r['clicks'] }}</td>
+                                            <td>{{ $r['impressions'] }}</td>
+                                            <td>{{ number_format($r['ctr'] * 100, 1) }}%</td>
+                                            <td>{{ number_format($r['position'], 1) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        @endif
+                    </div>
+                @endforeach
             </div>
         </div>
 
@@ -124,89 +189,6 @@
             @endif
         </div>
 
-        {{-- 搜索表现：按日期折线 --}}
-        <div class="admin-card p-6">
-            <div class="mb-3 flex items-center justify-between">
-                <span class="admin-card-title">{{ __('admin.gsc.section.search') }} · {{ __('admin.gsc.insights.dim_date') }}</span>
-                @if ($latestSearch)<span class="text-xs text-gray-500">{{ optional($latestSearch->ran_at)->format('Y-m-d H:i') }}</span>@endif
-            </div>
-            @if (empty($dateSeries))
-                <p class="text-sm text-gray-500">{{ __('admin.gsc.search.empty') }}</p>
-            @else
-                <div class="flex h-28 items-end gap-px">
-                    @foreach ($dateSeries as $pt)
-                        <div class="flex flex-1 flex-col items-center justify-end" title="{{ $pt['date'] }} · {{ __('admin.gsc.field.clicks') }} {{ $pt['clicks'] }} · {{ __('admin.gsc.field.impressions') }} {{ $pt['impressions'] }}">
-                            <div class="w-full rounded-t bg-indigo-400 hover:bg-indigo-500" style="height: {{ max(2, (int) round(($pt['clicks'] / $maxDateClicks) * 100)) }}px"></div>
-                        </div>
-                    @endforeach
-                </div>
-                <div class="mt-1 flex justify-between text-[10px] text-gray-400">
-                    <span>{{ $dateSeries[0]['date'] ?? '' }}</span>
-                    <span>{{ __('admin.gsc.field.clicks') }}</span>
-                    <span>{{ $dateSeries[count($dateSeries) - 1]['date'] ?? '' }}</span>
-                </div>
-            @endif
-        </div>
-
-        {{-- Top 榜：Top 点击 / 机会词 / 临门一脚 --}}
-        @foreach ($segments as $seg)
-            <div class="admin-card overflow-hidden">
-                <div class="admin-card-head">
-                    <span class="admin-card-title">{{ __('admin.gsc.'.$seg['label']) }}</span>
-                    <span class="text-xs text-gray-400">{{ __('admin.gsc.'.$seg['desc']) }}</span>
-                </div>
-                @if (empty($seg['data']))
-                    <div class="p-6 text-sm text-gray-500">{{ __('admin.gsc.insights.empty') }}</div>
-                @else
-                    <table class="admin-table">
-                        <thead><tr>
-                            <th>{{ __('admin.gsc.field.query') }}</th><th>{{ __('admin.gsc.field.clicks') }}</th>
-                            <th>{{ __('admin.gsc.field.impressions') }}</th><th>{{ __('admin.gsc.field.ctr') }}</th><th>{{ __('admin.gsc.field.position') }}</th>
-                        </tr></thead>
-                        <tbody>
-                            @foreach ($seg['data'] as $r)
-                                <tr>
-                                    <td>{{ $r['query'] }}</td>
-                                    <td>{{ $r['clicks'] }}</td>
-                                    <td>{{ $r['impressions'] }}</td>
-                                    <td>{{ number_format($r['ctr'] * 100, 1) }}%</td>
-                                    <td>{{ number_format($r['position'], 1) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
-            </div>
-        @endforeach
-
-        {{-- 维度切分：网页 / 国家地区 / 设备 / 搜索呈现 --}}
-        @foreach ($breakdownDims as $dim => $label)
-            <div class="admin-card overflow-hidden">
-                <div class="admin-card-head"><span class="admin-card-title">{{ __('admin.gsc.'.$label) }}</span></div>
-                @if (empty($breakdowns[$dim] ?? []))
-                    <div class="p-6 text-sm text-gray-500">{{ __('admin.gsc.insights.empty') }}</div>
-                @else
-                    <table class="admin-table">
-                        <thead><tr>
-                            <th>{{ __('admin.gsc.'.$label) }}</th><th>{{ __('admin.gsc.field.clicks') }}</th>
-                            <th>{{ __('admin.gsc.field.impressions') }}</th><th>{{ __('admin.gsc.field.ctr') }}</th><th>{{ __('admin.gsc.field.position') }}</th>
-                        </tr></thead>
-                        <tbody>
-                            @foreach ($breakdowns[$dim] as $r)
-                                <tr>
-                                    <td><span class="{{ $dim === 'page' ? 'font-mono text-xs' : '' }}">{{ \Illuminate\Support\Str::limit($r['value'] ?: '—', 60) }}</span></td>
-                                    <td>{{ $r['clicks'] }}</td>
-                                    <td>{{ $r['impressions'] }}</td>
-                                    <td>{{ number_format($r['ctr'] * 100, 1) }}%</td>
-                                    <td>{{ number_format($r['position'], 1) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
-            </div>
-        @endforeach
-
         {{-- 单 URL 收录抽查 --}}
         <div class="admin-card p-6">
             <div class="mb-3 admin-card-title">{{ __('admin.gsc.section.inspect') }}</div>
@@ -238,4 +220,27 @@
             <a href="{{ route('admin.google-search-console.index') }}" class="admin-btn admin-btn-secondary"><i data-lucide="arrow-left" class="h-4 w-4"></i>{{ __('admin.gsc.button.back') }}</a>
         </div>
     </div>
+
+    <script>
+        document.querySelectorAll('[data-gsc-tabs]').forEach(function (root) {
+            var btns = root.querySelectorAll('[data-gsc-tab]');
+            var panels = root.querySelectorAll('[data-gsc-panel]');
+            btns.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var key = btn.getAttribute('data-gsc-tab');
+                    btns.forEach(function (b) {
+                        var on = b === btn;
+                        b.classList.toggle('border-indigo-500', on);
+                        b.classList.toggle('font-medium', on);
+                        b.classList.toggle('text-indigo-600', on);
+                        b.classList.toggle('border-transparent', !on);
+                        b.classList.toggle('text-gray-500', !on);
+                    });
+                    panels.forEach(function (p) {
+                        p.classList.toggle('hidden', p.getAttribute('data-gsc-panel') !== key);
+                    });
+                });
+            });
+        });
+    </script>
 @endsection

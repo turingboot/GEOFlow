@@ -179,7 +179,8 @@ class AdminGscPageTest extends TestCase
         $this->actingAs($admin, 'admin')
             ->get(route('admin.google-search-console.show', $property->id))
             ->assertOk()
-            ->assertSee(__('admin.gsc.insights.top_clicks'))
+            ->assertSee(__('admin.gsc.section.search'))
+            ->assertSee('data-gsc-tab', false)
             ->assertSee('brandword');
     }
 

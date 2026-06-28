@@ -101,6 +101,8 @@ class GscInsightsService
                 'date' => (string) $m->dimension_value,
                 'clicks' => (int) $m->clicks,
                 'impressions' => (int) $m->impressions,
+                'ctr' => (float) $m->ctr,
+                'position' => round((float) $m->position, 1),
             ])
             ->all();
     }
