@@ -7,6 +7,9 @@ ARG PHP_FPM_IMAGE=php:8.3-fpm-bookworm
 # 1) PHP 依赖
 FROM composer:2 AS vendor
 WORKDIR /app
+# 构建期 package:discover 会启动框架；广播默认 reverb 但无 REVERB_APP_KEY 会让 Pusher 报错，
+# 这里在构建期把广播设为 null（运行时由 Railway 环境变量再决定）。
+ENV BROADCAST_CONNECTION=null
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --no-scripts --ignore-platform-reqs
 COPY . .
