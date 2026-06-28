@@ -48,6 +48,17 @@ class GscInsightsServiceTest extends TestCase
         $this->assertSame(['near'], array_column($insights['strikingDistance'], 'query'));
     }
 
+    public function test_long_page_url_persists_as_dimension_value(): void
+    {
+        $property = $this->makeProperty();
+        $snap = $this->snapshot($property, GscSnapshot::TYPE_SEARCH_ANALYTICS, []);
+        $longUrl = 'https://example.com/'.str_repeat('a', 900);
+
+        $this->dimMetric($snap, $property, 'page', $longUrl, 0, 1, 0.0, 5.0);
+
+        $this->assertSame($longUrl, GscSearchMetric::query()->where('dimension', 'page')->value('dimension_value'));
+    }
+
     public function test_date_series_and_breakdowns(): void
     {
         $property = $this->makeProperty();
