@@ -4831,6 +4831,7 @@ return [
             'dim_country' => 'Country/region',
             'dim_device' => 'Device',
             'dim_appearance' => 'Search appearance',
+            'chart_hint' => 'Bar height = impressions; hover for clicks',
             'empty' => 'No data yet; generated after a fetch.',
         ],
         'button' => [

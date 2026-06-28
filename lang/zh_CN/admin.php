@@ -4831,6 +4831,7 @@ return [
             'dim_country' => '国家/地区',
             'dim_device' => '设备',
             'dim_appearance' => '搜索结果呈现',
+            'chart_hint' => '柱高=曝光，悬停查看点击',
             'empty' => '暂无数据，拉取后生成。',
         ],
         'button' => [

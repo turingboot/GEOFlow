@@ -4839,6 +4839,7 @@ return array_replace_recursive($base, [
             'dim_country' => 'País/região',
             'dim_device' => 'Dispositivo',
             'dim_appearance' => 'Aparência na busca',
+            'chart_hint' => 'Altura da barra = impressões; passe o mouse para cliques',
             'empty' => 'Ainda sem dados; gerados após uma busca.',
         ],
         'button' => [

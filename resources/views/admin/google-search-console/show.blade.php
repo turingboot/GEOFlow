@@ -8,7 +8,8 @@
     $indexingTrend = $insights['indexingTrend'] ?? [];
     $maxIndexed = collect($indexingTrend)->max('indexed') ?: 1;
     $dateSeries = $insights['dateSeries'] ?? [];
-    $maxDateClicks = collect($dateSeries)->max('clicks') ?: 1;
+    // 柱高按曝光画（点击常为 0，按点击会全是 2px 看不见）；点击放进悬停提示。
+    $maxDateImpr = collect($dateSeries)->max('impressions') ?: 1;
     $breakdowns = $insights['breakdowns'] ?? [];
     $asValueRows = fn (array $rows, string $key) => collect($rows)->map(fn ($r) => [
         'value' => (string) ($r[$key] ?? ''),
@@ -69,16 +70,19 @@
             </div>
 
             @if (! empty($dateSeries))
+                <div class="mb-2 flex items-center gap-3 text-xs text-gray-500">
+                    <span class="inline-flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-sm bg-indigo-400"></span>{{ __('admin.gsc.field.impressions') }}</span>
+                    <span class="text-gray-400">{{ __('admin.gsc.insights.chart_hint') }}</span>
+                </div>
                 <div class="flex h-28 items-end gap-px">
                     @foreach ($dateSeries as $pt)
-                        <div class="flex flex-1 flex-col items-center justify-end" title="{{ $pt['date'] }} · {{ __('admin.gsc.field.clicks') }} {{ $pt['clicks'] }} · {{ __('admin.gsc.field.impressions') }} {{ $pt['impressions'] }}">
-                            <div class="w-full rounded-t bg-indigo-400 hover:bg-indigo-500" style="height: {{ max(2, (int) round(($pt['clicks'] / $maxDateClicks) * 100)) }}px"></div>
+                        <div class="flex flex-1 flex-col items-center justify-end" title="{{ $pt['date'] }} · {{ __('admin.gsc.field.impressions') }} {{ $pt['impressions'] }} · {{ __('admin.gsc.field.clicks') }} {{ $pt['clicks'] }}">
+                            <div class="w-full rounded-t bg-indigo-400 hover:bg-indigo-500" style="height: {{ max(2, (int) round(($pt['impressions'] / $maxDateImpr) * 100)) }}px"></div>
                         </div>
                     @endforeach
                 </div>
                 <div class="mb-5 mt-1 flex justify-between text-[10px] text-gray-400">
                     <span>{{ $dateSeries[0]['date'] ?? '' }}</span>
-                    <span>{{ __('admin.gsc.field.clicks') }}</span>
                     <span>{{ $dateSeries[count($dateSeries) - 1]['date'] ?? '' }}</span>
                 </div>
             @endif
