@@ -4835,6 +4835,10 @@ return array_replace_recursive($base, [
             'opportunity_desc' => 'Muitas impressões mas CTR baixo — melhore título/descrição',
             'striking' => 'Quase lá (posição 10–20)',
             'striking_desc' => 'Na borda da página dois; pequenos ajustes podem alcançar a página um',
+            'dim_date' => 'Por data',
+            'dim_country' => 'País/região',
+            'dim_device' => 'Dispositivo',
+            'dim_appearance' => 'Aparência na busca',
             'empty' => 'Ainda sem dados; gerados após uma busca.',
         ],
         'button' => [

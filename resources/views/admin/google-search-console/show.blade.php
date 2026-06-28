@@ -12,6 +12,15 @@
         ['data' => $insights['opportunityQueries'] ?? [], 'label' => 'insights.opportunity', 'desc' => 'insights.opportunity_desc'],
         ['data' => $insights['strikingDistance'] ?? [], 'label' => 'insights.striking', 'desc' => 'insights.striking_desc'],
     ];
+    $dateSeries = $insights['dateSeries'] ?? [];
+    $maxDateClicks = collect($dateSeries)->max('clicks') ?: 1;
+    $breakdowns = $insights['breakdowns'] ?? [];
+    $breakdownDims = [
+        'page' => 'field.page',
+        'country' => 'insights.dim_country',
+        'device' => 'insights.dim_device',
+        'search_appearance' => 'insights.dim_appearance',
+    ];
 @endphp
 
 @section('content')
@@ -115,34 +124,27 @@
             @endif
         </div>
 
-        {{-- 搜索表现 --}}
-        <div class="admin-card overflow-hidden">
-            <div class="admin-card-head">
-                <span class="admin-card-title">{{ __('admin.gsc.section.search') }}</span>
+        {{-- 搜索表现：按日期折线 --}}
+        <div class="admin-card p-6">
+            <div class="mb-3 flex items-center justify-between">
+                <span class="admin-card-title">{{ __('admin.gsc.section.search') }} · {{ __('admin.gsc.insights.dim_date') }}</span>
                 @if ($latestSearch)<span class="text-xs text-gray-500">{{ optional($latestSearch->ran_at)->format('Y-m-d H:i') }}</span>@endif
             </div>
-            @if ($metrics->isEmpty())
-                <div class="p-6 text-sm text-gray-500">{{ __('admin.gsc.search.empty') }}</div>
+            @if (empty($dateSeries))
+                <p class="text-sm text-gray-500">{{ __('admin.gsc.search.empty') }}</p>
             @else
-                <table class="admin-table">
-                    <thead><tr>
-                        <th>{{ __('admin.gsc.field.query') }}</th><th>{{ __('admin.gsc.field.page') }}</th>
-                        <th>{{ __('admin.gsc.field.clicks') }}</th><th>{{ __('admin.gsc.field.impressions') }}</th>
-                        <th>{{ __('admin.gsc.field.ctr') }}</th><th>{{ __('admin.gsc.field.position') }}</th>
-                    </tr></thead>
-                    <tbody>
-                        @foreach ($metrics as $metric)
-                            <tr>
-                                <td>{{ $metric->query }}</td>
-                                <td><span class="font-mono text-xs text-gray-500">{{ \Illuminate\Support\Str::limit($metric->page, 60) }}</span></td>
-                                <td>{{ $metric->clicks }}</td>
-                                <td>{{ $metric->impressions }}</td>
-                                <td>{{ number_format(((float) $metric->ctr) * 100, 1) }}%</td>
-                                <td>{{ number_format((float) $metric->position, 1) }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                <div class="flex h-28 items-end gap-px">
+                    @foreach ($dateSeries as $pt)
+                        <div class="flex flex-1 flex-col items-center justify-end" title="{{ $pt['date'] }} · {{ __('admin.gsc.field.clicks') }} {{ $pt['clicks'] }} · {{ __('admin.gsc.field.impressions') }} {{ $pt['impressions'] }}">
+                            <div class="w-full rounded-t bg-indigo-400 hover:bg-indigo-500" style="height: {{ max(2, (int) round(($pt['clicks'] / $maxDateClicks) * 100)) }}px"></div>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="mt-1 flex justify-between text-[10px] text-gray-400">
+                    <span>{{ $dateSeries[0]['date'] ?? '' }}</span>
+                    <span>{{ __('admin.gsc.field.clicks') }}</span>
+                    <span>{{ $dateSeries[count($dateSeries) - 1]['date'] ?? '' }}</span>
+                </div>
             @endif
         </div>
 
@@ -165,6 +167,34 @@
                             @foreach ($seg['data'] as $r)
                                 <tr>
                                     <td>{{ $r['query'] }}</td>
+                                    <td>{{ $r['clicks'] }}</td>
+                                    <td>{{ $r['impressions'] }}</td>
+                                    <td>{{ number_format($r['ctr'] * 100, 1) }}%</td>
+                                    <td>{{ number_format($r['position'], 1) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
+        @endforeach
+
+        {{-- 维度切分：网页 / 国家地区 / 设备 / 搜索呈现 --}}
+        @foreach ($breakdownDims as $dim => $label)
+            <div class="admin-card overflow-hidden">
+                <div class="admin-card-head"><span class="admin-card-title">{{ __('admin.gsc.'.$label) }}</span></div>
+                @if (empty($breakdowns[$dim] ?? []))
+                    <div class="p-6 text-sm text-gray-500">{{ __('admin.gsc.insights.empty') }}</div>
+                @else
+                    <table class="admin-table">
+                        <thead><tr>
+                            <th>{{ __('admin.gsc.'.$label) }}</th><th>{{ __('admin.gsc.field.clicks') }}</th>
+                            <th>{{ __('admin.gsc.field.impressions') }}</th><th>{{ __('admin.gsc.field.ctr') }}</th><th>{{ __('admin.gsc.field.position') }}</th>
+                        </tr></thead>
+                        <tbody>
+                            @foreach ($breakdowns[$dim] as $r)
+                                <tr>
+                                    <td><span class="{{ $dim === 'page' ? 'font-mono text-xs' : '' }}">{{ \Illuminate\Support\Str::limit($r['value'] ?: '—', 60) }}</span></td>
                                     <td>{{ $r['clicks'] }}</td>
                                     <td>{{ $r['impressions'] }}</td>
                                     <td>{{ number_format($r['ctr'] * 100, 1) }}%</td>

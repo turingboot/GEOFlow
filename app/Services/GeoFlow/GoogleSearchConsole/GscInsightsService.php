@@ -6,7 +6,6 @@ use App\Models\GscProperty;
 use App\Models\GscSearchMetric;
 use App\Models\GscSnapshot;
 use App\Models\GscUrlInspection;
-use Illuminate\Support\Collection;
 
 /**
  * 基于已采集的快照/明细，派生分析视图：
@@ -22,16 +21,88 @@ class GscInsightsService
      */
     public function build(GscProperty $property): array
     {
-        [$top, $opportunity, $striking] = $this->querySegments($property);
+        $latestSearchId = $this->latestSearchSnapshotId($property);
+        [$top, $opportunity, $striking] = $this->querySegments($latestSearchId);
 
         return [
             'searchTrend' => $this->searchTrend($property),
             'topQueries' => $top,
             'opportunityQueries' => $opportunity,
             'strikingDistance' => $striking,
+            'breakdowns' => [
+                'page' => $this->breakdown($latestSearchId, 'page'),
+                'country' => $this->breakdown($latestSearchId, 'country'),
+                'device' => $this->breakdown($latestSearchId, 'device'),
+                'search_appearance' => $this->breakdown($latestSearchId, 'search_appearance'),
+            ],
+            'dateSeries' => $this->dateSeries($latestSearchId),
             'indexingTrend' => $this->indexingTrend($property),
             'indexingDropouts' => $this->indexingDropouts($property),
         ];
+    }
+
+    private function latestSearchSnapshotId(GscProperty $property): ?int
+    {
+        $snapshot = $property->snapshots()
+            ->where('type', GscSnapshot::TYPE_SEARCH_ANALYTICS)
+            ->where('status', 'success')
+            ->orderByDesc('id')
+            ->first();
+
+        return $snapshot?->id;
+    }
+
+    /**
+     * 某个单维度的明细（取点击 Top N），列为：取值 + 4 个指标。
+     *
+     * @return list<array<string,mixed>>
+     */
+    private function breakdown(?int $snapshotId, string $dimension): array
+    {
+        if ($snapshotId === null) {
+            return [];
+        }
+
+        $limit = max(1, (int) config('geoflow.google_search_console.insights.top_limit', 10));
+
+        return GscSearchMetric::query()
+            ->where('gsc_snapshot_id', $snapshotId)
+            ->where('dimension', $dimension)
+            ->orderByDesc('clicks')->orderByDesc('impressions')
+            ->limit($limit)
+            ->get()
+            ->map(static fn (GscSearchMetric $m): array => [
+                'value' => (string) $m->dimension_value,
+                'clicks' => (int) $m->clicks,
+                'impressions' => (int) $m->impressions,
+                'ctr' => (float) $m->ctr,
+                'position' => round((float) $m->position, 1),
+            ])
+            ->all();
+    }
+
+    /**
+     * 按日期的点击/曝光时间序列（用于顶部折线）。
+     *
+     * @return list<array<string,mixed>>
+     */
+    private function dateSeries(?int $snapshotId): array
+    {
+        if ($snapshotId === null) {
+            return [];
+        }
+
+        return GscSearchMetric::query()
+            ->where('gsc_snapshot_id', $snapshotId)
+            ->where('dimension', 'date')
+            ->orderBy('dimension_value')
+            ->get()
+            ->map(static fn (GscSearchMetric $m): array => [
+                'date' => (string) $m->dimension_value,
+                'clicks' => (int) $m->clicks,
+                'impressions' => (int) $m->impressions,
+            ])
+            ->all();
     }
 
     /**
@@ -66,35 +137,24 @@ class GscInsightsService
     /**
      * @return array{0:list<array<string,mixed>>,1:list<array<string,mixed>>,2:list<array<string,mixed>>}
      */
-    private function querySegments(GscProperty $property): array
+    private function querySegments(?int $snapshotId): array
     {
-        $latest = $property->snapshots()
-            ->where('type', GscSnapshot::TYPE_SEARCH_ANALYTICS)
-            ->where('status', 'success')
-            ->orderByDesc('id')
-            ->first();
-
-        if ($latest === null) {
+        if ($snapshotId === null) {
             return [[], [], []];
         }
 
+        // query 维度每行已是单词聚合，直接用。
         $byQuery = GscSearchMetric::query()
-            ->where('gsc_snapshot_id', $latest->id)
+            ->where('gsc_snapshot_id', $snapshotId)
+            ->where('dimension', 'query')
             ->get()
-            ->groupBy('query')
-            ->map(function (Collection $group): array {
-                $clicks = (int) $group->sum('clicks');
-                $impressions = (int) $group->sum('impressions');
-                $weighted = $group->sum(fn (GscSearchMetric $m): float => (float) $m->position * (int) $m->impressions);
-
-                return [
-                    'query' => (string) $group->first()->query,
-                    'clicks' => $clicks,
-                    'impressions' => $impressions,
-                    'ctr' => $impressions > 0 ? $clicks / $impressions : 0.0,
-                    'position' => $impressions > 0 ? round($weighted / $impressions, 1) : 0.0,
-                ];
-            })
+            ->map(static fn (GscSearchMetric $m): array => [
+                'query' => (string) $m->dimension_value,
+                'clicks' => (int) $m->clicks,
+                'impressions' => (int) $m->impressions,
+                'ctr' => (float) $m->ctr,
+                'position' => round((float) $m->position, 1),
+            ])
             ->values();
 
         $limit = max(1, (int) config('geoflow.google_search_console.insights.top_limit', 10));

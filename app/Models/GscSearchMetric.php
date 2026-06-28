@@ -17,6 +17,8 @@ class GscSearchMetric extends Model
         'tenant_id',
         'gsc_snapshot_id',
         'gsc_property_id',
+        'dimension',
+        'dimension_value',
         'query',
         'page',
         'clicks',

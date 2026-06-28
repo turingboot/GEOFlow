@@ -4827,6 +4827,10 @@ return [
             'opportunity_desc' => 'High impressions but low CTR — improve title/description',
             'striking' => 'Striking distance (position 10–20)',
             'striking_desc' => 'On the edge of page two; small tweaks can reach page one',
+            'dim_date' => 'By date',
+            'dim_country' => 'Country/region',
+            'dim_device' => 'Device',
+            'dim_appearance' => 'Search appearance',
             'empty' => 'No data yet; generated after a fetch.',
         ],
         'button' => [

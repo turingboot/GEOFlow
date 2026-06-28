@@ -38,50 +38,82 @@ class GscOrchestrator
         return $snapshot;
     }
 
+    /** 我们存的维度名 => GSC API 维度名。 */
+    public const SEARCH_DIMENSIONS = [
+        'query' => 'query',
+        'page' => 'page',
+        'country' => 'country',
+        'device' => 'device',
+        'date' => 'date',
+        'search_appearance' => 'searchAppearance',
+    ];
+
     public function runSearchAnalytics(GscProperty $property): GscSnapshot
     {
         $snapshot = $this->startSnapshot($property, GscSnapshot::TYPE_SEARCH_ANALYTICS);
 
         try {
             [$start, $end] = $this->dateRange();
-            $data = $this->client->searchAnalytics($property, [
-                'startDate' => $start,
-                'endDate' => $end,
-                'dimensions' => ['query', 'page'],
-                'rowLimit' => $this->rowLimit(),
-            ]);
-
-            $rows = is_array($data['rows'] ?? null) ? $data['rows'] : [];
             $kept = 0;
             $totalClicks = 0;
             $totalImpressions = 0;
             $weightedPosition = 0.0;
+            $failedDimensions = 0;
+            $lastError = '';
 
-            foreach ($rows as $row) {
-                if (! is_array($row)) {
+            foreach (self::SEARCH_DIMENSIONS as $name => $apiDimension) {
+                try {
+                    $data = $this->client->searchAnalytics($property, [
+                        'startDate' => $start,
+                        'endDate' => $end,
+                        'dimensions' => [$apiDimension],
+                        'rowLimit' => $this->rowLimit(),
+                    ]);
+                } catch (Throwable $dimError) {
+                    // 某些维度可能无数据/不受支持（如无富结果时的 searchAppearance），跳过不影响其余维度。
+                    $failedDimensions++;
+                    $lastError = $dimError->getMessage();
+
                     continue;
                 }
-                $keys = is_array($row['keys'] ?? null) ? $row['keys'] : [];
-                $impressions = (int) ($row['impressions'] ?? 0);
-                $position = (float) ($row['position'] ?? 0);
-                GscSearchMetric::query()->create([
-                    'tenant_id' => $property->tenant_id,
-                    'gsc_snapshot_id' => $snapshot->id,
-                    'gsc_property_id' => $property->id,
-                    'query' => (string) ($keys[0] ?? ''),
-                    'page' => (string) ($keys[1] ?? ''),
-                    'clicks' => (int) ($row['clicks'] ?? 0),
-                    'impressions' => $impressions,
-                    'ctr' => (float) ($row['ctr'] ?? 0),
-                    'position' => $position,
-                    'date_start' => $start,
-                    'date_end' => $end,
-                    'raw' => $row,
-                ]);
-                $kept++;
-                $totalClicks += (int) ($row['clicks'] ?? 0);
-                $totalImpressions += $impressions;
-                $weightedPosition += $position * $impressions;
+
+                foreach ((is_array($data['rows'] ?? null) ? $data['rows'] : []) as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    $keys = is_array($row['keys'] ?? null) ? $row['keys'] : [];
+                    $impressions = (int) ($row['impressions'] ?? 0);
+                    $position = (float) ($row['position'] ?? 0);
+                    $clicks = (int) ($row['clicks'] ?? 0);
+                    GscSearchMetric::query()->create([
+                        'tenant_id' => $property->tenant_id,
+                        'gsc_snapshot_id' => $snapshot->id,
+                        'gsc_property_id' => $property->id,
+                        'dimension' => $name,
+                        'dimension_value' => (string) ($keys[0] ?? ''),
+                        'clicks' => $clicks,
+                        'impressions' => $impressions,
+                        'ctr' => (float) ($row['ctr'] ?? 0),
+                        'position' => $position,
+                        'date_start' => $start,
+                        'date_end' => $end,
+                        'raw' => $row,
+                    ]);
+                    $kept++;
+                    // 总计用 date 维度（按天汇总，含被匿名化的查询，最接近真实总量）。
+                    if ($name === 'date') {
+                        $totalClicks += $clicks;
+                        $totalImpressions += $impressions;
+                        $weightedPosition += $position * $impressions;
+                    }
+                }
+            }
+
+            // 所有维度都失败（如鉴权/限流）才算整体失败；个别维度无数据不影响。
+            if ($failedDimensions === count(self::SEARCH_DIMENSIONS)) {
+                $this->finishSnapshot($snapshot, 'failed', 0, [], $lastError);
+
+                return $snapshot->refresh();
             }
 
             $this->finishSnapshot($snapshot, 'success', $kept, [

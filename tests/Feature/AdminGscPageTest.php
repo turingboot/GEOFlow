@@ -168,8 +168,8 @@ class AdminGscPageTest extends TestCase
         GscSearchMetric::query()->create([
             'gsc_snapshot_id' => $snapshot->id,
             'gsc_property_id' => $property->id,
-            'query' => 'brandword',
-            'page' => 'https://e/a',
+            'dimension' => 'query',
+            'dimension_value' => 'brandword',
             'clicks' => 10,
             'impressions' => 100,
             'ctr' => 0.1,

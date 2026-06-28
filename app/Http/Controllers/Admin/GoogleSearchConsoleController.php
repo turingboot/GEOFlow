@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Jobs\FetchGscJob;
 use App\Models\GscConnection;
 use App\Models\GscProperty;
-use App\Models\GscSearchMetric;
 use App\Models\GscSnapshot;
 use App\Models\GscUrlInspection;
 use App\Services\GeoFlow\GoogleSearchConsole\GoogleSearchConsoleClient;
@@ -300,9 +299,6 @@ class GoogleSearchConsoleController extends Controller
         $latestSitemap = $property->snapshots()->where('type', GscSnapshot::TYPE_SITEMAPS)->latest('id')->first();
         $latestInspection = $property->snapshots()->where('type', GscSnapshot::TYPE_URL_INSPECTION)->latest('id')->first();
 
-        $metrics = $latestSearch
-            ? GscSearchMetric::query()->where('gsc_snapshot_id', $latestSearch->id)->orderByDesc('clicks')->orderByDesc('impressions')->limit(100)->get()
-            : collect();
         $inspections = $latestInspection
             ? GscUrlInspection::query()->where('gsc_snapshot_id', $latestInspection->id)->orderByDesc('id')->get()
             : collect();
@@ -315,7 +311,6 @@ class GoogleSearchConsoleController extends Controller
             'latestSearch' => $latestSearch,
             'latestSitemap' => $latestSitemap,
             'latestInspection' => $latestInspection,
-            'metrics' => $metrics,
             'inspections' => $inspections,
             'insights' => $this->insights->build($property),
             'isSuperAdmin' => $this->isSuperAdmin(),

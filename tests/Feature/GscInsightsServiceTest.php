@@ -48,6 +48,22 @@ class GscInsightsServiceTest extends TestCase
         $this->assertSame(['near'], array_column($insights['strikingDistance'], 'query'));
     }
 
+    public function test_date_series_and_breakdowns(): void
+    {
+        $property = $this->makeProperty();
+        $snap = $this->snapshot($property, GscSnapshot::TYPE_SEARCH_ANALYTICS, []);
+        $this->dimMetric($snap, $property, 'date', '2026-06-20', 5, 50, 0.1, 4.0);
+        $this->dimMetric($snap, $property, 'date', '2026-06-21', 8, 80, 0.1, 3.0);
+        $this->dimMetric($snap, $property, 'country', 'usa', 9, 90, 0.1, 3.0);
+        $this->dimMetric($snap, $property, 'device', 'MOBILE', 4, 40, 0.1, 5.0);
+
+        $insights = app(GscInsightsService::class)->build($property);
+
+        $this->assertSame(['2026-06-20', '2026-06-21'], array_column($insights['dateSeries'], 'date'));
+        $this->assertSame('usa', $insights['breakdowns']['country'][0]['value']);
+        $this->assertSame('MOBILE', $insights['breakdowns']['device'][0]['value']);
+    }
+
     public function test_indexing_trend_series_is_chronological(): void
     {
         $property = $this->makeProperty();
@@ -115,11 +131,16 @@ class GscInsightsServiceTest extends TestCase
 
     private function metric(GscSnapshot $snap, GscProperty $p, string $query, int $clicks, int $impressions, float $ctr, float $position): void
     {
+        $this->dimMetric($snap, $p, 'query', $query, $clicks, $impressions, $ctr, $position);
+    }
+
+    private function dimMetric(GscSnapshot $snap, GscProperty $p, string $dimension, string $value, int $clicks, int $impressions, float $ctr, float $position): void
+    {
         GscSearchMetric::query()->create([
             'gsc_snapshot_id' => $snap->id,
             'gsc_property_id' => $p->id,
-            'query' => $query,
-            'page' => 'https://e/'.$query,
+            'dimension' => $dimension,
+            'dimension_value' => $value,
             'clicks' => $clicks,
             'impressions' => $impressions,
             'ctr' => $ctr,

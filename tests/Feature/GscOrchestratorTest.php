@@ -46,15 +46,17 @@ class GscOrchestratorTest extends TestCase
         $snapshot = app(GscOrchestrator::class)->runSearchAnalytics($property);
 
         $this->assertSame('success', $snapshot->status);
-        $this->assertSame(2, (int) $snapshot->fetched_count);
+        // 6 个维度 × 2 行（fake 对所有 searchAnalytics 调用返回同样的 2 行）。
+        $this->assertSame(12, (int) $snapshot->fetched_count);
+        // 总计取自 date 维度：曝光 340+90=430、点击 12+3=15。
         $this->assertSame(430, (int) ($snapshot->stats['total_impressions'] ?? 0));
         $this->assertSame(15, (int) ($snapshot->stats['total_clicks'] ?? 0));
-        $this->assertSame(2, GscSearchMetric::query()->where('gsc_snapshot_id', $snapshot->id)->count());
 
-        $metric = GscSearchMetric::query()->where('query', 'geoflow 教程')->firstOrFail();
+        $metric = GscSearchMetric::query()->where('dimension', 'query')->where('dimension_value', 'geoflow 教程')->firstOrFail();
         $this->assertSame((int) $property->tenant_id, (int) $metric->tenant_id);
         $this->assertSame(12, (int) $metric->clicks);
-        $this->assertSame('https://example.com/a', $metric->page);
+        // 每个维度都存了一行（query/page/country/device/date/search_appearance）。
+        $this->assertSame(6, GscSearchMetric::query()->where('gsc_snapshot_id', $snapshot->id)->where('dimension_value', 'geoflow 教程')->count());
     }
 
     public function test_run_aggregates_sitemap_indexing_overview(): void

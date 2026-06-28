@@ -4827,6 +4827,10 @@ return [
             'opportunity_desc' => '曝光高但点击率低，优化标题/描述有提升空间',
             'striking' => '临门一脚（排名 10–20）',
             'striking_desc' => '排在第二页边缘，小优化就可能进第一页',
+            'dim_date' => '按日期',
+            'dim_country' => '国家/地区',
+            'dim_device' => '设备',
+            'dim_appearance' => '搜索结果呈现',
             'empty' => '暂无数据，拉取后生成。',
         ],
         'button' => [
