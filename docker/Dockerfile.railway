@@ -2,7 +2,7 @@
 # 与 docker/Dockerfile.prod 同源，但去掉国内 apt/npm 镜像（Railway 在海外构建），
 # 并把 nginx/supervisor 装进同一镜像，监听 Railway 注入的 $PORT。
 # syntax=docker/dockerfile:1
-ARG PHP_FPM_IMAGE=php:8.3-fpm-bookworm
+ARG PHP_FPM_IMAGE=php:8.4-fpm-bookworm
 
 # 1) PHP 依赖
 FROM composer:2 AS vendor
