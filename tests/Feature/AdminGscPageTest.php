@@ -175,12 +175,25 @@ class AdminGscPageTest extends TestCase
             'ctr' => 0.1,
             'position' => 5.0,
         ]);
+        foreach (['2026-06-20' => 8, '2026-06-21' => 12] as $date => $impr) {
+            GscSearchMetric::query()->create([
+                'gsc_snapshot_id' => $snapshot->id,
+                'gsc_property_id' => $property->id,
+                'dimension' => 'date',
+                'dimension_value' => $date,
+                'clicks' => 1,
+                'impressions' => $impr,
+                'ctr' => 0.1,
+                'position' => 5.0,
+            ]);
+        }
 
         $this->actingAs($admin, 'admin')
             ->get(route('admin.google-search-console.show', $property->id))
             ->assertOk()
             ->assertSee(__('admin.gsc.section.search'))
             ->assertSee('data-gsc-tab', false)
+            ->assertSee('<polyline', false)
             ->assertSee('brandword');
     }
 

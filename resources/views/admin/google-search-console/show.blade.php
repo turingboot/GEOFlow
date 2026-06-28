@@ -8,8 +8,6 @@
     $indexingTrend = $insights['indexingTrend'] ?? [];
     $maxIndexed = collect($indexingTrend)->max('indexed') ?: 1;
     $dateSeries = $insights['dateSeries'] ?? [];
-    // 柱高按曝光画（点击常为 0，按点击会全是 2px 看不见）；点击放进悬停提示。
-    $maxDateImpr = collect($dateSeries)->max('impressions') ?: 1;
     $breakdowns = $insights['breakdowns'] ?? [];
     $asValueRows = fn (array $rows, string $key) => collect($rows)->map(fn ($r) => [
         'value' => (string) ($r[$key] ?? ''),
@@ -70,20 +68,41 @@
             </div>
 
             @if (! empty($dateSeries))
-                <div class="mb-2 flex items-center gap-3 text-xs text-gray-500">
-                    <span class="inline-flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-sm bg-indigo-400"></span>{{ __('admin.gsc.field.impressions') }}</span>
-                    <span class="text-gray-400">{{ __('admin.gsc.insights.chart_hint') }}</span>
+                @php
+                    $n = count($dateSeries);
+                    $cw = 720; $ch = 180; $padL = 30; $padB = 16; $padT = 8;
+                    $pw = $cw - $padL - 6;
+                    $ph = $ch - $padB - $padT;
+                    $rawMax = max(1, (int) collect($dateSeries)->max('impressions'), (int) collect($dateSeries)->max('clicks'));
+                    $step = (int) max(1, ceil($rawMax / 4));
+                    $niceMax = $step * 4;
+                    $xAt = fn ($i) => $padL + ($n <= 1 ? $pw / 2 : $i / ($n - 1) * $pw);
+                    $yAt = fn ($v) => $padT + $ph - ($v / $niceMax) * $ph;
+                    $imprPts = collect($dateSeries)->map(fn ($p, $i) => round($xAt($i), 1).','.round($yAt($p['impressions']), 1))->implode(' ');
+                    $clickPts = collect($dateSeries)->map(fn ($p, $i) => round($xAt($i), 1).','.round($yAt($p['clicks']), 1))->implode(' ');
+                @endphp
+                <div class="mb-2 flex items-center gap-4 text-xs text-gray-500">
+                    <span class="inline-flex items-center gap-1"><span class="inline-block h-1.5 w-3 rounded-sm bg-indigo-400"></span>{{ __('admin.gsc.field.impressions') }}</span>
+                    <span class="inline-flex items-center gap-1"><span class="inline-block h-1.5 w-3 rounded-sm bg-emerald-400"></span>{{ __('admin.gsc.field.clicks') }}</span>
                 </div>
-                <div class="flex h-28 items-end gap-px">
-                    @foreach ($dateSeries as $pt)
-                        <div class="flex flex-1 flex-col items-center justify-end" title="{{ $pt['date'] }} · {{ __('admin.gsc.field.impressions') }} {{ $pt['impressions'] }} · {{ __('admin.gsc.field.clicks') }} {{ $pt['clicks'] }}">
-                            <div class="w-full rounded-t bg-indigo-400 hover:bg-indigo-500" style="height: {{ max(2, (int) round(($pt['impressions'] / $maxDateImpr) * 100)) }}px"></div>
-                        </div>
+                <svg viewBox="0 0 {{ $cw }} {{ $ch }}" class="w-full">
+                    @for ($t = 0; $t <= 4; $t++)
+                        @php($yv = $niceMax * $t / 4)
+                        <line x1="{{ $padL }}" y1="{{ round($yAt($yv), 1) }}" x2="{{ $cw }}" y2="{{ round($yAt($yv), 1) }}" stroke="#f1f5f9" stroke-width="1" />
+                        <text x="2" y="{{ round($yAt($yv) + 4, 1) }}" font-size="11" fill="#9ca3af">{{ (int) round($yv) }}</text>
+                    @endfor
+                    <polyline points="{{ $imprPts }}" fill="none" stroke="#818cf8" stroke-width="2" vector-effect="non-scaling-stroke" />
+                    <polyline points="{{ $clickPts }}" fill="none" stroke="#34d399" stroke-width="2" vector-effect="non-scaling-stroke" />
+                    @foreach ($dateSeries as $i => $pt)
+                        <circle cx="{{ round($xAt($i), 1) }}" cy="{{ round($yAt($pt['impressions']), 1) }}" r="2.5" fill="#818cf8">
+                            <title>{{ $pt['date'] }} · {{ __('admin.gsc.field.impressions') }} {{ $pt['impressions'] }} · {{ __('admin.gsc.field.clicks') }} {{ $pt['clicks'] }}</title>
+                        </circle>
                     @endforeach
-                </div>
-                <div class="mb-5 mt-1 flex justify-between text-[10px] text-gray-400">
+                </svg>
+                <div class="mb-4 flex justify-between text-[10px] text-gray-400">
                     <span>{{ $dateSeries[0]['date'] ?? '' }}</span>
-                    <span>{{ $dateSeries[count($dateSeries) - 1]['date'] ?? '' }}</span>
+                    <span>{{ $dateSeries[intdiv($n, 2)]['date'] ?? '' }}</span>
+                    <span>{{ $dateSeries[$n - 1]['date'] ?? '' }}</span>
                 </div>
             @endif
 
