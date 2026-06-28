@@ -1,0 +1,66 @@
+# Railway 单容器 nginx：监听平台注入的 ${PORT}，PHP 转发到本机 php-fpm(127.0.0.1:9000)。
+# 启动时由 entrypoint 用 envsubst 渲染 ${PORT} 后写入 /etc/nginx/conf.d/default.conf。
+map $http_x_forwarded_proto $geoflow_forwarded_proto {
+    default $http_x_forwarded_proto;
+    "" $scheme;
+}
+
+map $http_x_forwarded_host $geoflow_forwarded_host {
+    default $http_x_forwarded_host;
+    "" $host;
+}
+
+map $http_x_forwarded_port $geoflow_forwarded_port {
+    default $http_x_forwarded_port;
+    "" $server_port;
+}
+
+map $geoflow_forwarded_proto $geoflow_https {
+    default "";
+    https on;
+}
+
+server {
+    listen ${PORT};
+    server_name _;
+
+    client_max_body_size 64m;
+
+    root /var/www/html/public;
+    index index.php;
+
+    access_log /dev/stdout;
+    error_log /dev/stderr warn;
+
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header Referrer-Policy strict-origin-when-cross-origin;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt { access_log off; log_not_found off; }
+    location ~ /\.(?!well-known).* { deny all; }
+
+    location ~* \.(?:css|js|jpg|jpeg|gif|png|svg|ico|webp|avif|ttf|otf|woff|woff2)$ {
+        expires 7d;
+        access_log off;
+        add_header Cache-Control "public, max-age=604800, immutable";
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /var/www/html/public/index.php;
+        fastcgi_param DOCUMENT_ROOT /var/www/html/public;
+        fastcgi_param HTTPS $geoflow_https if_not_empty;
+        fastcgi_param HTTP_X_FORWARDED_PROTO $geoflow_forwarded_proto;
+        fastcgi_param HTTP_X_FORWARDED_HOST $geoflow_forwarded_host;
+        fastcgi_param HTTP_X_FORWARDED_PORT $geoflow_forwarded_port;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_read_timeout 300;
+        internal;
+    }
+}

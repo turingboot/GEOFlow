@@ -1,0 +1,61 @@
+# Railway 单容器镜像：php-fpm + nginx + queue + scheduler 由 supervisor 一并托管。
+# 与 docker/Dockerfile.prod 同源，但去掉国内 apt/npm 镜像（Railway 在海外构建），
+# 并把 nginx/supervisor 装进同一镜像，监听 Railway 注入的 $PORT。
+# syntax=docker/dockerfile:1
+ARG PHP_FPM_IMAGE=php:8.3-fpm-bookworm
+
+# 1) PHP 依赖
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --no-scripts --ignore-platform-reqs
+COPY . .
+RUN composer dump-autoload --no-dev --optimize --classmap-authoritative
+
+# 2) 前端资源（Vite）
+FROM node:22-bookworm-slim AS assets
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY resources ./resources
+COPY public ./public
+COPY vite.config.js ./
+RUN npm run build
+
+# 3) 运行时
+FROM ${PHP_FPM_IMAGE}
+ARG PECL_REDIS_VERSION=6.1.0
+WORKDIR /var/www/html
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl gettext-base \
+        libonig-dev libpq-dev libsqlite3-dev libzip-dev \
+        nginx postgresql-client supervisor unzip; \
+    docker-php-ext-install mbstring opcache pcntl pdo_pgsql pdo_sqlite zip; \
+    curl -fsSL "https://pecl.php.net/get/redis-${PECL_REDIS_VERSION}.tgz" -o /tmp/redis.tgz; \
+    pecl install /tmp/redis.tgz; \
+    docker-php-ext-enable redis; \
+    rm -f /tmp/redis.tgz; \
+    rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled/default
+
+COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/99-opcache.ini
+COPY docker/php/php-docker-overrides.ini /usr/local/etc/php/conf.d/99-overrides.ini
+COPY docker/php-fpm/www.conf /usr/local/etc/php-fpm.d/zz-geoflow.conf
+COPY docker/nginx/railway.conf.template /etc/nginx/templates/railway.conf.template
+COPY docker/supervisord.conf /etc/supervisor/conf.d/geoflow.conf
+COPY docker/entrypoint.railway.sh /usr/local/bin/geoflow-entrypoint-railway
+RUN chmod +x /usr/local/bin/geoflow-entrypoint-railway
+
+COPY --from=vendor /app /var/www/html
+COPY --from=assets /app/public/build /var/www/html/public/build
+
+# 首次部署默认自动迁移+安装+优化；跑通后可在 Railway 变量里关掉 AUTO_MIGRATE/AUTO_INSTALL_ONCE。
+ENV AUTO_WAIT_FOR_DB=true \
+    AUTO_MIGRATE=true \
+    AUTO_INSTALL_ONCE=true \
+    AUTO_OPTIMIZE=true
+
+ENTRYPOINT ["/usr/local/bin/geoflow-entrypoint-railway"]
+CMD ["supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
