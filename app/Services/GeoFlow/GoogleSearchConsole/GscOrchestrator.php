@@ -55,12 +55,15 @@ class GscOrchestrator
             $kept = 0;
             $totalClicks = 0;
             $totalImpressions = 0;
+            $weightedPosition = 0.0;
 
             foreach ($rows as $row) {
                 if (! is_array($row)) {
                     continue;
                 }
                 $keys = is_array($row['keys'] ?? null) ? $row['keys'] : [];
+                $impressions = (int) ($row['impressions'] ?? 0);
+                $position = (float) ($row['position'] ?? 0);
                 GscSearchMetric::query()->create([
                     'tenant_id' => $property->tenant_id,
                     'gsc_snapshot_id' => $snapshot->id,
@@ -68,16 +71,17 @@ class GscOrchestrator
                     'query' => (string) ($keys[0] ?? ''),
                     'page' => (string) ($keys[1] ?? ''),
                     'clicks' => (int) ($row['clicks'] ?? 0),
-                    'impressions' => (int) ($row['impressions'] ?? 0),
+                    'impressions' => $impressions,
                     'ctr' => (float) ($row['ctr'] ?? 0),
-                    'position' => (float) ($row['position'] ?? 0),
+                    'position' => $position,
                     'date_start' => $start,
                     'date_end' => $end,
                     'raw' => $row,
                 ]);
                 $kept++;
                 $totalClicks += (int) ($row['clicks'] ?? 0);
-                $totalImpressions += (int) ($row['impressions'] ?? 0);
+                $totalImpressions += $impressions;
+                $weightedPosition += $position * $impressions;
             }
 
             $this->finishSnapshot($snapshot, 'success', $kept, [
@@ -85,6 +89,8 @@ class GscOrchestrator
                 'date_end' => $end,
                 'total_clicks' => $totalClicks,
                 'total_impressions' => $totalImpressions,
+                // 整体平均排名按曝光加权（与 GSC 概览口径一致）。
+                'avg_position' => $totalImpressions > 0 ? round($weightedPosition / $totalImpressions, 1) : 0.0,
             ]);
         } catch (Throwable $e) {
             $this->finishSnapshot($snapshot, 'failed', 0, [], $e->getMessage());

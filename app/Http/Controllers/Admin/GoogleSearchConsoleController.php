@@ -11,6 +11,7 @@ use App\Models\GscSnapshot;
 use App\Models\GscUrlInspection;
 use App\Services\GeoFlow\GoogleSearchConsole\GoogleSearchConsoleClient;
 use App\Services\GeoFlow\GoogleSearchConsole\GscAuthResolver;
+use App\Services\GeoFlow\GoogleSearchConsole\GscInsightsService;
 use App\Services\GeoFlow\GoogleSearchConsole\GscOrchestrator;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\ApiKeyCrypto;
@@ -34,6 +35,7 @@ class GoogleSearchConsoleController extends Controller
         private readonly GscOauthAppConfig $oauthApp,
         private readonly GoogleSearchConsoleClient $client,
         private readonly GscOrchestrator $orchestrator,
+        private readonly GscInsightsService $insights,
     ) {}
 
     public function index(): View
@@ -315,6 +317,7 @@ class GoogleSearchConsoleController extends Controller
             'latestInspection' => $latestInspection,
             'metrics' => $metrics,
             'inspections' => $inspections,
+            'insights' => $this->insights->build($property),
             'isSuperAdmin' => $this->isSuperAdmin(),
         ]);
     }

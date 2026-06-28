@@ -4812,9 +4812,22 @@ return [
         'section' => [
             'connections' => 'Google connections',
             'properties' => 'Monitored sites',
+            'trend' => 'Trend (this period vs last)',
             'indexing' => 'Indexing overview (sitemap)',
             'search' => 'Search performance',
             'inspect' => 'Single-URL indexing check',
+        ],
+        'insights' => [
+            'dropout_title' => 'Index drop alert: these pages went from indexed to not indexed',
+            'trend_no_previous' => 'No previous period yet; fetch once more to compare.',
+            'indexing_trend' => 'Indexed trend (last 14 runs)',
+            'top_clicks' => 'Top queries by clicks',
+            'top_clicks_desc' => 'Queries driving the most clicks',
+            'opportunity' => 'Opportunities (high impressions, low CTR)',
+            'opportunity_desc' => 'High impressions but low CTR — improve title/description',
+            'striking' => 'Striking distance (position 10–20)',
+            'striking_desc' => 'On the edge of page two; small tweaks can reach page one',
+            'empty' => 'No data yet; generated after a fetch.',
         ],
         'button' => [
             'settings' => 'Settings',

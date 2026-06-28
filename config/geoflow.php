@@ -116,6 +116,14 @@ return [
         // URL Inspection 每属性每天配额（Google 限制 2000/天），用于收录抽样上限保护。
         'url_inspection_daily_quota' => max(0, (int) env('GSC_URL_INSPECTION_DAILY_QUOTA', 2000)),
         'http_timeout' => max(5, (int) env('GSC_HTTP_TIMEOUT', 30)),
+        // 洞察分析阈值：Top 榜条数、机会词（高曝光低点击）与临门一脚词（排名区间）的判定。
+        'insights' => [
+            'top_limit' => max(1, (int) env('GSC_INSIGHTS_TOP_LIMIT', 10)),
+            'opportunity_min_impressions' => max(0, (int) env('GSC_INSIGHTS_OPP_MIN_IMPRESSIONS', 50)),
+            'opportunity_max_ctr' => (float) env('GSC_INSIGHTS_OPP_MAX_CTR', 0.02),
+            'striking_min_position' => (float) env('GSC_INSIGHTS_STRIKING_MIN_POS', 10),
+            'striking_max_position' => (float) env('GSC_INSIGHTS_STRIKING_MAX_POS', 20),
+        ],
     ],
     // 为 true 时记录知识库「查询向量」是否由默认 embedding 接口生成（便于对照 bak 验证；默认关闭）
     'debug_knowledge_query_embedding' => filter_var(env('GEOFLOW_DEBUG_KNOWLEDGE_QUERY_EMBEDDING', false), FILTER_VALIDATE_BOOLEAN),

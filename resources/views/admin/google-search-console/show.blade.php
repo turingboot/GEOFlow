@@ -3,6 +3,15 @@
 @php
     $connection = $property->connection;
     $sitemapStats = $latestSitemap && is_array($latestSitemap->stats) ? $latestSitemap->stats : [];
+    $trend = $insights['searchTrend'] ?? null;
+    $dropouts = $insights['indexingDropouts'] ?? [];
+    $indexingTrend = $insights['indexingTrend'] ?? [];
+    $maxIndexed = collect($indexingTrend)->max('indexed') ?: 1;
+    $segments = [
+        ['data' => $insights['topQueries'] ?? [], 'label' => 'insights.top_clicks', 'desc' => 'insights.top_clicks_desc'],
+        ['data' => $insights['opportunityQueries'] ?? [], 'label' => 'insights.opportunity', 'desc' => 'insights.opportunity_desc'],
+        ['data' => $insights['strikingDistance'] ?? [], 'label' => 'insights.striking', 'desc' => 'insights.striking_desc'],
+    ];
 @endphp
 
 @section('content')
@@ -37,6 +46,47 @@
             </div>
         </div>
 
+        {{-- 掉收录告警 --}}
+        @if (! empty($dropouts))
+            <div class="rounded-md border border-red-300 bg-red-50 px-4 py-3">
+                <div class="mb-2 text-sm font-semibold text-red-700">
+                    <i data-lucide="alert-triangle" class="inline h-4 w-4"></i>
+                    {{ __('admin.gsc.insights.dropout_title') }}（{{ count($dropouts) }}）
+                </div>
+                <ul class="space-y-1 text-xs text-red-700">
+                    @foreach ($dropouts as $d)
+                        <li><span class="font-mono">{{ \Illuminate\Support\Str::limit($d['url'], 70) }}</span> — {{ $d['coverage_state'] ?: $d['now'] }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        {{-- 趋势对比（本期 vs 上期） --}}
+        @if ($trend)
+            <div class="admin-card p-6">
+                <div class="mb-3 flex items-center justify-between">
+                    <span class="admin-card-title">{{ __('admin.gsc.section.trend') }}</span>
+                    @unless ($trend['has_previous'])<span class="text-xs text-gray-400">{{ __('admin.gsc.insights.trend_no_previous') }}</span>@endunless
+                </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    @foreach (['clicks' => 'clicks', 'impressions' => 'impressions', 'position' => 'position'] as $k => $field)
+                        @php($m = $trend[$k])
+                        <div>
+                            <div class="text-xs text-gray-500">{{ __('admin.gsc.field.'.$field) }}</div>
+                            <div class="text-2xl font-semibold">{{ $k === 'position' ? number_format((float) $m['current'], 1) : (int) $m['current'] }}</div>
+                            @if (! is_null($m['change']))
+                                <div class="text-xs {{ $m['direction'] === 'good' ? 'text-emerald-600' : ($m['direction'] === 'bad' ? 'text-red-600' : 'text-gray-400') }}">
+                                    {{ $m['change'] > 0 ? '▲' : ($m['change'] < 0 ? '▼' : '—') }}
+                                    {{ $k === 'position' ? number_format(abs((float) $m['change']), 1) : (int) abs($m['change']) }}
+                                    @if (! is_null($m['pct'])) ({{ $m['pct'] > 0 ? '+' : '' }}{{ $m['pct'] }}%) @endif
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         {{-- 收录概览（sitemap） --}}
         <div class="admin-card p-6">
             <div class="mb-3 admin-card-title">{{ __('admin.gsc.section.indexing') }}</div>
@@ -47,6 +97,19 @@
                     <div><div class="text-xs text-gray-500">{{ __('admin.gsc.indexing.sitemaps') }}</div><div class="text-2xl font-semibold">{{ (int) ($sitemapStats['sitemaps'] ?? 0) }}</div></div>
                     <div><div class="text-xs text-gray-500">{{ __('admin.gsc.snapshot.title') }}</div><div class="text-xs text-gray-500">{{ optional($latestSitemap->ran_at)->format('Y-m-d H:i') }}</div></div>
                 </div>
+                @if (count($indexingTrend) > 1)
+                    <div class="mt-5">
+                        <div class="mb-2 text-xs text-gray-500">{{ __('admin.gsc.insights.indexing_trend') }}</div>
+                        <div class="flex h-20 items-end gap-1">
+                            @foreach ($indexingTrend as $pt)
+                                <div class="flex flex-1 flex-col items-center justify-end" title="{{ $pt['ran_at'] }} · {{ $pt['indexed'] }}/{{ $pt['submitted'] }}">
+                                    <div class="w-full rounded-t bg-emerald-400" style="height: {{ max(2, (int) round(($pt['indexed'] / $maxIndexed) * 72)) }}px"></div>
+                                    <div class="mt-1 text-[10px] text-gray-400">{{ $pt['indexed'] }}</div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             @else
                 <p class="text-sm text-gray-500">{{ __('admin.gsc.indexing.empty') }}</p>
             @endif
@@ -82,6 +145,37 @@
                 </table>
             @endif
         </div>
+
+        {{-- Top 榜：Top 点击 / 机会词 / 临门一脚 --}}
+        @foreach ($segments as $seg)
+            <div class="admin-card overflow-hidden">
+                <div class="admin-card-head">
+                    <span class="admin-card-title">{{ __('admin.gsc.'.$seg['label']) }}</span>
+                    <span class="text-xs text-gray-400">{{ __('admin.gsc.'.$seg['desc']) }}</span>
+                </div>
+                @if (empty($seg['data']))
+                    <div class="p-6 text-sm text-gray-500">{{ __('admin.gsc.insights.empty') }}</div>
+                @else
+                    <table class="admin-table">
+                        <thead><tr>
+                            <th>{{ __('admin.gsc.field.query') }}</th><th>{{ __('admin.gsc.field.clicks') }}</th>
+                            <th>{{ __('admin.gsc.field.impressions') }}</th><th>{{ __('admin.gsc.field.ctr') }}</th><th>{{ __('admin.gsc.field.position') }}</th>
+                        </tr></thead>
+                        <tbody>
+                            @foreach ($seg['data'] as $r)
+                                <tr>
+                                    <td>{{ $r['query'] }}</td>
+                                    <td>{{ $r['clicks'] }}</td>
+                                    <td>{{ $r['impressions'] }}</td>
+                                    <td>{{ number_format($r['ctr'] * 100, 1) }}%</td>
+                                    <td>{{ number_format($r['position'], 1) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
+        @endforeach
 
         {{-- 单 URL 收录抽查 --}}
         <div class="admin-card p-6">

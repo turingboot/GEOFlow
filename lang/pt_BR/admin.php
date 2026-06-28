@@ -4820,9 +4820,22 @@ return array_replace_recursive($base, [
         'section' => [
             'connections' => 'Conexões Google',
             'properties' => 'Sites monitorados',
+            'trend' => 'Tendência (período atual vs anterior)',
             'indexing' => 'Visão de indexação (sitemap)',
             'search' => 'Desempenho de busca',
             'inspect' => 'Verificação de indexação por URL',
+        ],
+        'insights' => [
+            'dropout_title' => 'Alerta de queda de indexação: estas páginas deixaram de ser indexadas',
+            'trend_no_previous' => 'Ainda sem período anterior; busque mais uma vez para comparar.',
+            'indexing_trend' => 'Tendência de indexadas (últimas 14 execuções)',
+            'top_clicks' => 'Principais consultas por cliques',
+            'top_clicks_desc' => 'Consultas que mais geram cliques',
+            'opportunity' => 'Oportunidades (muitas impressões, CTR baixo)',
+            'opportunity_desc' => 'Muitas impressões mas CTR baixo — melhore título/descrição',
+            'striking' => 'Quase lá (posição 10–20)',
+            'striking_desc' => 'Na borda da página dois; pequenos ajustes podem alcançar a página um',
+            'empty' => 'Ainda sem dados; gerados após uma busca.',
         ],
         'button' => [
             'settings' => 'Configurações',

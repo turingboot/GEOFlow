@@ -4812,9 +4812,22 @@ return [
         'section' => [
             'connections' => 'Google 连接',
             'properties' => '监控站点',
+            'trend' => '趋势对比（本期 vs 上期）',
             'indexing' => '收录概览（sitemap）',
             'search' => '搜索表现',
             'inspect' => '单 URL 收录抽查',
+        ],
+        'insights' => [
+            'dropout_title' => '掉收录告警：以下页面从已索引变为未索引',
+            'trend_no_previous' => '暂无上期数据，再拉取一次即可对比。',
+            'indexing_trend' => '收录数趋势（近 14 次）',
+            'top_clicks' => 'Top 点击词',
+            'top_clicks_desc' => '带来点击最多的搜索词',
+            'opportunity' => '机会词（高曝光低点击）',
+            'opportunity_desc' => '曝光高但点击率低，优化标题/描述有提升空间',
+            'striking' => '临门一脚（排名 10–20）',
+            'striking_desc' => '排在第二页边缘，小优化就可能进第一页',
+            'empty' => '暂无数据，拉取后生成。',
         ],
         'button' => [
             'settings' => '设置',

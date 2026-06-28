@@ -6,6 +6,8 @@ use App\Jobs\FetchGscJob;
 use App\Models\Admin;
 use App\Models\GscConnection;
 use App\Models\GscProperty;
+use App\Models\GscSearchMetric;
+use App\Models\GscSnapshot;
 use App\Models\SystemState;
 use App\Models\Tenant;
 use App\Services\GeoFlow\GoogleSearchConsole\GscAuthResolver;
@@ -143,6 +145,42 @@ class AdminGscPageTest extends TestCase
             ->assertRedirect(route('admin.google-search-console.show', $property->id));
 
         Queue::assertPushedOn('trends', FetchGscJob::class);
+    }
+
+    public function test_show_page_renders_with_insights(): void
+    {
+        $admin = $this->makeAdmin();
+        $connection = $this->makeOauthConnection();
+        $property = GscProperty::query()->create([
+            'gsc_connection_id' => $connection->id,
+            'name' => 'site',
+            'site_url' => 'sc-domain:example.com',
+            'schedule' => 'daily',
+            'status' => 'active',
+        ]);
+        $snapshot = GscSnapshot::query()->create([
+            'gsc_property_id' => $property->id,
+            'type' => GscSnapshot::TYPE_SEARCH_ANALYTICS,
+            'status' => 'success',
+            'stats' => ['total_clicks' => 10, 'total_impressions' => 100, 'avg_position' => 5.0],
+            'ran_at' => now(),
+        ]);
+        GscSearchMetric::query()->create([
+            'gsc_snapshot_id' => $snapshot->id,
+            'gsc_property_id' => $property->id,
+            'query' => 'brandword',
+            'page' => 'https://e/a',
+            'clicks' => 10,
+            'impressions' => 100,
+            'ctr' => 0.1,
+            'position' => 5.0,
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.google-search-console.show', $property->id))
+            ->assertOk()
+            ->assertSee(__('admin.gsc.insights.top_clicks'))
+            ->assertSee('brandword');
     }
 
     public function test_disconnect_removes_connection_and_its_sites(): void
