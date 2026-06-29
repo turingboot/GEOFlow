@@ -480,6 +480,7 @@
             </div>
         </section>
 
+        {{-- 现场演示路径区块暂时停用：整段以 Blade 注释包裹，未删除任何代码，恢复时删掉本段首尾的注释标记即可。
         <section class="admin-card mb-8 overflow-hidden">
             <div class="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -512,6 +513,7 @@
                 @endforeach
             </div>
         </section>
+        --}}
 
         <section class="mb-8 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
             <div class="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
