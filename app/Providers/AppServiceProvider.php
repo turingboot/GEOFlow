@@ -11,6 +11,7 @@ use App\Services\GeoFlow\JobQueueService;
 use App\Services\GeoFlow\TaskLifecycleService;
 use App\Services\GeoFlow\TaskMonitoringQueryService;
 use App\Support\GeoFlow\OutboundHttpProxy;
+use App\Support\Tenancy\AdminTenantContext;
 use App\View\Composers\SiteLayoutComposer;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\View;
@@ -49,6 +50,13 @@ class AppServiceProvider extends ServiceProvider
                 'adminUpdateNotificationPayload',
                 $admin instanceof Admin ? app(AdminUpdateMetadataService::class)->buildNotificationPayload() : null
             );
+
+            // 超管租户切换器数据（普通管理员不展示）。
+            $isSuperAdmin = $admin instanceof Admin && $admin->isSuperAdmin();
+            $view->with('adminTenantSwitcher', $isSuperAdmin ? [
+                'tenants' => AdminTenantContext::selectableTenants(),
+                'activeTenantId' => AdminTenantContext::activeTenantId(),
+            ] : null);
         });
     }
 }

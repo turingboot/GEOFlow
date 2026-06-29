@@ -1,6 +1,14 @@
 <?php
 
 return [
+    'tenant_switch' => [
+        'label' => '当前租户',
+        'all' => '全部租户（只读）',
+        'switched' => '已切换当前操作租户。',
+        'switched_all' => '已切换到全部租户（只读总览）。',
+        'invalid' => '所选租户不存在或已停用。',
+        'required' => '请先在右上角选择一个具体租户，再进行创建或修改操作。',
+    ],
     'nav' => [
         'dashboard' => '首页',
         'analytics' => '观测归因',

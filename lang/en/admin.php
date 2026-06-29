@@ -1,6 +1,14 @@
 <?php
 
 return [
+    'tenant_switch' => [
+        'label' => 'Active tenant',
+        'all' => 'All tenants (read-only)',
+        'switched' => 'Active tenant switched.',
+        'switched_all' => 'Switched to all tenants (read-only overview).',
+        'invalid' => 'The selected tenant does not exist or is inactive.',
+        'required' => 'Please select a specific tenant from the top-right switcher before creating or editing data.',
+    ],
     'nav' => [
         'dashboard' => 'Dashboard',
         'analytics' => 'Observation',

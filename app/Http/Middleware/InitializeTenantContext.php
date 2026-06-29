@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Admin;
+use App\Support\Tenancy\AdminTenantContext;
 use App\Support\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class InitializeTenantContext
     public function handle(Request $request, Closure $next): Response
     {
         $admin = Auth::guard('admin')->user();
-        TenantContext::fromAdmin($admin instanceof Admin ? $admin : null);
+        AdminTenantContext::applyForAdmin($admin instanceof Admin ? $admin : null);
 
         try {
             return $next($request);

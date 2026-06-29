@@ -91,6 +91,29 @@
                 </div>
             </div>
         </div>
+        @if ($isSuperAdmin && !empty($adminTenantSwitcher))
+            @php
+                $activeTenantId = $adminTenantSwitcher['activeTenantId'] ?? null;
+                $tenantOptions = $adminTenantSwitcher['tenants'] ?? collect();
+            @endphp
+            <form method="POST" action="{{ route('admin.tenant.switch') }}" class="hidden md:flex items-center rounded-lg border border-gray-200 bg-white px-2 py-1 shadow-sm" title="{{ __('admin.tenant_switch.label') }}">
+                @csrf
+                <i data-lucide="building-2" class="w-4 h-4 mr-1.5 {{ $activeTenantId ? 'text-blue-500' : 'text-amber-500' }}"></i>
+                <select
+                    name="tenant_id"
+                    class="admin-tenant-select appearance-none bg-transparent pr-5 text-sm font-medium text-gray-700 outline-none cursor-pointer"
+                    aria-label="{{ __('admin.tenant_switch.label') }}"
+                    onchange="this.form.submit()"
+                >
+                    <option value="0" @selected($activeTenantId === null)>{{ __('admin.tenant_switch.all') }}</option>
+                    @foreach ($tenantOptions as $tenantOption)
+                        <option value="{{ $tenantOption->id }}" @selected((int) $activeTenantId === (int) $tenantOption->id)>
+                            {{ $tenantOption->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+        @endif
         <div class="hidden md:flex items-center rounded-lg border border-gray-200 bg-white px-2 py-1 shadow-sm">
             <i data-lucide="languages" class="w-4 h-4 text-gray-400 mr-1.5"></i>
             <select
@@ -154,7 +177,8 @@
 </header>
 
 <style>
-    .admin-locale-select {
+    .admin-locale-select,
+    .admin-tenant-select {
         background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%);
         background-position: calc(100% - 8px) 52%, calc(100% - 4px) 52%;
         background-size: 4px 4px, 4px 4px;

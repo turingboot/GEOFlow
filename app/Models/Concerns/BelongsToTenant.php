@@ -2,11 +2,11 @@
 
 namespace App\Models\Concerns;
 
+use App\Exceptions\TenantContextRequiredException;
 use App\Models\Scopes\TenantScope;
 use App\Models\Tenant;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use LogicException;
 
 trait BelongsToTenant
 {
@@ -20,7 +20,7 @@ trait BelongsToTenant
             }
 
             if (! $model->tenant_id) {
-                throw new LogicException('Tenant scoped model cannot be created without tenant_id.');
+                throw new TenantContextRequiredException('Tenant scoped model cannot be created without tenant_id.');
             }
         });
     }

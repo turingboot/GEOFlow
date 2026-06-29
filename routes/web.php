@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\SiteThemeEditorController;
 use App\Http\Controllers\Admin\SiteThemeReplicationController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TaskController;
+use App\Http\Controllers\Admin\TenantSwitchController;
 use App\Http\Controllers\Admin\TitleLibraryController;
 use App\Http\Controllers\Admin\TopicPlanController;
 use App\Http\Controllers\Admin\UrlImportController;
@@ -91,6 +92,11 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
         Route::post('welcome/dismiss', [AdminWelcomeController::class, 'dismiss'])->name('welcome.dismiss');
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics');
+
+        // 超管切换「当前操作租户」（具体租户 = 读写进入；不传 = 全部租户只读总览）
+        Route::post('tenant/switch', [TenantSwitchController::class, 'switch'])
+            ->middleware('admin.super')
+            ->name('tenant.switch');
 
         Route::prefix('system-updates')->name('system-updates.')->middleware('admin.super')->group(function () {
             Route::get('/', [SystemUpdateController::class, 'index'])->name('index');

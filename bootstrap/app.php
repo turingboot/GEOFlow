@@ -7,6 +7,7 @@
  */
 
 use App\Exceptions\ApiException;
+use App\Exceptions\TenantContextRequiredException;
 use App\Http\Middleware\AdminWebLocale;
 use App\Http\Middleware\AssignApiRequestId;
 use App\Http\Middleware\AuthenticateAdminWeb;
@@ -64,6 +65,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        /**
+         * 超管处于「全部租户（只读总览）」模式时尝试创建受租户约束的数据：
+         * 缺少具体 tenant_id 会抛出 TenantContextRequiredException，这里转为后台友好提示，
+         * 引导其先在右上角选择一个具体租户，而不是直接抛 500。
+         */
+        $exceptions->render(function (TenantContextRequiredException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return null;
+            }
+
+            return back()->withErrors(['tenant_id' => __('admin.tenant_switch.required')]);
+        });
+
         /**
          * 后台 firstOrFail 友好错误页：
          * Laravel 渲染流程里 ModelNotFoundException 可能会先包装为 NotFoundHttpException，
