@@ -45,7 +45,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // 本站（前台）分发路径开关：geoflow.public_site_enabled=false 时暂停挂载前台站点，
-// 原路由整段保留（仅不注册），改用同名占位路由让 route('site.*') 仍可生成 URL，访问一律 404。
+// 原路由整段保留（仅不注册），改用同名占位路由让 route('site.*') 仍可生成 URL。
+// 停用时根路由 / 直接重定向到后台登录页，其余前台路径 404。
 // 通过环境变量 GEOFLOW_PUBLIC_SITE_ENABLED 控制，默认开启；不删除任何代码，随时可恢复。
 if ((bool) config('geoflow.public_site_enabled', true)) {
     Route::middleware(['site.tenant_context', 'site.locale', 'site.view_log'])->group(function (): void {
@@ -58,7 +59,7 @@ if ((bool) config('geoflow.public_site_enabled', true)) {
         Route::get('/article/{slug}', [SiteArticleController::class, 'show'])->name('site.article');
     });
 } else {
-    Route::get('/', static fn () => abort(404))->name('site.home');
+    Route::get('/', static fn () => redirect()->route('admin.login'))->name('site.home');
     Route::get('/archive', static fn () => abort(404))->name('site.archive');
     Route::get('/archive/{year}/{month}', static fn () => abort(404))->name('site.archive.month');
     Route::get('/category/{slug}', static fn () => abort(404))->name('site.category');
