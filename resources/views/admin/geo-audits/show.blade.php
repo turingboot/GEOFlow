@@ -19,7 +19,7 @@
                 <p class="admin-hero-sub">{{ __('admin.geo_audit.detail_subtitle') }}</p>
             </div>
             <div class="admin-hero-actions">
-                <a href="{{ route('admin.geo-audits.index') }}" class="admin-btn">
+                <a href="{{ route('admin.articles.edit', $audit->article_id) }}" class="admin-btn">
                     <i data-lucide="arrow-left" class="h-4 w-4"></i>
                     {{ __('admin.geo_audit.button.back') }}
                 </a>

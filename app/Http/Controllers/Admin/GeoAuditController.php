@@ -9,6 +9,7 @@ use App\Models\ArticleGeoAudit;
 use App\Services\GeoFlow\GeoArticleAuditService;
 use App\Support\AdminWeb;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
@@ -85,7 +86,7 @@ class GeoAuditController extends Controller
         ]);
     }
 
-    public function reaudit(int $articleId): RedirectResponse
+    public function reaudit(Request $request, int $articleId): RedirectResponse
     {
         $article = Article::query()->find($articleId);
         if ($article === null) {
@@ -96,11 +97,16 @@ class GeoAuditController extends Controller
         // 人工触发的重新评分只落分，不改 review_status（人工正在查看，避免意外流转）。
         $this->auditService->audit($article);
 
+        if ($request->input('return_to') === 'article') {
+            return redirect()->route('admin.articles.edit', $articleId)
+                ->with('message', __('admin.geo_audit.message.reaudited'));
+        }
+
         return redirect()->route('admin.geo-audits.show', $articleId)
             ->with('message', __('admin.geo_audit.message.reaudited'));
     }
 
-    public function optimize(int $articleId): RedirectResponse
+    public function optimize(Request $request, int $articleId): RedirectResponse
     {
         $article = Article::query()->find($articleId, ['id']);
         if ($article === null) {
@@ -110,6 +116,11 @@ class GeoAuditController extends Controller
 
         // 已在优化中则不重复入队。
         if (Cache::get(OptimizeArticleGeoJob::lockKey($articleId))) {
+            if ($request->input('return_to') === 'article') {
+                return redirect()->route('admin.articles.edit', $articleId)
+                    ->with('message', __('admin.geo_audit.message.optimize_running'));
+            }
+
             return redirect()->route('admin.geo-audits.show', $articleId)
                 ->with('message', __('admin.geo_audit.message.optimize_running'));
         }
@@ -118,6 +129,11 @@ class GeoAuditController extends Controller
         Cache::put(OptimizeArticleGeoJob::lockKey($articleId), true, now()->addMinutes(10));
         Cache::forget(OptimizeArticleGeoJob::errorKey($articleId));
         OptimizeArticleGeoJob::dispatch($articleId);
+
+        if ($request->input('return_to') === 'article') {
+            return redirect()->route('admin.articles.edit', $articleId)
+                ->with('message', __('admin.geo_audit.message.optimize_started'));
+        }
 
         return redirect()->route('admin.geo-audits.show', $articleId)
             ->with('message', __('admin.geo_audit.message.optimize_started'));

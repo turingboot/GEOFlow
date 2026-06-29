@@ -5,6 +5,7 @@
     $selectedTaskId = (int) ($filters['task_id'] ?? 0);
     $selectedStatus = (string) ($filters['status'] ?? '');
     $selectedReviewStatus = (string) ($filters['review_status'] ?? '');
+    $selectedGeoAuditStatus = (string) ($filters['geo_audit_status'] ?? '');
     $selectedAuthorId = (int) ($filters['author_id'] ?? 0);
     $selectedDistributionChannelIds = collect($filters['distribution_channel_ids'] ?? [])
         ->map(fn ($id) => (int) $id)
@@ -281,6 +282,16 @@
                                 <option value="auto_approved" @selected($selectedReviewStatus === 'auto_approved')>{{ __('admin.articles.review.auto_approved') }}</option>
                             </select>
                         </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">GEO 评分</label>
+                            <select name="geo_audit_status" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="">全部评分</option>
+                                <option value="unscored" @selected($selectedGeoAuditStatus === 'unscored')>未评分</option>
+                                <option value="passed" @selected($selectedGeoAuditStatus === 'passed')>评分达标</option>
+                                <option value="needs_optimization" @selected($selectedGeoAuditStatus === 'needs_optimization')>建议优化</option>
+                                <option value="risk" @selected($selectedGeoAuditStatus === 'risk')>有风险提示</option>
+                            </select>
+                        </div>
                         @endif
                         <div>
                             <label class="block text-sm font-medium text-gray-700">{{ __('admin.articles.filters.author') }}</label>
@@ -467,6 +478,9 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.articles.column.info') }}</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.articles.column.task_author') }}</th>
                             @if(!$isTrashView)
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GEO 评分</th>
+                            @endif
+                            @if(!$isTrashView)
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.articles.column.workflow') }}</th>
                             @endif
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ $isTrashView ? __('admin.articles.trash.column.deleted_at') : __('admin.articles.column.created_at') }}</th>
@@ -573,6 +587,25 @@
                                         ];
                                     }
                                 }
+                                $geoAudit = $article->latestGeoAudit;
+                                $geoThreshold = (int) config('geoflow.geo_audit.pass_threshold', 70);
+                                $geoRiskNotes = $geoAudit?->risk_notes ?? [];
+                                $geoHasRisks = is_array($geoRiskNotes) && count($geoRiskNotes) > 0;
+                                $geoScore = $geoAudit?->geo_score;
+                                $geoStatusLabel = '未评分';
+                                $geoStatusClass = 'bg-gray-50 text-gray-600 ring-gray-200';
+                                if ($geoAudit !== null) {
+                                    if ($geoHasRisks) {
+                                        $geoStatusLabel = '有风险';
+                                        $geoStatusClass = 'bg-red-50 text-red-700 ring-red-100';
+                                    } elseif ((int) $geoScore < $geoThreshold) {
+                                        $geoStatusLabel = '建议优化';
+                                        $geoStatusClass = 'bg-amber-50 text-amber-700 ring-amber-100';
+                                    } else {
+                                        $geoStatusLabel = '已达标';
+                                        $geoStatusClass = 'bg-emerald-50 text-emerald-700 ring-emerald-100';
+                                    }
+                                }
                             @endphp
                             <tr class="hover:bg-gray-50">
                                 <td class="batch-checkbox hidden px-6 py-4">
@@ -639,6 +672,26 @@
                                         @endif
                                     </div>
                                 </td>
+                                @if(!$isTrashView)
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    @if($geoAudit === null)
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 {{ $geoStatusClass }}">
+                                            <i data-lucide="circle-help" class="mr-1 h-3 w-3"></i>
+                                            {{ $geoStatusLabel }}
+                                        </span>
+                                    @else
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-lg font-semibold text-gray-900">{{ (int) $geoScore }}</span>
+                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 {{ $geoStatusClass }}">
+                                                {{ $geoStatusLabel }}
+                                            </span>
+                                        </div>
+                                        <div class="mt-1 text-xs text-gray-500">
+                                            {{ optional($geoAudit->audited_at)->format('m-d H:i') }}
+                                        </div>
+                                    @endif
+                                </td>
+                                @endif
                                 @if(!$isTrashView)
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex flex-col gap-1">

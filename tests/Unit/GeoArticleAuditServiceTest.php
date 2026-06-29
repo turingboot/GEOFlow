@@ -78,6 +78,17 @@ class GeoArticleAuditServiceTest extends TestCase
         $this->assertDatabaseHas('article_geo_audits', ['article_id' => $article->id]);
     }
 
+    public function test_audit_records_rule_version_for_score_explainability(): void
+    {
+        config(['geoflow.geo_audit.rule_version' => 'rules-2026-06']);
+
+        $article = $this->makeArticle(['title' => '测试', 'original_keyword' => '测试', 'content' => '## 测试\n\n内容']);
+
+        $audit = $this->service()->audit($article);
+
+        $this->assertSame('rules-2026-06', $audit->details['rule_version'] ?? null);
+    }
+
     public function test_disabled_config_is_respected_by_caller_contract(): void
     {
         // 评分本身与 enabled 无关；enabled 仅由 Worker 钩子读取。这里验证关闭后仍可手动评分。

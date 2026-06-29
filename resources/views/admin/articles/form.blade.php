@@ -126,6 +126,22 @@
             'passed' => $qualityChecks['is_published'] && $qualityChecks['has_meta_description'],
         ],
     ];
+    $geoAudit = $latestGeoAudit ?? null;
+    $geoThreshold = (int) ($geoAuditThreshold ?? config('geoflow.geo_audit.pass_threshold', 70));
+    $geoRiskNotes = $geoAudit?->risk_notes ?? [];
+    $geoHasRisks = is_array($geoRiskNotes) && count($geoRiskNotes) > 0;
+    $geoScore = $geoAudit?->geo_score;
+    $geoScoreClass = $geoAudit === null
+        ? 'text-gray-500'
+        : ((int) $geoScore >= $geoThreshold && !$geoHasRisks ? 'text-emerald-600' : 'text-amber-600');
+    $geoDimensions = $geoAudit === null ? [] : [
+        ['label' => '标题关键词匹配', 'value' => $geoAudit->title_keyword_match],
+        ['label' => '结构清晰度', 'value' => $geoAudit->structure_score],
+        ['label' => '知识库覆盖', 'value' => $geoAudit->kb_coverage],
+        ['label' => '重复风险', 'value' => $geoAudit->dup_ratio],
+    ];
+    $geoDetails = (array) ($geoAudit?->details ?? []);
+    $geoRuleVersion = (string) ($geoDetails['rule_version'] ?? config('geoflow.geo_audit.rule_version', config('geoflow.app_version', 'v1')));
 @endphp
 
 @section('content')
@@ -357,6 +373,11 @@
                                 </select>
                                 <p class="mt-2 text-xs text-gray-500">{{ __($i18nRoot.'.help.review_status') }}</p>
                             </div>
+                            @if($isEdit && $geoAudit !== null && ((int) $geoScore < $geoThreshold || $geoHasRisks))
+                                <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800">
+                                    GEO 评分建议先优化：当前 {{ (int) $geoScore }} 分，仅作为内容质量提醒，不影响保存、审核或发布。
+                                </div>
+                            @endif
                             <div class="rounded-lg border border-blue-100 bg-blue-50/70 p-4">
                                 <div class="text-sm font-medium text-gray-900">{{ __($i18nRoot.'.section.recommendation_title') }}</div>
                                 <p class="mt-1 text-xs text-gray-600">{{ __($i18nRoot.'.help.recommendation') }}</p>
@@ -390,7 +411,11 @@
                                 <select id="category_id" name="category_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                                     <option value="">{{ __($i18nRoot.'.option.select_category') }}</option>
                                     @foreach(($formOptions['categories'] ?? []) as $category)
-                                        <option value="{{ (int) $category['id'] }}" @selected($formData['category_id'] === (string) $category['id'])>{{ $category['name'] }}</option>
+                                        <option
+                                            value="{{ (int) $category['id'] }}"
+                                            data-tenant-id="{{ (int) ($category['tenant_id'] ?? 0) }}"
+                                            @selected($formData['category_id'] === (string) $category['id'])
+                                        >{{ $category['name'] }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -399,7 +424,11 @@
                                 <select id="author_id" name="author_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                                     <option value="">{{ __($i18nRoot.'.option.select_author') }}</option>
                                     @foreach(($formOptions['authors'] ?? []) as $author)
-                                        <option value="{{ (int) $author['id'] }}" @selected($formData['author_id'] === (string) $author['id'])>{{ $author['name'] }}</option>
+                                        <option
+                                            value="{{ (int) $author['id'] }}"
+                                            data-tenant-id="{{ (int) ($author['tenant_id'] ?? 0) }}"
+                                            @selected($formData['author_id'] === (string) $author['id'])
+                                        >{{ $author['name'] }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -407,6 +436,86 @@
                     </div>
 
                     @if($isEdit)
+                        <div class="admin-card">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <div class="flex items-center justify-between gap-3">
+                                    <h3 class="text-lg font-medium text-gray-900">GEO 评分</h3>
+                                    <span class="text-xs text-gray-500">不参与审核流</span>
+                                </div>
+                            </div>
+                            <div class="px-6 py-4 space-y-4">
+                                @if($geoAudit === null)
+                                    <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                                        当前文章尚未评分，可手动触发 GEO 评分。
+                                    </div>
+                                @else
+                                    <div class="flex items-end justify-between gap-4">
+                                        <div>
+                                            <div class="text-4xl font-semibold {{ $geoScoreClass }}">{{ (int) $geoScore }}</div>
+                                            <div class="mt-1 text-xs text-gray-500">
+                                                {{ optional($geoAudit->audited_at)->format('Y-m-d H:i') }} · 规则 {{ $geoRuleVersion }}
+                                                @if($geoAudit->ai_model_id)
+                                                    · 模型 #{{ (int) $geoAudit->ai_model_id }}
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <a href="{{ route('admin.geo-audits.show', ['articleId' => (int) $articleId]) }}" class="text-sm font-medium text-blue-600 hover:text-blue-700">
+                                            查看详情
+                                        </a>
+                                    </div>
+                                    <div class="space-y-2">
+                                        @foreach($geoDimensions as $dimension)
+                                            <div>
+                                                <div class="mb-1 flex items-center justify-between text-xs">
+                                                    <span class="text-gray-600">{{ $dimension['label'] }}</span>
+                                                    <span class="font-semibold text-gray-900">{{ (int) $dimension['value'] }}</span>
+                                                </div>
+                                                <div class="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                                                    <div class="h-1.5 rounded-full bg-blue-500" style="width: {{ max(0, min(100, (int) $dimension['value'])) }}%"></div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    @if((string) ($geoAudit->suggestion ?? '') !== '')
+                                        <div class="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs leading-5 text-blue-800">
+                                            {{ $geoAudit->suggestion }}
+                                        </div>
+                                    @endif
+                                    @if($geoHasRisks)
+                                        <ul class="list-disc space-y-1 pl-5 text-xs text-amber-700">
+                                            @foreach($geoRiskNotes as $risk)
+                                                <li>{{ $risk }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                @endif
+
+                                @if(!empty($geoAuditOptimizeError))
+                                    <div class="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                                        {{ __('admin.geo_audit.message.optimize_failed', ['error' => $geoAuditOptimizeError]) }}
+                                    </div>
+                                @endif
+
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" data-geo-submit="{{ route('admin.geo-audits.reaudit', ['articleId' => (int) $articleId]) }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                                        <i data-lucide="refresh-cw" class="mr-1.5 h-3.5 w-3.5"></i>
+                                        重新评分
+                                    </button>
+                                    @if(!empty($geoAuditOptimizing))
+                                        <button type="button" disabled class="inline-flex cursor-not-allowed items-center rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white opacity-70">
+                                            <i data-lucide="loader-circle" class="mr-1.5 h-3.5 w-3.5 animate-spin"></i>
+                                            {{ __('admin.geo_audit.button.optimizing') }}
+                                        </button>
+                                    @else
+                                        <button type="button" data-geo-submit="{{ route('admin.geo-audits.optimize', ['articleId' => (int) $articleId]) }}" data-confirm="{{ __('admin.geo_audit.optimize_confirm') }}" class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">
+                                            <i data-lucide="wand-sparkles" class="mr-1.5 h-3.5 w-3.5"></i>
+                                            AI 一键优化
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="admin-card">
                             <div class="px-6 py-4 border-b border-gray-200">
                                 <h3 class="text-lg font-medium text-gray-900">{{ __('admin.article_edit.section.info_title') }}</h3>
@@ -580,6 +689,8 @@
     </div>
     <script>
         (function () {
+            const categorySelect = document.getElementById('category_id');
+            const authorSelect = document.getElementById('author_id');
             const textarea = document.getElementById('content-textarea');
             const editorNode = document.getElementById('content-editor');
             const form = textarea ? textarea.closest('form') : null;
@@ -629,6 +740,46 @@
                 list: @json(__('admin.article_editor.snippets.list')),
                 divider: @json(__('admin.article_editor.snippets.divider')),
             };
+
+            function selectedCategoryTenantId() {
+                if (!categorySelect || !categorySelect.value) {
+                    return '';
+                }
+
+                return categorySelect.selectedOptions[0]?.dataset.tenantId || '';
+            }
+
+            function syncAuthorOptionsWithCategory() {
+                if (!categorySelect || !authorSelect) {
+                    return;
+                }
+
+                const tenantId = selectedCategoryTenantId();
+                let selectedAuthorStillVisible = false;
+
+                Array.from(authorSelect.options).forEach(function (option) {
+                    if (option.value === '') {
+                        option.hidden = false;
+                        option.disabled = false;
+                        return;
+                    }
+
+                    const matchesTenant = tenantId !== '' && option.dataset.tenantId === tenantId;
+                    option.hidden = !matchesTenant;
+                    option.disabled = !matchesTenant;
+
+                    if (option.selected && matchesTenant) {
+                        selectedAuthorStillVisible = true;
+                    }
+                });
+
+                if (!selectedAuthorStillVisible) {
+                    authorSelect.value = '';
+                }
+            }
+
+            syncAuthorOptionsWithCategory();
+            categorySelect?.addEventListener('change', syncAuthorOptionsWithCategory);
 
             if (!textarea || !editorNode || typeof Vditor === 'undefined') {
                 return;
@@ -1213,6 +1364,26 @@
                 });
                 const croppedFile = canvas ? await fileFromCanvas(canvas) : null;
                 uploadImageFile(croppedFile || currentFile);
+            });
+
+            document.querySelectorAll('[data-geo-submit]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const confirmMessage = button.dataset.confirm || '';
+                    if (confirmMessage && !confirm(confirmMessage)) {
+                        return;
+                    }
+
+                    const formNode = document.createElement('form');
+                    formNode.method = 'POST';
+                    formNode.action = button.dataset.geoSubmit || '';
+                    formNode.style.display = 'none';
+                    formNode.innerHTML = `
+                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="return_to" value="article">
+                    `;
+                    document.body.appendChild(formNode);
+                    formNode.submit();
+                });
             });
         })();
     </script>

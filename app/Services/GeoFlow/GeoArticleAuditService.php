@@ -68,6 +68,7 @@ class GeoArticleAuditService
                 'kb_coverage' => $kbCoverage,
                 'dedup' => $dedup,
                 'threshold' => (int) config('geoflow.geo_audit.pass_threshold', 70),
+                'rule_version' => (string) config('geoflow.geo_audit.rule_version', config('geoflow.app_version', 'v1')),
             ],
             'audited_at' => now(),
         ]);

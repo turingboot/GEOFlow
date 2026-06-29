@@ -12,7 +12,6 @@
         'keyword_trends' => ['route' => 'admin.keyword-trends.index', 'name' => __('admin.nav.keyword_trends')],
         'google_search_console' => ['route' => 'admin.google-search-console.index', 'name' => __('admin.nav.google_search_console')],
         'topic_plans' => ['route' => 'admin.topic-plans.index', 'name' => __('admin.nav.topic_plans')],
-        'geo_audit' => ['route' => 'admin.geo-audits.index', 'name' => __('admin.nav.geo_audit')],
         'ai_config' => ['route' => 'admin.ai.configurator', 'name' => __('admin.nav.ai_config')],
     ];
     if ($isSuperAdmin) {
@@ -30,7 +29,6 @@
         'keyword_trends' => 'trending-up',
         'google_search_console' => 'search',
         'topic_plans' => 'calendar-clock',
-        'geo_audit' => 'gauge',
         'ai_config' => 'bot',
         'site_settings' => 'settings',
         'admin_users' => 'users',
@@ -49,9 +47,9 @@
         'admin.topic-plans.index' => 'topic_plans',
         'admin.topic-plans.create' => 'topic_plans',
         'admin.topic-plans.show' => 'topic_plans',
-        'admin.geo-audits.index' => 'geo_audit',
-        'admin.geo-audits.show' => 'geo_audit',
-        'admin.geo-audits.reaudit' => 'geo_audit',
+        'admin.geo-audits.index' => 'articles',
+        'admin.geo-audits.show' => 'articles',
+        'admin.geo-audits.reaudit' => 'articles',
         'admin.system-updates.index' => 'dashboard',
         'admin.system-updates.check' => 'dashboard',
         'admin.system-updates.plan' => 'dashboard',

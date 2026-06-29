@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\OptimizeArticleGeoJob;
 use App\Models\Admin;
 use App\Models\Article;
+use App\Models\ArticleGeoAudit;
 use App\Models\Author;
 use App\Models\Category;
 use App\Models\DistributionChannel;
@@ -19,7 +21,9 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
 
@@ -218,6 +222,7 @@ class ArticleController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $payload = $this->validateArticleForm($request, false);
+        $tenantId = $this->resolveArticleTenantId($payload);
         $workflowState = ArticleWorkflow::normalizeState(
             $payload['status'],
             $payload['review_status']
@@ -225,6 +230,7 @@ class ArticleController extends Controller
 
         try {
             $article = Article::query()->create([
+                'tenant_id' => $tenantId,
                 'title' => $payload['title'],
                 'slug' => ArticleWorkflow::generateUniqueSlug($payload['title']),
                 'content' => $payload['content'],
@@ -258,7 +264,7 @@ class ArticleController extends Controller
     public function edit(int $articleId): View|RedirectResponse
     {
         $article = Article::query()
-            ->with(['task:id,name', 'author:id,name', 'category:id,name'])
+            ->with(['task:id,name', 'author:id,name', 'category:id,name', 'latestGeoAudit'])
             ->whereKey($articleId)
             ->firstOrFail();
 
@@ -285,6 +291,10 @@ class ArticleController extends Controller
                 'is_featured' => (bool) ($article->is_featured ?? false),
             ],
             'formOptions' => $this->loadFormOptions((int) ($article->tenant_id ?? 0)),
+            'latestGeoAudit' => $article->latestGeoAudit,
+            'geoAuditThreshold' => (int) config('geoflow.geo_audit.pass_threshold', 70),
+            'geoAuditOptimizing' => (bool) Cache::get(OptimizeArticleGeoJob::lockKey($articleId), false),
+            'geoAuditOptimizeError' => Cache::get(OptimizeArticleGeoJob::errorKey($articleId)),
         ]);
     }
 
@@ -343,7 +353,8 @@ class ArticleController extends Controller
      *     date_to: string,
      *     search: string,
      *     per_page: int,
-     *     trashed: bool
+     *     trashed: bool,
+     *     geo_audit_status: string
      * }
      */
     private function buildFilters(Request $request): array
@@ -359,10 +370,16 @@ class ArticleController extends Controller
             $reviewStatus = '';
         }
 
+        $geoAuditStatus = (string) $request->query('geo_audit_status', '');
+        if (! in_array($geoAuditStatus, ['unscored', 'passed', 'needs_optimization', 'risk'], true)) {
+            $geoAuditStatus = '';
+        }
+
         return [
             'task_id' => max(0, (int) $request->query('task_id', 0)),
             'status' => $status,
             'review_status' => $reviewStatus,
+            'geo_audit_status' => $geoAuditStatus,
             'author_id' => max(0, (int) $request->query('author_id', 0)),
             'distribution_channel_ids' => $this->extractDistributionChannelIds($request),
             'date_from' => trim((string) $request->query('date_from', '')),
@@ -384,7 +401,8 @@ class ArticleController extends Controller
      *     date_to: string,
      *     search: string,
      *     per_page: int,
-     *     trashed: bool
+     *     trashed: bool,
+     *     geo_audit_status: string
      * }  $filters
      */
     private function queryArticles(array $filters): LengthAwarePaginator
@@ -399,6 +417,7 @@ class ArticleController extends Controller
             'category:id,name',
             'distributions.channel:id,name,domain',
             'syncedRemoteDistributions.channel:id,name,domain',
+            'latestGeoAudit',
         ])->withCount([
             'distributions as distribution_total_count',
             'distributions as distribution_synced_count' => fn ($distributionQuery) => $distributionQuery->where('status', 'synced'),
@@ -421,6 +440,30 @@ class ArticleController extends Controller
 
         if (($filters['trashed'] ?? false) === false && $filters['review_status'] !== '') {
             $query->where('review_status', $filters['review_status']);
+        }
+
+        if (($filters['trashed'] ?? false) === false && $filters['geo_audit_status'] !== '') {
+            $threshold = (int) config('geoflow.geo_audit.pass_threshold', 70);
+            $latestAuditIds = ArticleGeoAudit::query()
+                ->selectRaw('MAX(id) as id')
+                ->groupBy('article_id');
+
+            match ($filters['geo_audit_status']) {
+                'unscored' => $query->whereDoesntHave('latestGeoAudit'),
+                'passed' => $query->whereHas('latestGeoAudit', fn ($auditQuery) => $auditQuery
+                    ->whereIn('id', $latestAuditIds)
+                    ->where('geo_score', '>=', $threshold)
+                    ->where(function ($riskQuery): void {
+                        $riskQuery->whereNull('risk_notes')->orWhereJsonLength('risk_notes', 0);
+                    })),
+                'needs_optimization' => $query->whereHas('latestGeoAudit', fn ($auditQuery) => $auditQuery
+                    ->whereIn('id', $latestAuditIds)
+                    ->where('geo_score', '<', $threshold)),
+                'risk' => $query->whereHas('latestGeoAudit', fn ($auditQuery) => $auditQuery
+                    ->whereIn('id', $latestAuditIds)
+                    ->whereJsonLength('risk_notes', '>', 0)),
+                default => null,
+            };
         }
 
         if ($filters['author_id'] > 0) {
@@ -562,17 +605,18 @@ class ArticleController extends Controller
     }
 
     /**
-     * @return array<int, array{id: int, name: string}>
+     * @return array<int, array{id: int, name: string, tenant_id: int}>
      */
     private function loadAuthorOptions(?int $tenantId = null): array
     {
         try {
             return $this->tenantScopedQuery(Author::query(), $tenantId)
-                ->select(['id', 'name'])
+                ->select(['id', 'tenant_id', 'name'])
                 ->orderBy('name')
                 ->get()
                 ->map(fn (Author $author): array => [
                     'id' => (int) $author->id,
+                    'tenant_id' => (int) ($author->tenant_id ?? 0),
                     'name' => (string) $author->name,
                 ])
                 ->all();
@@ -583,8 +627,8 @@ class ArticleController extends Controller
 
     /**
      * @return array{
-     *     categories: array<int, array{id: int, name: string}>,
-     *     authors: array<int, array{id: int, name: string}>
+     *     categories: array<int, array{id: int, name: string, tenant_id: int}>,
+     *     authors: array<int, array{id: int, name: string, tenant_id: int}>
      * }
      */
     private function loadFormOptions(?int $tenantId = null): array
@@ -594,11 +638,12 @@ class ArticleController extends Controller
 
         try {
             $categories = $this->tenantScopedQuery(Category::query(), $tenantId)
-                ->select(['id', 'name'])
+                ->select(['id', 'tenant_id', 'name'])
                 ->orderBy('name')
                 ->get()
                 ->map(fn (Category $category): array => [
                     'id' => (int) $category->id,
+                    'tenant_id' => (int) ($category->tenant_id ?? 0),
                     'name' => (string) $category->name,
                 ])
                 ->all();
@@ -653,6 +698,42 @@ class ArticleController extends Controller
         ]);
     }
 
+    /**
+     * @param  array{category_id: int, author_id: int}  $payload
+     *
+     * @throws ValidationException
+     */
+    private function resolveArticleTenantId(array $payload): int
+    {
+        $categoryTenantId = (int) (DB::table((new Category)->getTable())
+            ->where('id', (int) $payload['category_id'])
+            ->value('tenant_id') ?? 0);
+        $authorTenantId = (int) (DB::table((new Author)->getTable())
+            ->where('id', (int) $payload['author_id'])
+            ->value('tenant_id') ?? 0);
+
+        if ($categoryTenantId <= 0) {
+            throw ValidationException::withMessages([
+                'category_id' => '所选分类缺少租户归属，不能创建文章。',
+            ]);
+        }
+
+        if ($authorTenantId <= 0) {
+            throw ValidationException::withMessages([
+                'author_id' => '所选作者缺少租户归属，不能创建文章。',
+            ]);
+        }
+
+        if ($categoryTenantId !== $authorTenantId) {
+            throw ValidationException::withMessages([
+                'category_id' => '所选分类和作者不属于同一租户。',
+                'author_id' => '所选分类和作者不属于同一租户。',
+            ]);
+        }
+
+        return $categoryTenantId;
+    }
+
     private function currentTenantId(): int
     {
         $tenantId = TenantContext::id();
@@ -672,6 +753,11 @@ class ArticleController extends Controller
     {
         if ($tenantId !== null && $tenantId > 0) {
             return $tenantId;
+        }
+
+        $admin = Auth::guard('admin')->user();
+        if ($admin instanceof Admin && $admin->isSuperAdmin()) {
+            return 0;
         }
 
         return $this->currentTenantId();

@@ -169,13 +169,146 @@ class AdminTenantIsolationTest extends TestCase
                 'status' => 'draft',
                 'review_status' => 'pending',
             ])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
 
         $article = Article::withoutGlobalScopes()
             ->where('title', 'Tenant Scoped Article')
             ->firstOrFail();
 
         $this->assertSame((int) $tenantOne->id, (int) $article->tenant_id);
+    }
+
+    public function test_super_admin_without_tenant_creates_article_using_selected_category_tenant(): void
+    {
+        $superAdmin = Admin::query()->create([
+            'username' => 'super_admin_article_creator',
+            'password' => 'secret-123',
+            'email' => 'super-admin-article-creator@example.com',
+            'display_name' => 'Super Admin Article Creator',
+            'role' => 'super_admin',
+            'status' => 'active',
+        ]);
+        [, $tenant] = $this->adminWithTenant('tenant_article_resource_owner', 'tenant-article-resource-owner');
+        $category = Category::query()->create([
+            'tenant_id' => (int) $tenant->id,
+            'name' => 'Super Admin Selected Category',
+            'slug' => 'super-admin-selected-category',
+        ]);
+        $author = Author::query()->create([
+            'tenant_id' => (int) $tenant->id,
+            'name' => 'Super Admin Selected Author',
+        ]);
+
+        $response = $this->actingAs($superAdmin, 'admin')
+            ->post(route('admin.articles.store'), [
+                'title' => 'Super Admin Tenant Inferred Article',
+                'excerpt' => 'excerpt',
+                'content' => 'content',
+                'keywords' => '',
+                'meta_description' => '',
+                'category_id' => (int) $category->id,
+                'author_id' => (int) $author->id,
+                'status' => 'draft',
+                'review_status' => 'pending',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertStringContainsString('/articles/', (string) $response->headers->get('Location'));
+
+        $tenantId = (int) Article::withoutGlobalScopes()
+            ->toBase()
+            ->where('title', 'Super Admin Tenant Inferred Article')
+            ->value('tenant_id');
+
+        $this->assertSame((int) $tenant->id, $tenantId);
+    }
+
+    public function test_super_admin_article_create_page_filters_authors_by_selected_category_tenant(): void
+    {
+        $superAdmin = Admin::query()->create([
+            'username' => 'super_admin_article_form_filter',
+            'password' => 'secret-123',
+            'email' => 'super-admin-article-form-filter@example.com',
+            'display_name' => 'Super Admin Article Form Filter',
+            'role' => 'super_admin',
+            'status' => 'active',
+        ]);
+        [, $tenantOne] = $this->adminWithTenant('tenant_one_article_form_owner', 'tenant-one-article-form-owner');
+        [, $tenantTwo] = $this->adminWithTenant('tenant_two_article_form_owner', 'tenant-two-article-form-owner');
+        $tenantOneCategory = Category::query()->create([
+            'tenant_id' => (int) $tenantOne->id,
+            'name' => 'Tenant One Form Category',
+            'slug' => 'tenant-one-form-category',
+        ]);
+        $tenantTwoCategory = Category::query()->create([
+            'tenant_id' => (int) $tenantTwo->id,
+            'name' => 'Tenant Two Form Category',
+            'slug' => 'tenant-two-form-category',
+        ]);
+        $tenantOneAuthor = Author::query()->create([
+            'tenant_id' => (int) $tenantOne->id,
+            'name' => 'Tenant One Form Author',
+        ]);
+        $tenantTwoAuthor = Author::query()->create([
+            'tenant_id' => (int) $tenantTwo->id,
+            'name' => 'Tenant Two Form Author',
+        ]);
+
+        $html = $this->actingAs($superAdmin, 'admin')
+            ->get(route('admin.articles.create'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('value="'.(int) $tenantOneCategory->id.'"', $html);
+        $this->assertStringContainsString('value="'.(int) $tenantTwoCategory->id.'"', $html);
+        $this->assertStringContainsString('value="'.(int) $tenantOneAuthor->id.'"', $html);
+        $this->assertStringContainsString('value="'.(int) $tenantTwoAuthor->id.'"', $html);
+        $this->assertStringContainsString('data-tenant-id="'.(int) $tenantOne->id.'"', $html);
+        $this->assertStringContainsString('data-tenant-id="'.(int) $tenantTwo->id.'"', $html);
+        $this->assertStringContainsString('syncAuthorOptionsWithCategory', $html);
+    }
+
+    public function test_super_admin_article_create_rejects_category_and_author_from_different_tenants(): void
+    {
+        $superAdmin = Admin::query()->create([
+            'username' => 'super_admin_cross_tenant_article_creator',
+            'password' => 'secret-123',
+            'email' => 'super-admin-cross-tenant-article-creator@example.com',
+            'display_name' => 'Super Admin Cross Tenant Article Creator',
+            'role' => 'super_admin',
+            'status' => 'active',
+        ]);
+        [, $tenantOne] = $this->adminWithTenant('tenant_one_article_resource_owner', 'tenant-one-article-resource-owner');
+        [, $tenantTwo] = $this->adminWithTenant('tenant_two_article_resource_owner', 'tenant-two-article-resource-owner');
+        $category = Category::query()->create([
+            'tenant_id' => (int) $tenantOne->id,
+            'name' => 'Tenant One Article Category',
+            'slug' => 'tenant-one-article-category',
+        ]);
+        $author = Author::query()->create([
+            'tenant_id' => (int) $tenantTwo->id,
+            'name' => 'Tenant Two Article Author',
+        ]);
+
+        $this->actingAs($superAdmin, 'admin')
+            ->post(route('admin.articles.store'), [
+                'title' => 'Super Admin Cross Tenant Rejected Article',
+                'excerpt' => 'excerpt',
+                'content' => 'content',
+                'keywords' => '',
+                'meta_description' => '',
+                'category_id' => (int) $category->id,
+                'author_id' => (int) $author->id,
+                'status' => 'draft',
+                'review_status' => 'pending',
+            ])
+            ->assertSessionHasErrors(['category_id', 'author_id']);
+
+        $this->assertFalse(Article::withoutGlobalScopes()
+            ->where('title', 'Super Admin Cross Tenant Rejected Article')
+            ->exists());
     }
 
     public function test_task_create_rejects_knowledge_base_from_another_tenant(): void
