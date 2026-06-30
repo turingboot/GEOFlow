@@ -48,6 +48,7 @@
                 <p class="admin-hero-sub"><span class="font-mono text-xs">{{ $property->site_url }}</span></p>
             </div>
             <div class="admin-hero-actions">
+                <a href="{{ route('admin.google-search-console.index') }}" class="admin-btn admin-btn-secondary"><i data-lucide="arrow-left" class="h-4 w-4"></i>{{ __('admin.gsc.button.back') }}</a>
                 <form method="POST" action="{{ route('admin.google-search-console.fetch', $property->id) }}" data-gsc-fetch-form>
                     @csrf
                     <input type="hidden" name="range_days" value="{{ $activeRangeDays }}">
@@ -296,10 +297,6 @@
                     </tbody>
                 </table>
             @endif
-        </div>
-
-        <div>
-            <a href="{{ route('admin.google-search-console.index') }}" class="admin-btn admin-btn-secondary"><i data-lucide="arrow-left" class="h-4 w-4"></i>{{ __('admin.gsc.button.back') }}</a>
         </div>
     </div>
 
