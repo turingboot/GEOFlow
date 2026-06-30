@@ -5026,6 +5026,8 @@ return [
             'dim_appearance' => '搜索结果呈现',
             'chart_hint' => '柱高=曝光，悬停查看点击',
             'empty' => '暂无数据，拉取后生成。',
+            'empty_opportunity' => '当前时间段没有符合阈值的机会词。',
+            'empty_striking' => '当前时间段没有排名 10–20 的搜索词。',
         ],
         'button' => [
             'settings' => '设置',

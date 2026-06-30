@@ -20,7 +20,7 @@ class FetchGscJob implements ShouldQueue
 
     public int $timeout = 300;
 
-    public function __construct(private readonly int $propertyId) {}
+    public function __construct(private readonly int $propertyId, private readonly ?int $rangeDays = null) {}
 
     public function handle(GscOrchestrator $orchestrator): void
     {
@@ -30,7 +30,7 @@ class FetchGscJob implements ShouldQueue
         }
 
         TenantContext::run((int) $property->tenant_id, function () use ($orchestrator, $property): void {
-            $orchestrator->run($property);
+            $orchestrator->run($property, $this->rangeDays);
         });
     }
 }

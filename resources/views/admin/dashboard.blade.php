@@ -376,6 +376,7 @@
             ],
         ];
 
+        /*
         $skillResourceCards = [
             [
                 'title' => __('admin.dashboard.skill_resources.template_title'),
@@ -399,6 +400,7 @@
                 'tone' => 'slate',
             ],
         ];
+        */
     @endphp
 
     <div>
@@ -660,7 +662,7 @@
             @endforeach
         </section>
 
-        <section>
+        {{-- <section>
             <div class="mb-5">
                 <h2 class="text-xl font-semibold text-gray-900">{{ __('admin.dashboard.skill_resources.title') }}</h2>
                 <p class="mt-1 text-sm text-gray-600">{{ __('admin.dashboard.skill_resources.desc') }}</p>
@@ -685,6 +687,6 @@
                     </a>
                 @endforeach
             </div>
-        </section>
+        </section> --}}
     </div>
 @endsection

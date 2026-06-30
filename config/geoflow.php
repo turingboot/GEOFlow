@@ -113,7 +113,7 @@ return [
         // OAuth 回调地址（需与 Google Cloud 控制台登记一致；留空则按当前域名 + 后台路由自动推导）。
         'oauth_redirect_uri' => (string) env('GOOGLE_OAUTH_REDIRECT_URI', ''),
         // 搜索表现默认回溯天数与单次拉取行数上限（GSC 单请求最多 25000 行）。
-        'default_range_days' => max(1, (int) env('GSC_DEFAULT_RANGE_DAYS', 28)),
+        'default_range_days' => max(1, (int) env('GSC_DEFAULT_RANGE_DAYS', 90)),
         'row_limit' => max(1, min(25000, (int) env('GSC_ROW_LIMIT', 1000))),
         // URL Inspection 每属性每天配额（Google 限制 2000/天），用于收录抽样上限保护。
         'url_inspection_daily_quota' => max(0, (int) env('GSC_URL_INSPECTION_DAILY_QUOTA', 2000)),

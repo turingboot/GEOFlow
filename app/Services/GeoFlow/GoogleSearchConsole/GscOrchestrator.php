@@ -22,9 +22,9 @@ class GscOrchestrator
         private readonly GoogleSearchConsoleClient $client
     ) {}
 
-    public function run(GscProperty $property): GscSnapshot
+    public function run(GscProperty $property, ?int $rangeDays = null): GscSnapshot
     {
-        $snapshot = $this->runSearchAnalytics($property);
+        $snapshot = $this->runSearchAnalytics($property, $rangeDays);
 
         // sitemap 概览尽力而为，失败不影响主快照。
         try {
@@ -48,18 +48,27 @@ class GscOrchestrator
         'search_appearance' => 'searchAppearance',
     ];
 
-    public function runSearchAnalytics(GscProperty $property): GscSnapshot
+    private const DAILY_BREAKDOWN_DIMENSIONS = [
+        'query',
+        'page',
+        'country',
+        'device',
+        'search_appearance',
+    ];
+
+    public function runSearchAnalytics(GscProperty $property, ?int $rangeDays = null): GscSnapshot
     {
         $snapshot = $this->startSnapshot($property, GscSnapshot::TYPE_SEARCH_ANALYTICS);
 
         try {
-            [$start, $end] = $this->dateRange();
+            [$start, $end] = $this->dateRange($rangeDays);
             $kept = 0;
             $totalClicks = 0;
             $totalImpressions = 0;
             $weightedPosition = 0.0;
-            $failedDimensions = 0;
+            $successfulPrimaryDimensions = 0;
             $lastError = '';
+            $dailyDimensionErrors = [];
 
             foreach (self::SEARCH_DIMENSIONS as $name => $apiDimension) {
                 try {
@@ -71,11 +80,12 @@ class GscOrchestrator
                     ]);
                 } catch (Throwable $dimError) {
                     // 某些维度可能无数据/不受支持（如无富结果时的 searchAppearance），跳过不影响其余维度。
-                    $failedDimensions++;
                     $lastError = $dimError->getMessage();
 
                     continue;
                 }
+
+                $successfulPrimaryDimensions++;
 
                 foreach ((is_array($data['rows'] ?? null) ? $data['rows'] : []) as $row) {
                     if (! is_array($row)) {
@@ -109,8 +119,55 @@ class GscOrchestrator
                 }
             }
 
+            foreach (self::DAILY_BREAKDOWN_DIMENSIONS as $name) {
+                $apiDimension = self::SEARCH_DIMENSIONS[$name];
+
+                try {
+                    $data = $this->client->searchAnalytics($property, [
+                        'startDate' => $start,
+                        'endDate' => $end,
+                        'dimensions' => ['date', $apiDimension],
+                        'rowLimit' => $this->rowLimit(),
+                    ]);
+                } catch (Throwable $dimError) {
+                    $lastError = $dimError->getMessage();
+                    $dailyDimensionErrors[$name] = $dimError->getMessage();
+
+                    continue;
+                }
+
+                foreach ((is_array($data['rows'] ?? null) ? $data['rows'] : []) as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+
+                    $keys = is_array($row['keys'] ?? null) ? $row['keys'] : [];
+                    $date = (string) ($keys[0] ?? '');
+                    $value = (string) ($keys[1] ?? '');
+                    if ($date === '' || $value === '') {
+                        continue;
+                    }
+
+                    GscSearchMetric::query()->create([
+                        'tenant_id' => $property->tenant_id,
+                        'gsc_snapshot_id' => $snapshot->id,
+                        'gsc_property_id' => $property->id,
+                        'dimension' => 'date_'.$name,
+                        'dimension_value' => $value,
+                        'clicks' => (int) ($row['clicks'] ?? 0),
+                        'impressions' => (int) ($row['impressions'] ?? 0),
+                        'ctr' => (float) ($row['ctr'] ?? 0),
+                        'position' => (float) ($row['position'] ?? 0),
+                        'date_start' => $date,
+                        'date_end' => $date,
+                        'raw' => $row,
+                    ]);
+                    $kept++;
+                }
+            }
+
             // 所有维度都失败（如鉴权/限流）才算整体失败；个别维度无数据不影响。
-            if ($failedDimensions === count(self::SEARCH_DIMENSIONS)) {
+            if ($successfulPrimaryDimensions === 0) {
                 $this->finishSnapshot($snapshot, 'failed', 0, [], $lastError);
 
                 return $snapshot->refresh();
@@ -121,6 +178,8 @@ class GscOrchestrator
                 'date_end' => $end,
                 'total_clicks' => $totalClicks,
                 'total_impressions' => $totalImpressions,
+                'daily_dimensions' => array_values(array_diff(self::DAILY_BREAKDOWN_DIMENSIONS, array_keys($dailyDimensionErrors))),
+                'daily_dimension_errors' => $dailyDimensionErrors,
                 // 整体平均排名按曝光加权（与 GSC 概览口径一致）。
                 'avg_position' => $totalImpressions > 0 ? round($weightedPosition / $totalImpressions, 1) : 0.0,
             ]);
@@ -243,10 +302,11 @@ class GscOrchestrator
      *
      * @return array{0:string,1:string}
      */
-    private function dateRange(): array
+    private function dateRange(?int $rangeDays = null): array
     {
         $end = now()->subDays(2);
-        $start = $end->copy()->subDays(max(1, (int) config('geoflow.google_search_console.default_range_days', 28)));
+        $days = $rangeDays ?? (int) config('geoflow.google_search_console.default_range_days', 90);
+        $start = $end->copy()->subDays(max(1, $days) - 1);
 
         return [$start->format('Y-m-d'), $end->format('Y-m-d')];
     }

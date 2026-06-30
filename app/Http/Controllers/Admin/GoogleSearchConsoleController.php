@@ -290,6 +290,10 @@ class GoogleSearchConsoleController extends Controller
 
     public function show(int $propertyId): View|RedirectResponse
     {
+        $rangeDays = max(1, min(365, (int) request()->integer('range_days', (int) config('geoflow.google_search_console.default_range_days', 90))));
+        $perPage = max(10, min(100, (int) request()->integer('per_page', 20)));
+        $activeTab = (string) request()->query('tab', 'query');
+
         $property = GscProperty::query()->with('connection')->whereKey($propertyId)->first();
         if ($property === null) {
             return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.not_found'));
@@ -303,7 +307,7 @@ class GoogleSearchConsoleController extends Controller
             ? GscUrlInspection::query()->where('gsc_snapshot_id', $latestInspection->id)->orderByDesc('id')->get()
             : collect();
 
-        return view('admin.google-search-console.show', [
+        $viewData = [
             'pageTitle' => __('admin.gsc.page_title'),
             'activeMenu' => 'google_search_console',
             'adminSiteName' => AdminWeb::siteName(),
@@ -312,9 +316,15 @@ class GoogleSearchConsoleController extends Controller
             'latestSitemap' => $latestSitemap,
             'latestInspection' => $latestInspection,
             'inspections' => $inspections,
-            'insights' => $this->insights->build($property),
+            'insights' => $this->insights->build($property, $rangeDays, $perPage, $activeTab),
             'isSuperAdmin' => $this->isSuperAdmin(),
-        ]);
+        ];
+
+        if ((string) request()->query('partial') === 'search' && request()->ajax()) {
+            return view('admin.google-search-console._search-card', $viewData);
+        }
+
+        return view('admin.google-search-console.show', $viewData);
     }
 
     public function fetch(int $propertyId): RedirectResponse
@@ -324,9 +334,15 @@ class GoogleSearchConsoleController extends Controller
             return redirect()->route('admin.google-search-console.index')->withErrors(__('admin.gsc.message.not_found'));
         }
 
-        FetchGscJob::dispatch((int) $property->id)->onQueue('trends');
+        $rangeDays = max(1, min(365, (int) request()->integer('range_days', (int) config('geoflow.google_search_console.default_range_days', 90))));
 
-        return redirect()->route('admin.google-search-console.show', $property->id)
+        FetchGscJob::dispatch((int) $property->id, $rangeDays)->onQueue('trends');
+
+        return redirect()->route('admin.google-search-console.show', [
+            $property->id,
+            'range_days' => $rangeDays,
+            'tab' => (string) request()->query('tab', request()->input('tab', 'query')),
+        ])
             ->with('message', __('admin.gsc.message.fetch_queued'));
     }
 

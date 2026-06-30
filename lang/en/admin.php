@@ -5026,6 +5026,8 @@ return [
             'dim_appearance' => 'Search appearance',
             'chart_hint' => 'Bar height = impressions; hover for clicks',
             'empty' => 'No data yet; generated after a fetch.',
+            'empty_opportunity' => 'No queries match the opportunity threshold in this range.',
+            'empty_striking' => 'No queries rank between positions 10 and 20 in this range.',
         ],
         'button' => [
             'settings' => 'Settings',

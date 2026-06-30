@@ -12,10 +12,12 @@ use App\Models\SystemState;
 use App\Models\Tenant;
 use App\Services\GeoFlow\GoogleSearchConsole\GscAuthResolver;
 use App\Support\GeoFlow\ApiKeyCrypto;
+use App\Support\GeoFlow\GscCountryName;
 use App\Support\GeoFlow\GscOauthAppConfig;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -28,6 +30,7 @@ class AdminGscPageTest extends TestCase
     {
         parent::setUp();
         $this->withoutMiddleware(ValidateCsrfToken::class);
+        Cache::flush();
     }
 
     public function test_guest_is_redirected_from_gsc_pages(): void
@@ -141,10 +144,35 @@ class AdminGscPageTest extends TestCase
         ]);
 
         $this->actingAs($admin, 'admin')
-            ->post(route('admin.google-search-console.fetch', $property->id))
-            ->assertRedirect(route('admin.google-search-console.show', $property->id));
+            ->post(route('admin.google-search-console.fetch', $property->id).'?tab=country', [
+                'range_days' => 90,
+            ])
+            ->assertRedirect(route('admin.google-search-console.show', [
+                $property->id,
+                'range_days' => 90,
+                'tab' => 'country',
+            ]));
 
         Queue::assertPushedOn('trends', FetchGscJob::class);
+        Queue::assertPushed(FetchGscJob::class, fn (FetchGscJob $job): bool => (new \ReflectionProperty($job, 'rangeDays'))->getValue($job) === 90);
+    }
+
+    public function test_show_page_fetch_form_keeps_selected_range_days(): void
+    {
+        $admin = $this->makeAdmin();
+        $connection = $this->makeOauthConnection();
+        $property = GscProperty::query()->create([
+            'gsc_connection_id' => $connection->id,
+            'name' => 'site',
+            'site_url' => 'sc-domain:example.com',
+            'schedule' => 'daily',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.google-search-console.show', $property->id).'?range_days=90')
+            ->assertOk()
+            ->assertSee('name="range_days" value="90"', false);
     }
 
     public function test_show_page_renders_with_insights(): void
@@ -162,7 +190,7 @@ class AdminGscPageTest extends TestCase
             'gsc_property_id' => $property->id,
             'type' => GscSnapshot::TYPE_SEARCH_ANALYTICS,
             'status' => 'success',
-            'stats' => ['total_clicks' => 10, 'total_impressions' => 100, 'avg_position' => 5.0],
+            'stats' => ['date_start' => '2026-06-20', 'date_end' => '2026-06-21', 'total_clicks' => 10, 'total_impressions' => 100, 'avg_position' => 5.0],
             'ran_at' => now(),
         ]);
         GscSearchMetric::query()->create([
@@ -175,6 +203,50 @@ class AdminGscPageTest extends TestCase
             'ctr' => 0.1,
             'position' => 5.0,
         ]);
+        foreach (range(1, 60) as $index) {
+            GscSearchMetric::query()->create([
+                'gsc_snapshot_id' => $snapshot->id,
+                'gsc_property_id' => $property->id,
+                'dimension' => 'query',
+                'dimension_value' => 'keyword-'.$index,
+                'clicks' => 20 - $index,
+                'impressions' => 100 - $index,
+                'ctr' => 0.1,
+                'position' => 5.0,
+            ]);
+        }
+        GscSearchMetric::query()->create([
+            'gsc_snapshot_id' => $snapshot->id,
+            'gsc_property_id' => $property->id,
+            'dimension' => 'page',
+            'dimension_value' => 'https://example.com/landing',
+            'clicks' => 4,
+            'impressions' => 20,
+            'ctr' => 0.2,
+            'position' => 2.0,
+        ]);
+        GscSearchMetric::query()->create([
+            'gsc_snapshot_id' => $snapshot->id,
+            'gsc_property_id' => $property->id,
+            'dimension' => 'country',
+            'dimension_value' => 'hkg',
+            'clicks' => 8,
+            'impressions' => 77,
+            'ctr' => 0.104,
+            'position' => 5.9,
+        ]);
+        foreach (['esp', 'zaf', 'pol', 'bel'] as $country) {
+            GscSearchMetric::query()->create([
+                'gsc_snapshot_id' => $snapshot->id,
+                'gsc_property_id' => $property->id,
+                'dimension' => 'country',
+                'dimension_value' => $country,
+                'clicks' => 8,
+                'impressions' => 60,
+                'ctr' => 0.13,
+                'position' => 6.0,
+            ]);
+        }
         foreach (['2026-06-20' => 8, '2026-06-21' => 12] as $date => $impr) {
             GscSearchMetric::query()->create([
                 'gsc_snapshot_id' => $snapshot->id,
@@ -193,8 +265,239 @@ class AdminGscPageTest extends TestCase
             ->assertOk()
             ->assertSee(__('admin.gsc.section.search'))
             ->assertSee('data-gsc-tab', false)
+            ->assertSee('event.preventDefault();', false)
+            ->assertSee('window.history.pushState', false)
+            ->assertSee('loadGscSearchCard(btn.href)', false)
+            ->assertSee('data-gsc-search-card', false)
+            ->assertSee('partial', false)
+            ->assertSee('loadGscSearchCard', false)
+            ->assertSee('data-gsc-pagination', false)
+            ->assertSee('gsc_query_page=2', false)
+            ->assertSee('tab=query', false)
+            ->assertSee('&#26368;&#21518;&#39029;', false)
             ->assertSee('<polyline', false)
+            ->assertSee('data-gsc-chart-root', false)
+            ->assertSee('data-gsc-custom-days', false)
+            ->assertSee('name="per_page"', false)
+            ->assertSee('data-gsc-metric="clicks"', false)
+            ->assertSee('data-gsc-metric="impressions"', false)
+            ->assertSee('data-gsc-hover-line', false)
+            ->assertSee('data-gsc-hover-date-bg', false)
+            ->assertSee('data-gsc-page-row', false)
+            ->assertSee('data-gsc-copy-toast', false)
+            ->assertDontSee('data-gsc-page-actions-unused', false)
+            ->assertSee('data-gsc-copy-url="https://example.com/landing"', false)
+            ->assertSee('data-gsc-open-url="https://example.com/landing"', false)
+            ->assertSee('HKG - 中国香港')
+            ->assertSee('ESP - 西班牙')
+            ->assertSee('ZAF - 南非')
+            ->assertSee('POL - 波兰')
+            ->assertSee('BEL - 比利时')
             ->assertSee('brandword');
+    }
+
+    public function test_gsc_country_name_maps_current_country_codes(): void
+    {
+        $codes = [
+            'AFG', 'AGO', 'AIA', 'ALB', 'AND', 'ARE', 'ARG', 'ARM', 'ATG', 'AUS', 'AUT', 'AZE', 'BEL', 'BES', 'BFA',
+            'BGD', 'BGR', 'BHR', 'BHS', 'BIH', 'BLM', 'BLR', 'BLZ', 'BMU', 'BOL', 'BRA', 'BRB', 'BRN', 'BTN', 'BWA',
+            'CAN', 'CHE', 'CHL', 'CHN', 'CIV', 'CMR', 'COD', 'COG', 'COK', 'COL', 'CPV', 'CRI', 'CUB', 'CYM', 'CYP',
+            'CZE', 'DEU', 'DNK', 'DOM', 'DZA', 'ECU', 'EGY', 'ESH', 'ESP', 'EST', 'ETH', 'FIN', 'FJI', 'FRA', 'FRO',
+            'GAB', 'GBR', 'GEO', 'GGY', 'GHA', 'GIB', 'GIN', 'GNB', 'GNQ', 'GRC', 'GRD', 'GRL', 'GTM', 'GUM', 'GUY',
+            'HKG', 'HND', 'HRV', 'HTI', 'HUN', 'IDN', 'IMN', 'IND', 'IRL', 'IRN', 'IRQ', 'ISL', 'ISR', 'ITA', 'JAM',
+            'JEY', 'JOR', 'JPN', 'KAZ', 'KEN', 'KGZ', 'KHM', 'KNA', 'KOR', 'KWT', 'LAO', 'LBN', 'LBR', 'LBY', 'LCA',
+            'LIE', 'LKA', 'LTU', 'LUX', 'LVA', 'MAC', 'MAF', 'MAR', 'MCO', 'MDA', 'MDG', 'MDV', 'MEX', 'MKD', 'MLI',
+            'MLT', 'MMR', 'MNE', 'MNG', 'MOZ', 'MUS', 'MWI', 'MYS', 'NAM', 'NGA', 'NIC', 'NLD', 'NOR', 'NPL', 'NRU',
+            'NZL', 'OMN', 'PAK', 'PAN', 'PER', 'PHL', 'PLW', 'PNG', 'POL', 'PRI', 'PRT', 'PRY', 'PSE', 'PYF', 'QAT',
+            'REU', 'ROU', 'RUS', 'RWA', 'SAU', 'SDN', 'SEN', 'SGP', 'SLE', 'SLV', 'SOM', 'SRB', 'SUR', 'SVK', 'SVN',
+            'SWE', 'SWZ', 'SXM', 'SYC', 'SYR', 'TGO', 'THA', 'TKM', 'TON', 'TTO', 'TUN', 'TUR', 'TWN', 'TZA', 'UGA',
+            'UKR', 'URY', 'USA', 'UZB', 'VEN', 'VGB', 'VIR', 'VNM', 'VUT', 'XKK', 'YEM', 'ZAF', 'ZMB', 'ZWE', 'ZZZ',
+        ];
+
+        foreach ($codes as $code) {
+            $this->assertNotNull(GscCountryName::name($code), $code.' should have a Chinese country name.');
+        }
+
+        $this->assertSame('ESP - 西班牙', GscCountryName::format('esp'));
+        $this->assertSame('ZZZ - 未知地区', GscCountryName::format('ZZZ'));
+    }
+
+    public function test_show_page_can_render_search_card_partial(): void
+    {
+        $admin = $this->makeAdmin();
+        $connection = $this->makeOauthConnection();
+        $property = GscProperty::query()->create([
+            'gsc_connection_id' => $connection->id,
+            'name' => 'site',
+            'site_url' => 'sc-domain:example.com',
+            'schedule' => 'daily',
+            'status' => 'active',
+        ]);
+        $snapshot = GscSnapshot::query()->create([
+            'gsc_property_id' => $property->id,
+            'type' => GscSnapshot::TYPE_SEARCH_ANALYTICS,
+            'status' => 'success',
+            'stats' => ['date_start' => '2026-06-20', 'date_end' => '2026-06-21', 'total_clicks' => 10, 'total_impressions' => 100, 'avg_position' => 5.0],
+            'ran_at' => now(),
+        ]);
+        $this->createSearchMetric($snapshot, $property, 'date', '2026-06-21', 1, 12, 5.0, '2026-06-21');
+        $this->createSearchMetric($snapshot, $property, 'query', 'brandword', 10, 100, 5.0);
+
+        $this->actingAs($admin, 'admin')
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->get(route('admin.google-search-console.show', $property->id).'?range_days=7&tab=query&partial=search')
+            ->assertOk()
+            ->assertSee('data-gsc-search-card', false)
+            ->assertSee('brandword')
+            ->assertDontSee('admin-hero-title', false);
+    }
+
+    public function test_show_page_ignores_partial_parameter_without_ajax(): void
+    {
+        $admin = $this->makeAdmin();
+        $connection = $this->makeOauthConnection();
+        $property = GscProperty::query()->create([
+            'gsc_connection_id' => $connection->id,
+            'name' => 'site',
+            'site_url' => 'sc-domain:example.com',
+            'schedule' => 'daily',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.google-search-console.show', $property->id).'?range_days=90&tab=country&partial=search')
+            ->assertOk()
+            ->assertSee('admin-hero-title', false)
+            ->assertSee('data-gsc-search-card', false);
+    }
+
+    public function test_search_card_partial_does_not_keep_internal_or_stale_page_parameters(): void
+    {
+        Cache::flush();
+
+        $admin = $this->makeAdmin();
+        $connection = $this->makeOauthConnection();
+        $property = GscProperty::query()->create([
+            'gsc_connection_id' => $connection->id,
+            'name' => 'site',
+            'site_url' => 'sc-domain:example.com',
+            'schedule' => 'daily',
+            'status' => 'active',
+        ]);
+        $snapshot = GscSnapshot::query()->create([
+            'gsc_property_id' => $property->id,
+            'type' => GscSnapshot::TYPE_SEARCH_ANALYTICS,
+            'status' => 'success',
+            'stats' => ['date_start' => '2026-06-20', 'date_end' => '2026-06-21', 'total_clicks' => 10, 'total_impressions' => 100, 'avg_position' => 5.0],
+            'ran_at' => now(),
+        ]);
+        $this->createSearchMetric($snapshot, $property, 'date', '2026-06-21', 1, 12, 5.0, '2026-06-21');
+        foreach (range(1, 45) as $index) {
+            $this->createSearchMetric($snapshot, $property, 'country', 'country-'.$index, 10, 100, 5.0);
+        }
+
+        $this->actingAs($admin, 'admin')
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->get(route('admin.google-search-console.show', $property->id).'?range_days=90&tab=country&per_page=20&gsc_query_page=2&partial=search')
+            ->assertOk()
+            ->assertSee('gsc_country_page=2', false)
+            ->assertDontSee('partial=search', false)
+            ->assertDontSee('gsc_query_page=2', false);
+    }
+
+    public function test_show_page_filters_daily_breakdown_tables_by_selected_range(): void
+    {
+        Cache::flush();
+
+        $admin = $this->makeAdmin();
+        $connection = $this->makeOauthConnection();
+        $property = GscProperty::query()->create([
+            'gsc_connection_id' => $connection->id,
+            'name' => 'site',
+            'site_url' => 'sc-domain:example.com',
+            'schedule' => 'daily',
+            'status' => 'active',
+        ]);
+        $snapshot = GscSnapshot::query()->create([
+            'gsc_property_id' => $property->id,
+            'type' => GscSnapshot::TYPE_SEARCH_ANALYTICS,
+            'status' => 'success',
+            'stats' => ['date_start' => '2026-06-01', 'date_end' => '2026-06-30', 'total_clicks' => 18, 'total_impressions' => 180, 'avg_position' => 4.0],
+            'ran_at' => now(),
+        ]);
+
+        $this->createSearchMetric($snapshot, $property, 'date', '2026-06-10', 2, 40, 6.0, '2026-06-10');
+        $this->createSearchMetric($snapshot, $property, 'date', '2026-06-29', 6, 60, 3.0, '2026-06-29');
+        $this->createSearchMetric($snapshot, $property, 'date_query', 'oldword', 4, 80, 8.0, '2026-06-10');
+        $this->createSearchMetric($snapshot, $property, 'date_query', 'recentword', 6, 60, 3.0, '2026-06-29');
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.google-search-console.show', $property->id).'?range_days=7&tab=query')
+            ->assertOk()
+            ->assertSee('recentword')
+            ->assertDontSee('oldword');
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.google-search-console.show', $property->id).'?range_days=28&tab=query')
+            ->assertOk()
+            ->assertSee('recentword')
+            ->assertSee('oldword');
+    }
+
+    public function test_show_page_prompts_fetch_when_selected_range_exceeds_available_data(): void
+    {
+        $admin = $this->makeAdmin();
+        $connection = $this->makeOauthConnection();
+        $property = GscProperty::query()->create([
+            'gsc_connection_id' => $connection->id,
+            'name' => 'site',
+            'site_url' => 'sc-domain:example.com',
+            'schedule' => 'daily',
+            'status' => 'active',
+        ]);
+        $snapshot = GscSnapshot::query()->create([
+            'gsc_property_id' => $property->id,
+            'type' => GscSnapshot::TYPE_SEARCH_ANALYTICS,
+            'status' => 'success',
+            'stats' => ['date_start' => '2026-06-01', 'date_end' => '2026-06-30', 'total_clicks' => 10, 'total_impressions' => 100, 'avg_position' => 5.0],
+            'ran_at' => now(),
+        ]);
+        $this->createSearchMetric($snapshot, $property, 'date', '2026-06-30', 5, 50, 4.0, '2026-06-30');
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.google-search-console.show', $property->id).'?range_days=100')
+            ->assertOk()
+            ->assertSee('name="range_days" value="100"', false)
+            ->assertSee('100');
+    }
+
+    public function test_opportunity_tab_explains_empty_threshold_result_without_fetch_prompt(): void
+    {
+        $admin = $this->makeAdmin();
+        $connection = $this->makeOauthConnection();
+        $property = GscProperty::query()->create([
+            'gsc_connection_id' => $connection->id,
+            'name' => 'site',
+            'site_url' => 'sc-domain:example.com',
+            'schedule' => 'daily',
+            'status' => 'active',
+        ]);
+        $snapshot = GscSnapshot::query()->create([
+            'gsc_property_id' => $property->id,
+            'type' => GscSnapshot::TYPE_SEARCH_ANALYTICS,
+            'status' => 'success',
+            'stats' => ['date_start' => '2026-06-01', 'date_end' => '2026-06-30', 'total_clicks' => 10, 'total_impressions' => 100, 'avg_position' => 5.0],
+            'ran_at' => now(),
+        ]);
+
+        $this->createSearchMetric($snapshot, $property, 'date', '2026-06-30', 5, 50, 4.0, '2026-06-30');
+        $this->createSearchMetric($snapshot, $property, 'date_query', 'healthy-ctr', 10, 100, 5.0, '2026-06-30');
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.google-search-console.show', $property->id).'?range_days=28&tab=opportunity')
+            ->assertOk()
+            ->assertSee(__('admin.gsc.insights.empty_opportunity'))
+            ->assertDontSee('拉取最近 28 天数据');
     }
 
     public function test_disconnect_removes_connection_and_its_sites(): void
@@ -266,6 +569,30 @@ class AdminGscPageTest extends TestCase
             'secret_ciphertext' => app(ApiKeyCrypto::class)->encrypt('1//rt'),
             'status' => 'active',
             'scopes' => [GscAuthResolver::SCOPE],
+        ]);
+    }
+
+    private function createSearchMetric(
+        GscSnapshot $snapshot,
+        GscProperty $property,
+        string $dimension,
+        string $value,
+        int $clicks,
+        int $impressions,
+        float $position,
+        ?string $date = null,
+    ): GscSearchMetric {
+        return GscSearchMetric::query()->create([
+            'gsc_snapshot_id' => $snapshot->id,
+            'gsc_property_id' => $property->id,
+            'dimension' => $dimension,
+            'dimension_value' => $value,
+            'clicks' => $clicks,
+            'impressions' => $impressions,
+            'ctr' => $impressions > 0 ? $clicks / $impressions : 0,
+            'position' => $position,
+            'date_start' => $date,
+            'date_end' => $date,
         ]);
     }
 

@@ -33,10 +33,25 @@ class GscOrchestratorTest extends TestCase
     {
         Http::fake([
             'oauth2.googleapis.com/*' => Http::response(['access_token' => 'ya29.t', 'expires_in' => 3599]),
-            '*searchAnalytics*' => Http::response(['rows' => [
-                ['keys' => ['geoflow 教程', 'https://example.com/a'], 'clicks' => 12, 'impressions' => 340, 'ctr' => 0.035, 'position' => 4.2],
-                ['keys' => ['gsc 监控', 'https://example.com/b'], 'clicks' => 3, 'impressions' => 90, 'ctr' => 0.033, 'position' => 8.1],
-            ]]),
+            '*searchAnalytics*' => function ($request) {
+                $dimensions = $request['dimensions'] ?? [];
+                $dimension = $dimensions[0] ?? 'query';
+                $isDailyBreakdown = ($dimensions[0] ?? null) === 'date';
+
+                $values = match ($isDailyBreakdown ? ($dimensions[1] ?? 'query') : $dimension) {
+                    'page' => ['https://example.com/a', 'https://example.com/b'],
+                    'country' => ['usa', 'hkg'],
+                    'device' => ['DESKTOP', 'MOBILE'],
+                    'date' => ['2026-06-20', '2026-06-21'],
+                    'searchAppearance' => ['AMP_BLUE_LINK', 'WEB_LIGHT'],
+                    default => ['geoflow 教程', 'gsc 监控'],
+                };
+
+                return Http::response(['rows' => [
+                    ['keys' => $isDailyBreakdown ? ['2026-06-20', $values[0]] : [$values[0]], 'clicks' => 12, 'impressions' => 340, 'ctr' => 0.035, 'position' => 4.2],
+                    ['keys' => $isDailyBreakdown ? ['2026-06-21', $values[1]] : [$values[1]], 'clicks' => 3, 'impressions' => 90, 'ctr' => 0.033, 'position' => 8.1],
+                ]]);
+            },
             '*/sitemaps' => Http::response(['sitemap' => [
                 ['path' => 'https://example.com/sitemap.xml', 'contents' => [['type' => 'web', 'submitted' => 100, 'indexed' => 80]]],
             ]]),
@@ -46,8 +61,8 @@ class GscOrchestratorTest extends TestCase
         $snapshot = app(GscOrchestrator::class)->runSearchAnalytics($property);
 
         $this->assertSame('success', $snapshot->status);
-        // 6 个维度 × 2 行（fake 对所有 searchAnalytics 调用返回同样的 2 行）。
-        $this->assertSame(12, (int) $snapshot->fetched_count);
+        // 6 个主维度 + 5 个每日拆分维度，fake 对所有 searchAnalytics 调用返回同样的 2 行。
+        $this->assertSame(22, (int) $snapshot->fetched_count);
         // 总计取自 date 维度：曝光 340+90=430、点击 12+3=15。
         $this->assertSame(430, (int) ($snapshot->stats['total_impressions'] ?? 0));
         $this->assertSame(15, (int) ($snapshot->stats['total_clicks'] ?? 0));
@@ -55,8 +70,11 @@ class GscOrchestratorTest extends TestCase
         $metric = GscSearchMetric::query()->where('dimension', 'query')->where('dimension_value', 'geoflow 教程')->firstOrFail();
         $this->assertSame((int) $property->tenant_id, (int) $metric->tenant_id);
         $this->assertSame(12, (int) $metric->clicks);
-        // 每个维度都存了一行（query/page/country/device/date/search_appearance）。
-        $this->assertSame(6, GscSearchMetric::query()->where('gsc_snapshot_id', $snapshot->id)->where('dimension_value', 'geoflow 教程')->count());
+        // 主维度和每日拆分维度都会入库，后者用于按 7/28/90 天重算搜索词、页面、国家等表格。
+        $this->assertSame(2, GscSearchMetric::query()->where('gsc_snapshot_id', $snapshot->id)->where('dimension_value', 'geoflow 教程')->count());
+        $this->assertSame(2, GscSearchMetric::query()->where('gsc_snapshot_id', $snapshot->id)->where('dimension', 'date_query')->count());
+        $this->assertSame(['query', 'page', 'country', 'device', 'search_appearance'], $snapshot->stats['daily_dimensions'] ?? []);
+        $this->assertSame([], $snapshot->stats['daily_dimension_errors'] ?? []);
     }
 
     public function test_run_aggregates_sitemap_indexing_overview(): void
