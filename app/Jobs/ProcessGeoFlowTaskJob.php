@@ -60,7 +60,8 @@ class ProcessGeoFlowTaskJob implements ShouldQueue
     public function handle(JobQueueService $queueService, WorkerExecutionService $workerExecutionService): void
     {
         $workerId = gethostname().':queue:'.getmypid();
-        $job = $queueService->claimPendingJobById($this->taskRunId, $workerId);
+        $tenantId = $this->tenantIdForTaskRun($this->taskRunId);
+        $job = TenantContext::run($tenantId, fn (): ?array => $queueService->claimPendingJobById($this->taskRunId, $workerId));
         if (! is_array($job)) {
             return;
         }
@@ -79,7 +80,7 @@ class ProcessGeoFlowTaskJob implements ShouldQueue
 
         $startedAt = microtime(true);
         try {
-            TenantContext::run($this->tenantIdForTask($taskId), function () use ($workerExecutionService, $queueService, $taskId, $startedAt): void {
+            TenantContext::run($tenantId, function () use ($workerExecutionService, $queueService, $taskId, $startedAt): void {
                 $result = $workerExecutionService->executeTask($taskId);
                 $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
 
@@ -95,7 +96,7 @@ class ProcessGeoFlowTaskJob implements ShouldQueue
             $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
             $message = $exception->getMessage();
 
-            if (TenantContext::run($this->tenantIdForTask($taskId), fn (): bool => $this->shouldCancel($taskId, $message))) {
+            if (TenantContext::run($tenantId, fn (): bool => $this->shouldCancel($taskId, $message))) {
                 $queueService->cancelJob($this->taskRunId, $taskId, '管理员手动停止');
             } else {
                 $queueService->failJob($this->taskRunId, $taskId, $message, $durationMs);
@@ -156,10 +157,10 @@ class ProcessGeoFlowTaskJob implements ShouldQueue
         return ($task->status ?? 'paused') !== 'active' || (int) ($task->schedule_enabled ?? 1) !== 1;
     }
 
-    private function tenantIdForTask(int $taskId): ?int
+    private function tenantIdForTaskRun(int $taskRunId): ?int
     {
-        $tenantId = Task::withoutGlobalScopes()
-            ->whereKey($taskId)
+        $tenantId = TaskRun::withoutGlobalScopes()
+            ->whereKey($taskRunId)
             ->value('tenant_id');
 
         return $tenantId !== null ? (int) $tenantId : null;

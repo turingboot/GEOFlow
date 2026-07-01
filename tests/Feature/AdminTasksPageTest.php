@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProcessGeoFlowTaskJob;
 use App\Models\Admin;
 use App\Models\AiModel;
 use App\Models\Article;
@@ -12,12 +13,17 @@ use App\Models\DistributionChannel;
 use App\Models\KnowledgeBase;
 use App\Models\Prompt;
 use App\Models\Task;
+use App\Models\TaskRun;
 use App\Models\TitleLibrary;
 use App\Models\WorkerHeartbeat;
+use App\Services\GeoFlow\JobQueueService;
+use App\Services\GeoFlow\WorkerExecutionService;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\ApiKeyCrypto;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 use Tests\TestCase;
 
 /**
@@ -543,6 +549,61 @@ class AdminTasksPageTest extends TestCase
             ->assertSee('id="batch-btn-'.(int) $pausedTask->id.'"', false)
             ->assertSee('data-batch-action="start"', false)
             ->assertSee('text-green-600 hover:text-green-800 hover:bg-green-50', false);
+    }
+
+    public function test_queue_job_claims_tenant_scoped_pending_run_without_existing_tenant_context(): void
+    {
+        $tenantId = (int) TenantContext::id();
+        $task = Task::query()->create([
+            'name' => 'Tenant Scoped Queue Task',
+            'status' => 'active',
+            'schedule_enabled' => 1,
+            'publish_interval' => 3600,
+            'draft_limit' => 5,
+            'article_limit' => 10,
+        ]);
+        $run = TaskRun::query()->create([
+            'task_id' => (int) $task->id,
+            'status' => 'pending',
+            'started_at' => now(),
+            'meta' => [
+                'job_type' => 'generate_article',
+                'payload' => [],
+                'attempt_count' => 0,
+                'max_attempts' => 3,
+                'available_at' => now()->toDateTimeString(),
+            ],
+        ]);
+
+        TenantContext::clear();
+
+        $workerExecutionService = Mockery::mock(WorkerExecutionService::class);
+        $workerExecutionService
+            ->shouldReceive('executeTask')
+            ->once()
+            ->with((int) $task->id)
+            ->andReturnUsing(function () use ($tenantId): array {
+                $this->assertSame($tenantId, TenantContext::id());
+
+                return [
+                    'article_id' => null,
+                    'title' => '',
+                    'message' => 'noop',
+                    'meta' => [
+                        'action' => 'noop',
+                    ],
+                ];
+            });
+
+        (new ProcessGeoFlowTaskJob((int) $run->id))->handle(
+            app(JobQueueService::class),
+            $workerExecutionService
+        );
+
+        $this->assertSame(
+            'completed',
+            (string) TaskRun::withoutGlobalScopes()->whereKey((int) $run->id)->value('status')
+        );
     }
 
     public function test_task_list_shows_distribution_failure_summary(): void
