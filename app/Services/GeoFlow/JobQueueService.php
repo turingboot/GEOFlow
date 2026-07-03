@@ -242,6 +242,41 @@ class JobQueueService
         $this->broadcastOverviewUpdate();
     }
 
+    public function failJobPermanently(int $jobId, int $taskId, string $errorMessage, int $durationMs): void
+    {
+        $run = TaskRun::query()->whereKey($jobId)->first();
+        if (! $run) {
+            return;
+        }
+
+        $runMeta = $this->normalizeMeta($run->meta);
+        $maxAttempts = max(1, (int) ($runMeta['max_attempts'] ?? 3));
+        $newMeta = array_merge($runMeta, [
+            'attempt_count' => $maxAttempts,
+            'max_attempts' => $maxAttempts,
+            'failure_type' => 'publish_failed',
+            'last_error' => $errorMessage,
+            'non_retryable' => true,
+        ]);
+
+        TaskRun::query()->whereKey($jobId)->update([
+            'status' => 'failed',
+            'error_message' => $errorMessage,
+            'duration_ms' => $durationMs,
+            'finished_at' => now(),
+            'meta' => $newMeta,
+        ]);
+
+        Task::query()->whereKey($taskId)->update([
+            'last_run_at' => now(),
+            'last_error_at' => now(),
+            'last_error_message' => $errorMessage,
+            'updated_at' => now(),
+        ]);
+
+        $this->broadcastOverviewUpdate();
+    }
+
     public function cancelJob(int $jobId, int $taskId, string $reason = 'Stopped by administrator'): void
     {
         TaskRun::query()->whereKey($jobId)->update([

@@ -1,60 +1,5 @@
 @extends('admin.layouts.app')
 
-@php
-        $formatTaskErrorSnippet = static function (?string $message, int $maxLength = 72): string {
-        $message = trim((string) $message);
-        if ($message === '') {
-            return '';
-        }
-        if (str_contains($message, '任务已暂停') || str_contains($message, '管理员手动停止')) {
-            return __('admin.tasks.failure.paused_detail');
-        }
-        if (str_contains($message, 'AI返回空正文')) {
-            return __('admin.tasks.failure.empty_content_detail');
-        }
-        if (str_contains($message, '正文过短')) {
-            return __('admin.tasks.failure.content_too_short_detail');
-        }
-        if (str_contains($message, '没有可用的标题')) {
-            return __('admin.tasks.failure.title_exhausted_detail');
-        }
-        if (preg_match('/CURL错误:\s*Operation timed out after\s+(\d+)\s+milliseconds/i', $message, $matches)) {
-            $seconds = max(1, (int) round(((int) $matches[1]) / 1000));
-            return __('admin.tasks.failure.model_timeout_detail', ['seconds' => $seconds]);
-        }
-        if (mb_strlen($message, 'UTF-8') <= $maxLength) {
-            return $message;
-        }
-        return mb_substr($message, 0, $maxLength - 1, 'UTF-8').'…';
-    };
-    $describeTaskFailure = static function (?string $message) use ($formatTaskErrorSnippet): array {
-        $message = trim((string) $message);
-        if ($message === '') {
-            return ['label' => __('admin.tasks.failure.execution_failed'), 'detail' => '', 'tone' => 'red'];
-        }
-        if (str_contains($message, 'AI返回空正文')) {
-            return ['label' => __('admin.tasks.failure.empty_content'), 'detail' => __('admin.tasks.failure.empty_content_detail'), 'tone' => 'red'];
-        }
-        if (str_contains($message, '正文过短')) {
-            return ['label' => __('admin.tasks.failure.content_too_short'), 'detail' => __('admin.tasks.failure.content_too_short_detail'), 'tone' => 'amber'];
-        }
-        if (str_contains($message, '没有可用的标题')) {
-            return ['label' => __('admin.tasks.failure.title_exhausted'), 'detail' => __('admin.tasks.failure.title_exhausted_detail'), 'tone' => 'amber'];
-        }
-        if (str_contains($message, '任务已暂停') || str_contains($message, '管理员手动停止')) {
-            return ['label' => __('admin.tasks.failure.paused'), 'detail' => __('admin.tasks.failure.paused_detail'), 'tone' => 'slate'];
-        }
-        return ['label' => __('admin.tasks.failure.execution_failed'), 'detail' => $formatTaskErrorSnippet($message, 110), 'tone' => 'red'];
-    };
-    $getFailureToneClasses = static function (string $tone): array {
-        return match ($tone) {
-            'amber' => ['chip' => 'bg-amber-50 text-amber-700 border-amber-200', 'card' => 'border-amber-200 bg-amber-50 text-amber-800', 'detail' => 'text-amber-700'],
-            'slate' => ['chip' => 'bg-slate-50 text-slate-700 border-slate-200', 'card' => 'border-slate-200 bg-slate-50 text-slate-800', 'detail' => 'text-slate-600'],
-            default => ['chip' => 'bg-red-50 text-red-700 border-red-200', 'card' => 'border-red-200 bg-red-50 text-red-800', 'detail' => 'text-red-700'],
-        };
-    };
-@endphp
-
 @section('content')
     <div class="px-4 sm:px-0">
         <div class="admin-hero">
@@ -111,23 +56,10 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                         @foreach ($tasks as $task)
-                            @php
-                                $failureInfo = $describeTaskFailure($task['batch_error_message'] ?? '');
-                                $failureClasses = $getFailureToneClasses($failureInfo['tone']);
-                                $hasVisibleFailure = !empty($task['batch_error_message']) && in_array($task['batch_status'], ['failed', 'cancelled'], true);
-                            @endphp
                             <tr class="hover:bg-gray-50">
                                 <td class="px-5 py-4 align-top">
                                     <div class="text-sm font-medium leading-6 text-gray-900 break-words">{{ $task['name'] ?? '' }}</div>
                                     <div class="mt-1 text-sm text-gray-500 break-words">{{ __('admin.tasks.label.title_library') }}: {{ $task['title_library_name'] ?? '' }}</div>
-                                    @if ($hasVisibleFailure)
-                                        <div class="mt-2 rounded-md border px-3 py-2 text-xs {{ $failureClasses['card'] }}">
-                                            <span class="inline-flex items-center rounded-full border px-2 py-0.5 font-medium {{ $failureClasses['chip'] }}">{{ $failureInfo['label'] }}</span>
-                                            @if (!empty($failureInfo['detail']))
-                                                <div class="mt-1 {{ $failureClasses['detail'] }}">{{ $failureInfo['detail'] }}</div>
-                                            @endif
-                                        </div>
-                                    @endif
                                 </td>
                                 <td class="px-5 py-4 align-top whitespace-nowrap text-sm text-gray-500">{{ !empty($task['created_at']) ? \Illuminate\Support\Carbon::parse($task['created_at'])->format('Y-m-d H:i') : '' }}</td>
                                 <td class="px-5 py-4 align-top text-sm text-gray-500">
@@ -347,7 +279,7 @@
                                                 @elseif (($job['status'] ?? '') === 'pending') bg-blue-50 text-blue-700 border-blue-200
                                                 @elseif (($job['status'] ?? '') === 'failed') bg-red-50 text-red-700 border-red-200
                                                 @else bg-gray-50 text-gray-700 border-gray-200 @endif">
-                                                {{ $job['status'] ?? 'idle' }}
+                                                {{ ($job['status'] ?? '') === 'failed' && ($job['failure_type'] ?? '') === 'publish_failed' ? __('admin.tasks.failure.publish_failed') : ($job['status'] ?? 'idle') }}
                                             </span>
                                         </div>
                                         <div class="mt-2 text-xs text-gray-500">
@@ -413,7 +345,14 @@ function formatEstimatedTime(seconds) { if (seconds < 60) return `${seconds}${TA
 function escapeHtml(value) { return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;'); }
 function truncateText(value, maxLength) { return value.length <= maxLength ? value : `${value.slice(0, maxLength - 1)}…`; }
 function normalizeRuntimeError(message) { return String(message || '').trim(); }
-function getFailureMeta() { return {label: TASK_I18N.recentFailed, chipClasses: 'bg-red-50 text-red-700 border-red-200', detailClasses: 'text-red-700'}; }
+function getFailureMeta(failureType = '') {
+    const isPublishFailed = String(failureType || '') === 'publish_failed';
+    return {
+        label: isPublishFailed ? TASK_I18N.publishFailed : TASK_I18N.recentFailed,
+        chipClasses: 'bg-red-50 text-red-700 border-red-200',
+        detailClasses: 'text-red-700'
+    };
+}
 function formatTaskDateTime(value) {
     if (!value) return '';
     const date = new Date(String(value).replace(' ', 'T'));
@@ -433,7 +372,7 @@ function updateBatchStatus(task) {
     const errorMessage = normalizeRuntimeError(task.batch_error_message || '');
     if (!isRunning) {
         if (task.batch_status === 'failed') {
-            const failureMeta = getFailureMeta(errorMessage);
+            const failureMeta = getFailureMeta(task.batch_failure_type || '');
             statusDiv.innerHTML = `<div class="flex flex-col gap-1 text-xs"><span class="inline-flex items-center justify-center rounded-full border px-2 py-1 ${failureMeta.chipClasses}">${escapeHtml(failureMeta.label)}</span>${errorMessage ? `<div class="mx-auto max-w-[220px] break-words leading-5 ${failureMeta.detailClasses}">${escapeHtml(truncateText(errorMessage, 60))}</div>` : ''}</div>`;
         } else if (task.batch_status === 'completed') {
             statusDiv.innerHTML = `<span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-200">${escapeHtml(TASK_I18N.completed)}</span>`;
@@ -572,6 +511,7 @@ function renderRecentRuns(recentRuns) {
         } else if (status === 'failed') {
             badgeClass = 'bg-red-50 text-red-700 border-red-200';
         }
+        const statusLabel = status === 'failed' && String(job.failure_type || '') === 'publish_failed' ? TASK_I18N.publishFailed : status;
         const taskName = String(job.task_name || '') || TASK_TEXT.jobsUnknownTask;
         return `<div class="rounded-lg border border-gray-200 px-3 py-3">
             <div class="flex items-center justify-between gap-3">
@@ -579,7 +519,7 @@ function renderRecentRuns(recentRuns) {
                     <div class="text-sm font-medium text-gray-900 truncate">${escapeHtml(taskName)}</div>
                     <div class="text-xs text-gray-500">Job #${Number(job.id || 0)} · ${escapeHtml(TASK_TEXT.jobsTaskPrefix)} #${Number(job.task_id || 0)}</div>
                 </div>
-                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${badgeClass}">${escapeHtml(status)}</span>
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${badgeClass}">${escapeHtml(statusLabel)}</span>
             </div>
             <div class="mt-2 text-xs text-gray-500">
                 <div>${escapeHtml(TASK_TEXT.jobsUpdatedAt)}: ${escapeHtml(String(job.updated_at || ''))}</div>

@@ -8,16 +8,22 @@ use App\Models\KnowledgeBase;
 use App\Models\TitleLibrary;
 use App\Models\UrlImportJob;
 use App\Models\UrlImportJobLog;
+use App\Services\Admin\MembershipService;
 use App\Services\GeoFlow\UrlImportProcessingService;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class UrlImportController extends Controller
 {
-    public function __construct(private readonly UrlImportProcessingService $urlImportProcessingService) {}
+    public function __construct(
+        private readonly UrlImportProcessingService $urlImportProcessingService,
+        private readonly MembershipService $membershipService
+    ) {}
 
     public function index(): View
     {
@@ -45,6 +51,14 @@ class UrlImportController extends Controller
             'download_images' => ['nullable', 'boolean'],
             'max_images' => ['nullable', 'integer', 'min:1', 'max:200'],
         ]);
+
+        try {
+            $this->membershipService->ensureCanRunUrlImport((int) TenantContext::id());
+        } catch (ValidationException $exception) {
+            return back()
+                ->withInput()
+                ->withErrors(['membership' => (string) ($exception->errors()['membership'][0] ?? $exception->getMessage())]);
+        }
 
         try {
             $normalized = $this->urlImportProcessingService->normalizeInputUrl((string) $validated['url']);
@@ -100,6 +114,28 @@ class UrlImportController extends Controller
         $job = UrlImportJob::query()->whereKey($jobId)->firstOrFail();
 
         if (in_array($job->status, ['queued', 'failed'], true)) {
+            try {
+                $this->membershipService->ensureCanRunUrlImport((int) TenantContext::id());
+            } catch (ValidationException $exception) {
+                $message = (string) ($exception->errors()['membership'][0] ?? $exception->getMessage());
+
+                $job->update([
+                    'status' => 'failed',
+                    'progress_percent' => max(1, (int) $job->progress_percent),
+                    'error_message' => $message,
+                    'finished_at' => now(),
+                ]);
+
+                UrlImportJobLog::query()->create([
+                    'job_id' => $job->id,
+                    'step' => $job->current_step ?: 'queued',
+                    'level' => 'error',
+                    'message' => __('admin.url_import.log.failed', ['message' => $message]),
+                ]);
+
+                return response()->json($this->statusPayload($job->refresh()), 422);
+            }
+
             try {
                 $this->urlImportProcessingService->assertAnalysisModelReady();
             } catch (\Throwable $exception) {

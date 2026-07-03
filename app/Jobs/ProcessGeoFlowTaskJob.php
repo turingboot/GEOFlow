@@ -11,6 +11,7 @@ use App\Support\Tenancy\TenantContext;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Arr;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
@@ -96,11 +97,26 @@ class ProcessGeoFlowTaskJob implements ShouldQueue
             $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
             $message = $exception->getMessage();
 
-            if (TenantContext::run($tenantId, fn (): bool => $this->shouldCancel($taskId, $message))) {
-                $queueService->cancelJob($this->taskRunId, $taskId, '管理员手动停止');
-            } else {
+            TenantContext::run($tenantId, function () use ($queueService, $taskId, $message, $exception, $durationMs): void {
+                if ($this->shouldCancel($taskId, $message)) {
+                    $queueService->cancelJob($this->taskRunId, $taskId, '管理员手动停止');
+
+                    return;
+                }
+
+                if ($exception instanceof ValidationException && $this->isMembershipValidationException($exception)) {
+                    $queueService->failJobPermanently(
+                        $this->taskRunId,
+                        $taskId,
+                        $this->validationMessage($exception),
+                        $durationMs
+                    );
+
+                    return;
+                }
+
                 $queueService->failJob($this->taskRunId, $taskId, $message, $durationMs);
-            }
+            });
         } finally {
             $this->heartbeat($workerId, 'idle', [
                 'pid' => getmypid(),
@@ -117,7 +133,7 @@ class ProcessGeoFlowTaskJob implements ShouldQueue
     public function failed(?Throwable $exception = null): void
     {
         try {
-            $run = TaskRun::query()->whereKey($this->taskRunId)->first(['id', 'task_id', 'status']);
+            $run = TaskRun::withoutGlobalScopes()->whereKey($this->taskRunId)->first(['id', 'tenant_id', 'task_id', 'status']);
             if (! $run || ($run->status ?? '') !== 'running') {
                 return;
             }
@@ -127,12 +143,14 @@ class ProcessGeoFlowTaskJob implements ShouldQueue
                 $message = '队列任务异常退出';
             }
 
-            app(JobQueueService::class)->failJob(
-                (int) $run->id,
-                (int) $run->task_id,
-                '队列中断: '.$message,
-                0
-            );
+            TenantContext::run((int) ($run->tenant_id ?? 0), function () use ($run, $message): void {
+                app(JobQueueService::class)->failJob(
+                    (int) $run->id,
+                    (int) $run->task_id,
+                    '队列中断: '.$message,
+                    0
+                );
+            });
         } catch (Throwable) {
             // 避免失败回调自身再抛错导致 Horizon 日志刷屏
         }
@@ -155,6 +173,19 @@ class ProcessGeoFlowTaskJob implements ShouldQueue
         }
 
         return ($task->status ?? 'paused') !== 'active' || (int) ($task->schedule_enabled ?? 1) !== 1;
+    }
+
+    private function isMembershipValidationException(ValidationException $exception): bool
+    {
+        return array_key_exists('membership', $exception->errors());
+    }
+
+    private function validationMessage(ValidationException $exception): string
+    {
+        $membershipErrors = $exception->errors()['membership'] ?? [];
+        $message = is_array($membershipErrors) ? (string) ($membershipErrors[0] ?? '') : '';
+
+        return trim($message) !== '' ? $message : $exception->getMessage();
     }
 
     private function tenantIdForTaskRun(int $taskRunId): ?int

@@ -3,6 +3,9 @@
     $adminBrandName = $adminBrandName ?? \App\Support\AdminWeb::siteName();
     $isSuperAdmin = $currentAdmin && method_exists($currentAdmin, 'isSuperAdmin') && $currentAdmin->isSuperAdmin();
     $adminRoleLabel = $isSuperAdmin ? __('admin.header.super_admin') : __('admin.header.admin');
+    $membershipSummary = $isSuperAdmin && \App\Support\Tenancy\TenantContext::id() === null
+        ? null
+        : app(\App\Services\Admin\MembershipService::class)->summaryForTenant(\App\Support\Tenancy\TenantContext::id());
     $updateNotification = is_array($adminUpdateNotificationPayload ?? null) ? $adminUpdateNotificationPayload : [];
     $updateState = is_array($updateNotification['state'] ?? null) ? $updateNotification['state'] : [];
     $updateLinks = is_array($updateNotification['links'] ?? null) ? $updateNotification['links'] : [];
@@ -136,29 +139,62 @@
                 <i data-lucide="chevron-down" class="w-4 h-4"></i>
             </button>
 
-            <div id="user-menu" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50">
+            <div id="user-menu" class="hidden absolute right-0 mt-2 overflow-hidden bg-white rounded-md shadow-lg py-1 z-50" style="width: 24rem; max-width: calc(100vw - 1rem);">
                 <div class="px-4 py-2 border-b border-gray-100">
-                    <div class="text-sm text-gray-700">{{ __('admin.header.welcome', ['name' => $currentAdmin->username ?? '']) }}</div>
-                    <div class="text-xs text-gray-400">{{ $adminRoleLabel }}</div>
+                    <div class="break-words text-sm leading-5 text-gray-700">{{ __('admin.header.welcome', ['name' => $currentAdmin->username ?? '']) }}</div>
+                    <div class="truncate text-xs text-gray-400">{{ $adminRoleLabel }}</div>
                 </div>
-                <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                @if (is_array($membershipSummary))
+                <div class="border-b border-gray-100 px-4 py-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="text-xs font-medium text-gray-500">当前会员</div>
+                            <div class="mt-1 truncate text-sm font-semibold text-gray-900">{{ $membershipSummary['plan_name'] }}</div>
+                        </div>
+                        <span class="inline-flex shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700">{{ $membershipSummary['status_label'] }}</span>
+                    </div>
+                    <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                            <span class="shrink-0 text-gray-500">到期时间：</span>
+                            <span class="min-w-0 truncate text-right font-semibold text-gray-800">{{ $membershipSummary['ends_at']?->format('Y-m-d') ?? '-' }}</span>
+                        </div>
+                        <div class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                            <span class="shrink-0 text-gray-500">本月文章：</span>
+                            <span class="min-w-0 truncate text-right font-semibold text-gray-800">{{ $membershipSummary['article_used'] }} / {{ $membershipSummary['article_limit'] > 0 ? $membershipSummary['article_limit'] : '不限量' }}</span>
+                        </div>
+                        <div class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                            <span class="shrink-0 text-gray-500">知识库：</span>
+                            <span class="min-w-0 truncate text-right font-semibold text-gray-800">{{ $membershipSummary['knowledge_used'] }} / {{ $membershipSummary['knowledge_limit'] > 0 ? $membershipSummary['knowledge_limit'] : '不限量' }}</span>
+                        </div>
+                        <div class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                            <span class="shrink-0 text-gray-500">剩余：</span>
+                            <span class="min-w-0 truncate text-right font-semibold text-gray-800">{{ $membershipSummary['remaining_days'] !== null ? $membershipSummary['remaining_days'].' 天' : '-' }}</span>
+                        </div>
+                    </div>
+                    <a href="{{ route('admin.membership.show') }}" class="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                        <i data-lucide="badge-check" class="mr-1.5 h-4 w-4"></i>
+                        会员详情
+                    </a>
+                </div>
+                @endif
+                <a href="{{ route('admin.dashboard') }}" class="block whitespace-nowrap px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                     <i data-lucide="home" class="w-4 h-4 inline mr-2"></i>
                     {{ __('admin.nav.back_home') }}
                 </a>
                 @if ($isSuperAdmin)
-                    <a href="{{ route('admin.site-settings.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="{{ route('admin.site-settings.index') }}" class="block whitespace-nowrap px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <i data-lucide="settings" class="w-4 h-4 inline mr-2"></i>
                         {{ __('admin.nav.system_settings') }}
                     </a>
-                    <a href="{{ route('admin.admin-users.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="{{ route('admin.admin-users.index') }}" class="block whitespace-nowrap px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <i data-lucide="users" class="w-4 h-4 inline mr-2"></i>
                         {{ __('admin.nav.admin_management') }}
                     </a>
-                    <a href="{{ route('admin.admin-activity-logs') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="{{ route('admin.admin-activity-logs') }}" class="block whitespace-nowrap px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <i data-lucide="clipboard-list" class="w-4 h-4 inline mr-2"></i>
                         {{ __('admin.nav.activity_logs') }}
                     </a>
-                    <a href="{{ route('admin.api-tokens.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="{{ route('admin.api-tokens.index') }}" class="block whitespace-nowrap px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <i data-lucide="key-round" class="w-4 h-4 inline mr-2"></i>
                         {{ __('admin.nav.api_tokens') }}
                     </a>
@@ -166,7 +202,7 @@
                 <div class="border-t border-gray-100"></div>
                 <form method="POST" action="{{ route('admin.logout') }}">
                     @csrf
-                    <button type="submit" class="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                    <button type="submit" class="block w-full whitespace-nowrap px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100">
                         <i data-lucide="log-out" class="w-4 h-4 inline mr-2"></i>
                         {{ __('admin.button.logout') }}
                     </button>

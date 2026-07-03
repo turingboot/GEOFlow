@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Services\Admin\MembershipService;
 use App\Support\AdminWeb;
 use App\Support\Tenancy\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -24,7 +26,10 @@ use Throwable;
  */
 class AdminUserController extends Controller
 {
-    public function __construct(private readonly TenantProvisioner $tenantProvisioner) {}
+    public function __construct(
+        private readonly TenantProvisioner $tenantProvisioner,
+        private readonly MembershipService $membershipService
+    ) {}
 
     /**
      * 管理员管理首页。
@@ -38,6 +43,7 @@ class AdminUserController extends Controller
             'activeMenu' => 'admin_users',
             'adminSiteName' => AdminWeb::siteName(),
             'admins' => $admins,
+            'membershipPlans' => $this->membershipService->activePlans(),
             'stats' => [
                 'total_admins' => count($admins),
                 'active_admins' => count(array_filter($admins, static fn (array $admin): bool => $admin['status'] === 'active')),
@@ -222,6 +228,62 @@ class AdminUserController extends Controller
         }
     }
 
+    public function assignMembership(int $adminId, Request $request): RedirectResponse
+    {
+        if ($adminId <= 0) {
+            return back()->withErrors(__('admin.admin_users.error.invalid_id'));
+        }
+
+        $targetAdmin = Admin::query()->whereKey($adminId)->firstOrFail();
+        if ($targetAdmin->isSuperAdmin()) {
+            return back()->withErrors('超级管理员不需要分配会员。');
+        }
+
+        $payload = $request->validate([
+            'membership_plan_id' => ['required', 'integer', Rule::exists('membership_plans', 'id')->where('is_active', true)],
+            'period' => ['required', Rule::in(['month', 'quarter', 'year', 'custom'])],
+            'effective_mode' => ['required', Rule::in(['renew', 'reopen'])],
+            'ends_at' => ['nullable', 'date'],
+            'remark' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $tenant = $this->tenantProvisioner->ensureForAdmin($targetAdmin);
+        $customEndsAt = filled($payload['ends_at'] ?? null)
+            ? Carbon::parse((string) $payload['ends_at'])->endOfDay()
+            : null;
+
+        $this->membershipService->assignMembership(
+            (int) $tenant->id,
+            (int) $payload['membership_plan_id'],
+            (string) $payload['period'],
+            (string) $payload['effective_mode'],
+            $customEndsAt,
+            trim((string) ($payload['remark'] ?? '')),
+            (int) (auth('admin')->id() ?? 0) ?: null
+        );
+
+        return redirect()->route('admin.admin-users.index')->with('message', '会员已分配。');
+    }
+
+    public function disableMembership(int $adminId): RedirectResponse
+    {
+        if ($adminId <= 0) {
+            return back()->withErrors(__('admin.admin_users.error.invalid_id'));
+        }
+
+        $targetAdmin = Admin::query()->whereKey($adminId)->firstOrFail();
+        if ($targetAdmin->isSuperAdmin()) {
+            return back()->withErrors('超级管理员不需要停用会员。');
+        }
+
+        $tenant = $this->tenantProvisioner->ensureForAdmin($targetAdmin);
+        if (! $this->membershipService->disableActiveMembership((int) $tenant->id)) {
+            return back()->withErrors('当前用户没有可停用的生效会员。');
+        }
+
+        return redirect()->route('admin.admin-users.index')->with('message', '会员已停用。');
+    }
+
     /**
      * @return array<int, array{
      *   id:int,
@@ -250,6 +312,7 @@ class AdminUserController extends Controller
                 'last_login',
                 'created_at',
                 'created_by',
+                'tenant_id',
             ])
             ->with(['creator:id,username'])
             // 与 bak 一致：超级管理员置顶，其余按创建时间和 ID 升序。
@@ -263,7 +326,9 @@ class AdminUserController extends Controller
 
         $admins = $query->get();
 
-        return $admins->map(static function (Admin $admin): array {
+        return $admins->map(function (Admin $admin): array {
+            $membership = $this->membershipService->summaryForTenant((int) ($admin->tenant_id ?? 0));
+
             return [
                 'id' => (int) $admin->id,
                 'username' => (string) ($admin->username ?? ''),
@@ -276,6 +341,13 @@ class AdminUserController extends Controller
                 'created_at' => $admin->created_at?->format('Y-m-d H:i:s') ?? '',
                 'creator_username' => (string) ($admin->creator?->username ?? ''),
                 'activity_count' => (int) ($admin->activity_count ?? 0),
+                'tenant_id' => (int) ($admin->tenant_id ?? 0),
+                'membership' => $membership,
+                'membership_plan_name' => (string) $membership['plan_name'],
+                'membership_status' => (string) $membership['status'],
+                'membership_status_label' => (string) $membership['status_label'],
+                'membership_ends_at' => $membership['ends_at']?->format('Y-m-d') ?? '',
+                'membership_remaining_days' => $membership['remaining_days'],
             ];
         })->all();
     }

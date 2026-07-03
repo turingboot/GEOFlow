@@ -1,5 +1,11 @@
 @php
     $adminBrandName = \App\Support\AdminWeb::siteName();
+    $layoutAdmin = auth('admin')->user();
+    $layoutTenantId = \App\Support\Tenancy\TenantContext::id();
+    $layoutIsSuperAdmin = $layoutAdmin && method_exists($layoutAdmin, 'isSuperAdmin') && $layoutAdmin->isSuperAdmin();
+    $layoutMembership = auth('admin')->check() && ! ($layoutIsSuperAdmin && $layoutTenantId === null)
+        ? app(\App\Services\Admin\MembershipService::class)->summaryForTenant($layoutTenantId)
+        : null;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -33,6 +39,17 @@
                 @if (session('message'))
                     <div class="admin-flash-alert mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
                         <span class="block sm:inline">{{ session('message') }}</span>
+                    </div>
+                @endif
+                @if (is_array($layoutMembership) && in_array($layoutMembership['status'], ['expiring', 'expired', 'disabled', 'none'], true))
+                    <div class="admin-flash-alert mb-4 rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="badge-check" class="mt-0.5 h-4 w-4 text-gray-500"></i>
+                            <div>
+                                <div class="font-medium">{{ $layoutMembership['status_label'] }}</div>
+                                <div class="mt-1 leading-6">{{ $layoutMembership['message'] }}</div>
+                            </div>
+                        </div>
                     </div>
                 @endif
                 @if ($errors->any())

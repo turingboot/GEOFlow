@@ -103,9 +103,24 @@ class GeoFlowScheduleTasksCommand extends Command
                     ],
                 ]);
 
+        $latestRuns = empty($taskIds)
+            ? collect()
+            : TaskRun::query()
+                ->whereIn('task_id', $taskIds)
+                ->orderByDesc('id')
+                ->get(['id', 'task_id', 'status', 'meta'])
+                ->groupBy('task_id')
+                ->map(static fn ($group): ?TaskRun => $group->first());
+
         foreach ($tasks as $task) {
             $taskId = (int) $task->id;
             if ((int) ($task->schedule_enabled ?? 1) !== 1) {
+                $skippedCount++;
+
+                continue;
+            }
+
+            if ($this->hasBlockingPublishFailure($latestRuns->get($taskId))) {
                 $skippedCount++;
 
                 continue;
@@ -168,5 +183,17 @@ class GeoFlowScheduleTasksCommand extends Command
         }
 
         return [$queuedCount, $skippedCount];
+    }
+
+    private function hasBlockingPublishFailure(?TaskRun $latestRun): bool
+    {
+        if (! $latestRun || (string) $latestRun->status !== 'failed') {
+            return false;
+        }
+
+        $meta = is_array($latestRun->meta) ? $latestRun->meta : [];
+
+        return (string) ($meta['failure_type'] ?? '') === 'publish_failed'
+            && (bool) ($meta['non_retryable'] ?? false);
     }
 }

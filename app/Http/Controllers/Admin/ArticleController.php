@@ -11,6 +11,7 @@ use App\Models\Author;
 use App\Models\Category;
 use App\Models\DistributionChannel;
 use App\Models\Task;
+use App\Services\Admin\MembershipService;
 use App\Services\GeoFlow\DistributionOrchestrator;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\ArticleWorkflow;
@@ -35,7 +36,10 @@ use Throwable;
  */
 class ArticleController extends Controller
 {
-    public function __construct(private readonly DistributionOrchestrator $distributionOrchestrator) {}
+    public function __construct(
+        private readonly DistributionOrchestrator $distributionOrchestrator,
+        private readonly MembershipService $membershipService
+    ) {}
 
     /**
      * 文章管理首页：渲染筛选与列表。
@@ -229,6 +233,10 @@ class ArticleController extends Controller
         );
 
         try {
+            if ($workflowState['status'] === 'published') {
+                $this->membershipService->ensureCanPublishArticle($tenantId);
+            }
+
             $article = Article::query()->create([
                 'tenant_id' => $tenantId,
                 'title' => $payload['title'],
@@ -247,8 +255,11 @@ class ArticleController extends Controller
                 'is_featured' => (bool) ($payload['is_featured'] ?? false),
             ]);
             if ($workflowState['status'] === 'published') {
+                $this->membershipService->recordPublishedArticle($tenantId);
                 $this->distributionOrchestrator->enqueueForArticle($article);
             }
+        } catch (ValidationException $e) {
+            return back()->withInput()->withErrors($e->errors());
         } catch (Throwable $e) {
             return back()->withInput()->withErrors(__('admin.article_create.error.create_exception', ['message' => $e->getMessage()]));
         }
@@ -311,8 +322,14 @@ class ArticleController extends Controller
             $payload['review_status'],
             $article->published_at?->format('Y-m-d H:i:s')
         );
+        $willPublishForFirstTime = $workflowState['status'] === 'published'
+            && ((string) ($article->status ?? '') !== 'published' || $article->published_at === null);
 
         try {
+            if ($willPublishForFirstTime) {
+                $this->membershipService->ensureCanPublishArticle((int) ($article->tenant_id ?? 0));
+            }
+
             $article->fill([
                 'title' => $payload['title'],
                 'slug' => $payload['title'] === $article->title
@@ -331,8 +348,13 @@ class ArticleController extends Controller
                 'is_featured' => (bool) ($payload['is_featured'] ?? false),
             ])->save();
             if ($workflowState['status'] === 'published') {
+                if ($willPublishForFirstTime) {
+                    $this->membershipService->recordPublishedArticle((int) ($article->tenant_id ?? 0));
+                }
                 $this->distributionOrchestrator->enqueueForArticle($article);
             }
+        } catch (ValidationException $e) {
+            return back()->withInput()->withErrors($e->errors());
         } catch (Throwable $e) {
             return back()->withInput()->withErrors(__('admin.article_edit.error.update_exception', ['message' => $e->getMessage()]));
         }
@@ -786,9 +808,27 @@ class ArticleController extends Controller
         }
 
         $articles = Article::query()
-            ->select(['id', 'review_status', 'published_at'])
+            ->select(['id', 'tenant_id', 'status', 'review_status', 'published_at'])
             ->whereIn('id', $articleIds)
             ->get();
+        $newPublishCounts = [];
+
+        foreach ($articles as $article) {
+            $workflowState = ArticleWorkflow::normalizeState(
+                $newStatus,
+                (string) ($article->review_status ?? 'pending'),
+                $article->published_at?->format('Y-m-d H:i:s')
+            );
+
+            if ($workflowState['status'] === 'published' && ((string) ($article->status ?? '') !== 'published' || $article->published_at === null)) {
+                $tenantId = (int) ($article->tenant_id ?? 0);
+                $newPublishCounts[$tenantId] = ($newPublishCounts[$tenantId] ?? 0) + 1;
+            }
+        }
+
+        foreach ($newPublishCounts as $tenantId => $count) {
+            $this->membershipService->ensureCanPublishArticle((int) $tenantId, (int) $count);
+        }
 
         foreach ($articles as $article) {
             $workflowState = ArticleWorkflow::normalizeState(
@@ -804,6 +844,9 @@ class ArticleController extends Controller
             ]);
 
             if ($workflowState['status'] === 'published') {
+                if ((string) ($article->status ?? '') !== 'published' || $article->published_at === null) {
+                    $this->membershipService->recordPublishedArticle((int) ($article->tenant_id ?? 0));
+                }
                 $this->distributionOrchestrator->enqueueForArticle((int) $article->id);
             }
         }
@@ -823,9 +866,33 @@ class ArticleController extends Controller
 
         $articles = Article::query()
             ->with(['task:id,need_review'])
-            ->select(['id', 'status', 'review_status', 'published_at', 'task_id'])
+            ->select(['id', 'tenant_id', 'status', 'review_status', 'published_at', 'task_id'])
             ->whereIn('id', $articleIds)
             ->get();
+        $newPublishCounts = [];
+
+        foreach ($articles as $article) {
+            $desiredStatus = (string) ($article->status ?? 'draft');
+            $needsReview = (int) ($article->task->need_review ?? 0);
+            if (in_array($reviewStatus, ['approved', 'auto_approved'], true) && ($reviewStatus === 'auto_approved' || $needsReview === 0)) {
+                $desiredStatus = 'published';
+            }
+
+            $workflowState = ArticleWorkflow::normalizeState(
+                $desiredStatus,
+                $reviewStatus,
+                $article->published_at?->format('Y-m-d H:i:s')
+            );
+
+            if ($workflowState['status'] === 'published' && ((string) ($article->status ?? '') !== 'published' || $article->published_at === null)) {
+                $tenantId = (int) ($article->tenant_id ?? 0);
+                $newPublishCounts[$tenantId] = ($newPublishCounts[$tenantId] ?? 0) + 1;
+            }
+        }
+
+        foreach ($newPublishCounts as $tenantId => $count) {
+            $this->membershipService->ensureCanPublishArticle((int) $tenantId, (int) $count);
+        }
 
         foreach ($articles as $article) {
             $desiredStatus = (string) ($article->status ?? 'draft');
@@ -847,6 +914,9 @@ class ArticleController extends Controller
             ]);
 
             if ($workflowState['status'] === 'published') {
+                if ((string) ($article->status ?? '') !== 'published' || $article->published_at === null) {
+                    $this->membershipService->recordPublishedArticle((int) ($article->tenant_id ?? 0));
+                }
                 $this->distributionOrchestrator->enqueueForArticle((int) $article->id);
             }
         }

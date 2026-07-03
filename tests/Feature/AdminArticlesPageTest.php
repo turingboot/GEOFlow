@@ -362,6 +362,7 @@ class AdminArticlesPageTest extends TestCase
         $author = Author::query()->create([
             'name' => 'GEOFlow',
         ]);
+        $this->grantTestingMembership();
 
         $this->actingAs($admin, 'admin')
             ->post(route('admin.articles.store'), [

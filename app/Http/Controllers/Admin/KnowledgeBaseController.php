@@ -7,8 +7,10 @@ use App\Models\AiModel;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeChunk;
 use App\Models\Task;
+use App\Services\Admin\MembershipService;
 use App\Services\GeoFlow\KnowledgeChunkSyncService;
 use App\Support\AdminWeb;
+use App\Support\Tenancy\TenantContext;
 use App\Support\Tenancy\TenantStoragePath;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +29,10 @@ use Illuminate\View\View;
  */
 class KnowledgeBaseController extends Controller
 {
-    public function __construct(private readonly KnowledgeChunkSyncService $chunkSyncService) {}
+    public function __construct(
+        private readonly KnowledgeChunkSyncService $chunkSyncService,
+        private readonly MembershipService $membershipService
+    ) {}
 
     /**
      * 列表页。
@@ -437,6 +442,8 @@ class KnowledgeBaseController extends Controller
                     'knowledge_files' => __('admin.knowledge_bases.error.file_required'),
                 ]);
             }
+
+            $this->membershipService->ensureCanCreateKnowledgeBase((int) (TenantContext::id() ?? 0));
 
             $parsedFiles = $this->parseUploadedKnowledgeFiles($uploadedFiles, $storedPaths);
             $content = $this->mergeKnowledgeSources($manualContent, $parsedFiles);

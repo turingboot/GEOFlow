@@ -14,6 +14,7 @@ use App\Models\KnowledgeChunk;
 use App\Models\Prompt;
 use App\Models\Task;
 use App\Models\Title;
+use App\Services\Admin\MembershipService;
 use App\Support\GeoFlow\ApiKeyCrypto;
 use App\Support\GeoFlow\ArticleWorkflow;
 use App\Support\GeoFlow\ImageUrlNormalizer;
@@ -37,7 +38,8 @@ class WorkerExecutionService
         private readonly ApiKeyCrypto $apiKeyCrypto,
         private readonly KnowledgeChunkSyncService $knowledgeChunkSyncService,
         private readonly KnowledgeRetrievalService $knowledgeRetrievalService,
-        private readonly DistributionOrchestrator $distributionOrchestrator
+        private readonly DistributionOrchestrator $distributionOrchestrator,
+        private readonly MembershipService $membershipService
     ) {}
 
     /**
@@ -225,7 +227,7 @@ class WorkerExecutionService
                 ->whereNull('deleted_at')
                 ->orderBy('id')
                 ->lockForUpdate()
-                ->first(['id', 'title', 'review_status']);
+                ->first(['id', 'tenant_id', 'title', 'review_status']);
             if (! $article) {
                 return null;
             }
@@ -233,6 +235,11 @@ class WorkerExecutionService
             $publishScope = (string) ($freshTask->publish_scope ?? 'local_and_distribution');
             $targetStatus = $publishScope === 'distribution_only' ? 'private' : 'published';
             $workflow = ArticleWorkflow::normalizeState($targetStatus, (string) ($article->review_status ?: 'approved'));
+            if ($workflow['status'] === 'published') {
+                $tenantId = (int) ($article->tenant_id ?? 0);
+                $this->membershipService->ensureCanPublishArticle($tenantId);
+            }
+
             Article::query()->whereKey((int) $article->id)->update([
                 'status' => $workflow['status'],
                 'review_status' => $workflow['review_status'],
@@ -246,6 +253,10 @@ class WorkerExecutionService
                 'next_publish_at' => now()->addSeconds($publishInterval),
                 'updated_at' => now(),
             ]);
+
+            if ($workflow['status'] === 'published') {
+                $this->membershipService->recordPublishedArticle((int) ($article->tenant_id ?? 0));
+            }
 
             return [
                 'article_id' => (int) $article->id,

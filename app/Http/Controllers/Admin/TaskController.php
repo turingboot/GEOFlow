@@ -383,6 +383,8 @@ class TaskController extends Controller
             'taskPausedDetail' => __('admin.tasks.failure.paused_detail'),
             'modelTimeout' => __('admin.tasks.failure.model_timeout'),
             'modelTimeoutDetail' => __('admin.tasks.failure.model_timeout_detail', ['seconds' => '__SECONDS__']),
+            'publishFailed' => __('admin.tasks.failure.publish_failed'),
+            'recentPublishFailed' => __('admin.tasks.failure.recent_publish_failed'),
             'recentFailed' => __('admin.tasks.failure.recent_failed'),
             'syncFailed' => __('admin.tasks.message.status_update_failed'),
             'confirmStart' => __('admin.tasks.confirm.start', ['name' => '__NAME__']),

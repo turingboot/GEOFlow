@@ -746,6 +746,8 @@ return [
             'paused_detail' => 'Pending jobs were canceled. This is not a model generation error.',
             'model_timeout' => 'Model timeout',
             'model_timeout_detail' => 'The model did not return within :seconds seconds. The task will continue according to the retry policy.',
+            'publish_failed' => 'Publish failed',
+            'recent_publish_failed' => 'Recent publish failed',
             'execution_failed' => 'Execution failed',
             'recent_failed' => 'Recent execution failed',
         ],

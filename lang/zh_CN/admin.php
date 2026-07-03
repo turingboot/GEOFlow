@@ -746,6 +746,8 @@ return [
             'paused_detail' => '待执行 job 已取消，当前不是模型生成错误。',
             'model_timeout' => '模型接口超时',
             'model_timeout_detail' => '模型接口在 :seconds 秒内未返回结果，任务会按重试策略继续处理。',
+            'publish_failed' => '发布失败',
+            'recent_publish_failed' => '最近发布失败',
             'execution_failed' => '执行失败',
             'recent_failed' => '最近执行失败',
         ],

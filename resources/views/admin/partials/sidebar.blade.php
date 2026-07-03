@@ -17,6 +17,7 @@
     if ($isSuperAdmin) {
         // 本站设置 / 用户管理 仅超级管理员可见
         $menu['site_settings'] = ['route' => 'admin.site-settings.index', 'name' => __('admin.nav.site_settings')];
+        $menu['memberships'] = ['route' => 'admin.memberships.index', 'name' => '会员管理'];
         $menu['admin_users'] = ['route' => 'admin.admin-users.index', 'name' => __('admin.nav.admin_users')];
     }
     $menuIcons = [
@@ -31,6 +32,7 @@
         'topic_plans' => 'calendar-clock',
         'ai_config' => 'bot',
         'site_settings' => 'settings',
+        'memberships' => 'badge-check',
         'admin_users' => 'users',
     ];
     $subMap = [
@@ -116,6 +118,9 @@
         'admin.security-settings.index' => 'site_settings',
         'admin.security-settings.words.store' => 'site_settings',
         'admin.security-settings.words.delete' => 'site_settings',
+        'admin.memberships.index' => 'memberships',
+        'admin.memberships.store' => 'memberships',
+        'admin.memberships.update' => 'memberships',
         'admin.api-tokens.index' => 'admin_users',
         'admin.api-tokens.store' => 'admin_users',
         'admin.api-tokens.revoke' => 'admin_users',

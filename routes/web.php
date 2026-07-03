@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\KeywordTrendController;
 use App\Http\Controllers\Admin\KnowledgeBaseController;
 use App\Http\Controllers\Admin\LegacyController;
 use App\Http\Controllers\Admin\MaterialsController;
+use App\Http\Controllers\Admin\MembershipController;
 use App\Http\Controllers\Admin\SecuritySettingsController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\SiteThemeEditorController;
@@ -91,6 +92,7 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');
         Route::post('welcome/dismiss', [AdminWelcomeController::class, 'dismiss'])->name('welcome.dismiss');
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('membership', [MembershipController::class, 'show'])->name('membership.show');
         Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics');
 
         // 超管切换「当前操作租户」（具体租户 = 读写进入；不传 = 全部租户只读总览）
@@ -439,10 +441,18 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
 
         // 超级管理员功能
         Route::middleware('admin.super')->group(function () {
+            Route::prefix('memberships')->name('memberships.')->group(function () {
+                Route::get('/', [MembershipController::class, 'index'])->name('index');
+                Route::post('/', [MembershipController::class, 'store'])->name('store');
+                Route::post('{planId}/update', [MembershipController::class, 'update'])->name('update')->whereNumber('planId');
+                Route::post('{planId}/delete', [MembershipController::class, 'destroy'])->name('delete')->whereNumber('planId');
+            });
             Route::prefix('admin-users')->name('admin-users.')->group(function () {
                 Route::get('/', [AdminUserController::class, 'index'])->name('index');
                 Route::post('create', [AdminUserController::class, 'store'])->name('store');
                 Route::post('{adminId}/update', [AdminUserController::class, 'update'])->name('update');
+                Route::post('{adminId}/membership', [AdminUserController::class, 'assignMembership'])->name('membership');
+                Route::post('{adminId}/membership/disable', [AdminUserController::class, 'disableMembership'])->name('membership.disable');
                 Route::post('{adminId}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('toggle-status');
                 Route::post('{adminId}/delete', [AdminUserController::class, 'destroy'])->name('delete');
             });

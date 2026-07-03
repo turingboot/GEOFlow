@@ -35,6 +35,8 @@ class AdminShellLayoutTest extends TestCase
         // Topbar controls: notifications, language switch, user menu (logout).
         $response->assertSee(__('admin.header.notifications.title'));
         $response->assertSee(route('admin.locale.switch', ['locale' => 'en']), false);
+        $response->assertSee('id="user-menu"', false);
+        $response->assertSee('width: 24rem; max-width: calc(100vw - 1rem);', false);
         $response->assertSee(route('admin.logout'), false);
         $response->assertSee(__('admin.button.logout'));
     }

@@ -3,7 +3,9 @@
 namespace Tests;
 
 use App\Models\Admin;
+use App\Models\MembershipPlan;
 use App\Models\Tenant;
+use App\Models\TenantMembership;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -94,6 +96,37 @@ abstract class TestCase extends BaseTestCase
 
         TenantContext::set((int) $tenant->id);
         $this->registerAdminTenantDefault();
+    }
+
+    protected function grantTestingMembership(?int $tenantId = null, int $articleLimit = 10000, int $knowledgeLimit = 10000): void
+    {
+        $tenantId ??= TenantContext::id();
+        if (! $tenantId || ! Schema::hasTable('membership_plans') || ! Schema::hasTable('tenant_memberships')) {
+            return;
+        }
+
+        $plan = MembershipPlan::query()->firstOrCreate(
+            ['name' => '测试会员'],
+            [
+                'article_monthly_limit' => $articleLimit,
+                'knowledge_base_limit' => $knowledgeLimit,
+                'is_active' => true,
+                'sort_order' => 999,
+            ]
+        );
+
+        TenantMembership::query()->updateOrCreate(
+            [
+                'tenant_id' => (int) $tenantId,
+                'status' => 'active',
+            ],
+            [
+                'membership_plan_id' => (int) $plan->id,
+                'starts_at' => now()->subDay(),
+                'ends_at' => now()->addYear(),
+                'remark' => 'testing',
+            ]
+        );
     }
 
     private function registerAdminTenantDefault(): void

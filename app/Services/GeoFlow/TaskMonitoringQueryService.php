@@ -250,6 +250,7 @@ class TaskMonitoringQueryService
             $batchStatus = $this->resolveBatchStatus($task, $runs, $latestRun, $articles);
             // 错误信息优先取最近 run 的 error_message，其次退回 tasks.last_error_message。
             $batchErrorMessage = (string) ($latestRun?->error_message ?: ($task->last_error_message ?? ''));
+            $latestFailureType = (string) ($latestRun?->meta['failure_type'] ?? '');
 
             return [
                 'id' => $taskId,
@@ -288,6 +289,7 @@ class TaskMonitoringQueryService
                 'publish_interval' => (int) ($task->publish_interval ?? 3600),
                 'batch_status' => $batchStatus,
                 'batch_error_message' => trim($batchErrorMessage),
+                'batch_failure_type' => $latestFailureType,
                 'batch_last_run' => $task->last_run_at?->toDateTimeString(),
                 'last_error_at' => $task->last_error_at?->toDateTimeString(),
                 'next_run_at' => $task->next_run_at?->toDateTimeString(),
@@ -376,6 +378,17 @@ class TaskMonitoringQueryService
             return 'idle';
         }
 
+        $latestStatus = (string) ($latestRun?->status ?? '');
+        $latestError = trim((string) ($latestRun?->error_message ?: ($task->last_error_message ?? '')));
+        $latestFailureType = (string) ($latestRun?->meta['failure_type'] ?? '');
+        if (
+            $latestStatus === 'failed'
+            && $latestFailureType === 'publish_failed'
+            && $latestError !== ''
+        ) {
+            return 'failed';
+        }
+
         $articleLimit = (int) ($task->article_limit ?? $task->draft_limit ?? 10);
         $createdCount = (int) ($task->created_count ?? 0);
         $draftLimit = (int) ($task->draft_limit ?? 10);
@@ -398,8 +411,6 @@ class TaskMonitoringQueryService
             return 'limit_reached';
         }
 
-        $latestStatus = (string) ($latestRun?->status ?? '');
-        $latestError = trim((string) ($latestRun?->error_message ?: ($task->last_error_message ?? '')));
         if (in_array($latestStatus, ['failed', 'cancelled'], true) && $latestError !== '') {
             return $latestStatus;
         }
@@ -436,7 +447,7 @@ class TaskMonitoringQueryService
     private function recentRuns(): array
     {
         return TaskRun::query()
-            ->select(['id', 'task_id', 'status', 'error_message', 'created_at'])
+            ->select(['id', 'task_id', 'status', 'error_message', 'meta', 'created_at'])
             ->with(['task:id,name'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -447,6 +458,7 @@ class TaskMonitoringQueryService
                 'task_id' => (int) $row->task_id,
                 'status' => (string) $row->status,
                 'error_message' => (string) ($row->error_message ?? ''),
+                'failure_type' => (string) ($row->meta['failure_type'] ?? ''),
                 'updated_at' => $row->created_at?->toDateTimeString(),
                 'task_name' => (string) ($row->task?->name ?? ''),
             ])

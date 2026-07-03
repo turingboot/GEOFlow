@@ -215,6 +215,7 @@ class AdminMaterialsPagesTest extends TestCase
             'role' => 'admin',
             'status' => 'active',
         ]);
+        $this->grantTestingMembership();
 
         $response = $this->actingAs($admin, 'admin')
             ->post(route('admin.knowledge-bases.store'), [
@@ -258,6 +259,7 @@ class AdminMaterialsPagesTest extends TestCase
             'role' => 'admin',
             'status' => 'active',
         ]);
+        $this->grantTestingMembership();
 
         $this->actingAs($admin, 'admin')
             ->post(route('admin.knowledge-bases.store'), [
@@ -298,6 +300,7 @@ class AdminMaterialsPagesTest extends TestCase
             'role' => 'admin',
             'status' => 'active',
         ]);
+        $this->grantTestingMembership();
 
         $this->actingAs($admin, 'admin')
             ->post(route('admin.knowledge-bases.store'), [
@@ -326,6 +329,7 @@ class AdminMaterialsPagesTest extends TestCase
             'role' => 'admin',
             'status' => 'active',
         ]);
+        $this->grantTestingMembership();
 
         $this->mock(KnowledgeChunkSyncService::class, function ($mock): void {
             $mock->shouldNotReceive('sync');
@@ -358,6 +362,7 @@ class AdminMaterialsPagesTest extends TestCase
             'role' => 'admin',
             'status' => 'active',
         ]);
+        $this->grantTestingMembership();
 
         $this->mock(KnowledgeChunkSyncService::class, function ($mock): void {
             $mock->shouldReceive('sync')
@@ -438,6 +443,7 @@ class AdminMaterialsPagesTest extends TestCase
             'role' => 'admin',
             'status' => 'active',
         ]);
+        $this->grantTestingMembership();
 
         $files = [];
         for ($index = 1; $index <= 11; $index++) {
@@ -473,6 +479,7 @@ class AdminMaterialsPagesTest extends TestCase
             'role' => 'admin',
             'status' => 'active',
         ]);
+        $this->grantTestingMembership();
 
         $this->actingAs($admin, 'admin')
             ->from(route('admin.knowledge-bases.create'))
@@ -1453,6 +1460,7 @@ class AdminMaterialsPagesTest extends TestCase
             'role' => 'admin',
             'status' => 'active',
         ]);
+        $this->grantTestingMembership();
 
         $imageLibrary = ImageLibrary::query()->create([
             'name' => '图片库C',

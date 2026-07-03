@@ -17,12 +17,14 @@ use App\Models\TaskRun;
 use App\Models\TitleLibrary;
 use App\Models\WorkerHeartbeat;
 use App\Services\GeoFlow\JobQueueService;
+use App\Services\GeoFlow\TaskMonitoringQueryService;
 use App\Services\GeoFlow\WorkerExecutionService;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\ApiKeyCrypto;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Mockery;
 use Tests\TestCase;
 
@@ -604,6 +606,170 @@ class AdminTasksPageTest extends TestCase
             'completed',
             (string) TaskRun::withoutGlobalScopes()->whereKey((int) $run->id)->value('status')
         );
+    }
+
+    public function test_queue_job_marks_membership_quota_error_as_failed_without_retry(): void
+    {
+        $task = Task::query()->create([
+            'name' => 'Membership Quota Queue Task',
+            'status' => 'active',
+            'schedule_enabled' => 1,
+            'publish_interval' => 3600,
+            'draft_limit' => 5,
+            'article_limit' => 10,
+        ]);
+        $run = TaskRun::query()->create([
+            'task_id' => (int) $task->id,
+            'status' => 'pending',
+            'started_at' => now(),
+            'meta' => [
+                'job_type' => 'generate_article',
+                'payload' => [],
+                'attempt_count' => 0,
+                'max_attempts' => 3,
+                'available_at' => now()->toDateTimeString(),
+            ],
+        ]);
+
+        $workerExecutionService = Mockery::mock(WorkerExecutionService::class);
+        $workerExecutionService
+            ->shouldReceive('executeTask')
+            ->once()
+            ->with((int) $task->id)
+            ->andThrow(ValidationException::withMessages([
+                'membership' => '本月发布文章额度已用完，请升级套餐或联系管理员。',
+            ]));
+
+        TenantContext::clear();
+
+        (new ProcessGeoFlowTaskJob((int) $run->id))->handle(
+            app(JobQueueService::class),
+            $workerExecutionService
+        );
+
+        $run = TaskRun::withoutGlobalScopes()->whereKey((int) $run->id)->firstOrFail();
+        $this->assertSame('failed', (string) $run->status);
+        $this->assertSame('本月发布文章额度已用完，请升级套餐或联系管理员。', (string) $run->error_message);
+        $this->assertNotNull($run->finished_at);
+        $this->assertSame(3, (int) ($run->meta['attempt_count'] ?? 0));
+        $this->assertSame('publish_failed', (string) ($run->meta['failure_type'] ?? ''));
+        $this->assertTrue((bool) ($run->meta['non_retryable'] ?? false));
+
+        $admin = Admin::query()->create([
+            'username' => 'tasks_publish_failed_admin',
+            'password' => 'secret-123',
+            'email' => 'tasks-publish-failed@example.com',
+            'display_name' => 'Tasks Publish Failed Admin',
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.tasks.index'))
+            ->assertOk()
+            ->assertSee('发布失败');
+    }
+
+    public function test_latest_publish_failure_overrides_waiting_publish_status(): void
+    {
+        $task = Task::query()->create([
+            'name' => 'Publish Quota Failure Status Task',
+            'status' => 'active',
+            'schedule_enabled' => 1,
+            'publish_interval' => 3600,
+            'draft_limit' => 5,
+            'article_limit' => 10,
+            'next_publish_at' => now()->subMinutes(10),
+        ]);
+        $category = Category::query()->create([
+            'name' => 'Publish Quota Category',
+            'slug' => 'publish-quota-category',
+        ]);
+        $author = Author::query()->create([
+            'name' => 'GEOFlow',
+        ]);
+        Article::query()->create([
+            'title' => 'Publish Quota Draft',
+            'slug' => 'publish-quota-draft',
+            'excerpt' => 'Draft summary',
+            'content' => 'Draft content',
+            'category_id' => $category->id,
+            'author_id' => $author->id,
+            'task_id' => $task->id,
+            'status' => 'draft',
+            'review_status' => 'approved',
+        ]);
+        TaskRun::query()->create([
+            'task_id' => (int) $task->id,
+            'status' => 'failed',
+            'error_message' => '本月发布文章额度已用完，请升级套餐或联系管理员。',
+            'finished_at' => now(),
+            'meta' => [
+                'failure_type' => 'publish_failed',
+                'non_retryable' => true,
+            ],
+        ]);
+
+        $snapshot = collect(app(TaskMonitoringQueryService::class)->buildTaskSnapshot())
+            ->firstWhere('id', (int) $task->id);
+
+        $this->assertIsArray($snapshot);
+        $this->assertSame('failed', $snapshot['batch_status']);
+        $this->assertSame('publish_failed', $snapshot['batch_failure_type']);
+        $this->assertSame('本月发布文章额度已用完，请升级套餐或联系管理员。', $snapshot['batch_error_message']);
+    }
+
+    public function test_scheduler_does_not_requeue_after_non_retryable_publish_failure(): void
+    {
+        $task = Task::query()->create([
+            'name' => 'Blocked Publish Failure Task',
+            'status' => 'active',
+            'schedule_enabled' => 1,
+            'publish_interval' => 60,
+            'draft_limit' => 5,
+            'article_limit' => 10,
+            'created_count' => 10,
+            'next_run_at' => now()->subMinute(),
+            'next_publish_at' => now()->subMinute(),
+        ]);
+        $category = Category::query()->create([
+            'name' => 'Blocked Publish Category',
+            'slug' => 'blocked-publish-category',
+        ]);
+        $author = Author::query()->create([
+            'name' => 'GEOFlow',
+        ]);
+        Article::query()->create([
+            'title' => 'Blocked Publish Draft',
+            'slug' => 'blocked-publish-draft',
+            'excerpt' => 'Draft summary',
+            'content' => 'Draft content',
+            'category_id' => $category->id,
+            'author_id' => $author->id,
+            'task_id' => $task->id,
+            'status' => 'draft',
+            'review_status' => 'approved',
+        ]);
+        TaskRun::query()->create([
+            'task_id' => (int) $task->id,
+            'status' => 'failed',
+            'error_message' => '本月发布文章额度已用完，请升级套餐或联系管理员。',
+            'finished_at' => now(),
+            'meta' => [
+                'failure_type' => 'publish_failed',
+                'non_retryable' => true,
+            ],
+        ]);
+
+        $this->artisan('geoflow:schedule-tasks')
+            ->expectsOutput('GeoFlow scheduler done: queued=0, skipped=1, recovered=0')
+            ->assertExitCode(0);
+
+        $this->assertSame(1, TaskRun::query()->where('task_id', (int) $task->id)->count());
+        $this->assertFalse(TaskRun::query()
+            ->where('task_id', (int) $task->id)
+            ->whereIn('status', ['pending', 'running'])
+            ->exists());
     }
 
     public function test_task_list_shows_distribution_failure_summary(): void
