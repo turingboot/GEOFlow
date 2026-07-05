@@ -26,6 +26,8 @@ use App\Http\Controllers\Admin\ImageLibraryController;
 use App\Http\Controllers\Admin\KeywordLibraryController;
 use App\Http\Controllers\Admin\KeywordTrendController;
 use App\Http\Controllers\Admin\KnowledgeBaseController;
+use App\Http\Controllers\Admin\LeadController;
+use App\Http\Controllers\Admin\LeadFormController;
 use App\Http\Controllers\Admin\LegacyController;
 use App\Http\Controllers\Admin\MaterialsController;
 use App\Http\Controllers\Admin\MembershipController;
@@ -43,6 +45,7 @@ use App\Http\Controllers\Site\ArchiveController;
 use App\Http\Controllers\Site\ArticleController as SiteArticleController;
 use App\Http\Controllers\Site\CategoryController as SiteCategoryController;
 use App\Http\Controllers\Site\HomeController;
+use App\Http\Controllers\Site\LeadFormController as SiteLeadFormController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -59,6 +62,10 @@ if ((bool) config('geoflow.public_site_enabled', true)) {
             ->where(['year' => '[0-9]{4}', 'month' => '[0-9]{2}']);
         Route::get('/category/{slug}', [SiteCategoryController::class, 'show'])->name('site.category');
         Route::get('/article/{slug}', [SiteArticleController::class, 'show'])->name('site.article');
+        Route::get('/forms/{slug}', [SiteLeadFormController::class, 'show'])->name('site.lead-forms.show');
+        Route::post('/forms/{slug}/submissions', [SiteLeadFormController::class, 'submit'])
+            ->middleware('throttle:10,1')
+            ->name('site.lead-forms.submit');
     });
 } else {
     Route::get('/', static fn () => redirect()->route('admin.login'))->name('site.home');
@@ -66,6 +73,8 @@ if ((bool) config('geoflow.public_site_enabled', true)) {
     Route::get('/archive/{year}/{month}', static fn () => abort(404))->name('site.archive.month');
     Route::get('/category/{slug}', static fn () => abort(404))->name('site.category');
     Route::get('/article/{slug}', static fn () => abort(404))->name('site.article');
+    Route::get('/forms/{slug}', static fn () => abort(404))->name('site.lead-forms.show');
+    Route::post('/forms/{slug}/submissions', static fn () => abort(404))->name('site.lead-forms.submit');
 }
 
 $adminPrefix = trim((string) config('geoflow.admin_base_path', '/geo_admin'), '/');
@@ -118,6 +127,22 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
             Route::post('backups/{backupUuid}/rollback', [SystemUpdateController::class, 'rollback'])->name('rollback');
         });
 
+        Route::prefix('lead-forms')->name('lead-forms.')->group(function () {
+            Route::get('/', [LeadFormController::class, 'index'])->name('index');
+            Route::get('create', [LeadFormController::class, 'create'])->name('create');
+            Route::post('/', [LeadFormController::class, 'store'])->name('store');
+            Route::get('{formId}/edit', [LeadFormController::class, 'edit'])->name('edit')->whereNumber('formId');
+            Route::put('{formId}', [LeadFormController::class, 'update'])->name('update')->whereNumber('formId');
+            Route::post('{formId}/toggle-status', [LeadFormController::class, 'toggleStatus'])->name('toggle-status')->whereNumber('formId');
+            Route::post('{formId}/delete', [LeadFormController::class, 'destroy'])->name('delete')->whereNumber('formId');
+        });
+        Route::prefix('leads')->name('leads.')->group(function () {
+            Route::get('/', [LeadController::class, 'index'])->name('index');
+            Route::get('export', [LeadController::class, 'export'])->name('export');
+            Route::get('{submissionId}', [LeadController::class, 'show'])->name('show')->whereNumber('submissionId');
+            Route::put('{submissionId}', [LeadController::class, 'update'])->name('update')->whereNumber('submissionId');
+        });
+
         // 任务管理（Blade 新路径）
         Route::prefix('tasks')->name('tasks.')->group(function () {
             Route::get('/', [TaskController::class, 'index'])->name('index');
@@ -137,7 +162,9 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
             Route::get('create', [DistributionController::class, 'create'])->name('create');
             Route::post('create', [DistributionController::class, 'store'])->name('store');
             Route::get('jobs', [DistributionController::class, 'jobs'])->name('jobs');
+            Route::get('sync-settings-all/preview', [DistributionController::class, 'previewSyncSettingsAll'])->name('sync-settings-all.preview');
             Route::post('sync-settings-all', [DistributionController::class, 'syncSettingsAll'])->name('sync-settings-all');
+            Route::post('sync-settings-selected/preview', [DistributionController::class, 'previewSyncSettingsSelected'])->name('sync-settings-selected.preview');
             Route::post('sync-settings-selected', [DistributionController::class, 'syncSettingsSelected'])->name('sync-settings-selected');
             Route::get('jobs/{distributionId}/edit', [DistributionController::class, 'editArticle'])->name('article.edit')->whereNumber('distributionId');
             Route::put('jobs/{distributionId}', [DistributionController::class, 'updateArticle'])->name('article.update')->whereNumber('distributionId');
@@ -150,6 +177,8 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
             Route::post('{channelId}/rotate-secret', [DistributionController::class, 'rotateSecret'])->name('rotate-secret')->whereNumber('channelId');
             Route::post('{channelId}/reveal-secret', [DistributionController::class, 'revealSecret'])->name('reveal-secret')->whereNumber('channelId');
             Route::post('{channelId}/download-package', [DistributionController::class, 'downloadPackage'])->name('download-package')->whereNumber('channelId');
+            Route::post('{channelId}/frontend-capabilities/refresh', [DistributionController::class, 'refreshFrontendCapabilities'])->name('frontend-capabilities.refresh')->whereNumber('channelId');
+            Route::get('{channelId}/sync-settings/preview', [DistributionController::class, 'previewSyncSettings'])->name('sync-settings.preview')->whereNumber('channelId');
             Route::post('{channelId}/sync-settings', [DistributionController::class, 'syncSettings'])->name('sync-settings')->whereNumber('channelId');
             Route::get('{channelId}', [DistributionController::class, 'show'])->name('show')->whereNumber('channelId');
             Route::post('{channelId}/health', [DistributionController::class, 'health'])->name('health')->whereNumber('channelId');

@@ -36,6 +36,17 @@ class AdminAnalyticsPageTest extends TestCase
             ->assertOk()
             ->assertSee(__('admin.analytics.heading'))
             ->assertSee(__('admin.analytics.subtitle'))
+            ->assertSee(__('admin.growth_center.workbench.title'))
+            ->assertSee(__('admin.growth_center.priority.no_form_title'))
+            ->assertSee(__('admin.growth_center.stage.visit_title'))
+            ->assertSee(__('admin.growth_center.stage.touch_title'))
+            ->assertSee(__('admin.growth_center.stage.lead_title'))
+            ->assertSee(__('admin.growth_center.stage.follow_title'))
+            ->assertSee(__('admin.growth_center.inbox.title'))
+            ->assertSee(__('admin.growth_center.source.title'))
+            ->assertSee(__('admin.growth_center.observation.title'))
+            ->assertSee(route('admin.lead-forms.create'), false)
+            ->assertSee(route('admin.leads.index'), false)
             ->assertSee(__('admin.analytics.filters.apply'))
             ->assertSee(__('admin.analytics.filters.source_pending', ['source' => __('admin.analytics.filters.server')]))
             ->assertSee(route('admin.analytics'), false)
@@ -83,6 +94,20 @@ class AdminAnalyticsPageTest extends TestCase
         );
         // Active sidebar nav item is highlighted with the redesigned Tavix-blue style.
         $this->assertStringContainsString('bg-blue-600 font-medium text-white', $html);
+    }
+
+    public function test_analytics_page_renders_before_lead_tables_are_migrated(): void
+    {
+        Schema::dropIfExists('lead_submissions');
+        Schema::dropIfExists('lead_forms');
+
+        $this->actingAs($this->admin(), 'admin')
+            ->get(route('admin.analytics'))
+            ->assertOk()
+            ->assertSee(__('admin.analytics.heading'))
+            ->assertSee(__('admin.growth_center.priority.no_form_title'))
+            ->assertSee(__('admin.growth_center.inbox.empty'))
+            ->assertSee(__('admin.growth_center.source.empty'));
     }
 
     public function test_analytics_page_applies_date_filters_to_content_metrics(): void

@@ -26,6 +26,16 @@ services:
       - "127.0.0.1:${REDIS_EXPOSE_PORT:-16379}:6379"
     restart: unless-stopped
 
+  assets:
+    image: ${NODE_IMAGE:-node:22-bookworm-slim}
+    container_name: geoflow-assets
+    working_dir: /var/www/html
+    command: ["sh", "-lc", "npm ci --include=dev --no-audit --no-fund && npm run build"]
+    volumes:
+      - ./:/var/www/html
+      - geoflow-node-modules:/var/www/html/node_modules
+    restart: "no"
+
   init:
     image: geoflow-app:latest
     build:
@@ -67,6 +77,8 @@ services:
     volumes:
       - ./:/var/www/html
     depends_on:
+      assets:
+        condition: service_completed_successfully
       init:
         condition: service_completed_successfully
     restart: unless-stopped
@@ -132,3 +144,6 @@ services:
       init:
         condition: service_completed_successfully
     restart: unless-stopped
+
+volumes:
+  geoflow-node-modules:
