@@ -56,6 +56,46 @@ class AdminShellLayoutTest extends TestCase
             ->assertDontSee(route('admin.admin-activity-logs'), false);
     }
 
+    public function test_sidebar_navigation_is_ordered_by_geo_execution_flow(): void
+    {
+        $content = $this->actingAs($this->admin('super_admin'), 'admin')
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->getContent();
+
+        // 只截取侧边栏区域,避免页面其它位置的同名链接干扰顺序断言
+        $start = strpos($content, 'id="admin-sidebar"');
+        $this->assertNotFalse($start, '未渲染侧边栏');
+        $end = strpos($content, '</aside>', $start);
+        $this->assertNotFalse($end, '侧边栏未正确闭合');
+        $sidebar = substr($content, $start, $end - $start);
+
+        // 期望顺序:概览 → 调研/选题 → 备料/生产/分发 → 配置 →(超管)网站/会员/用户
+        $expectedOrder = [
+            'admin.dashboard',
+            'admin.analytics',
+            'admin.keyword-trends.index',
+            'admin.google-search-console.index',
+            'admin.topic-plans.index',
+            'admin.materials.index',
+            'admin.tasks.index',
+            'admin.articles.index',
+            'admin.distribution.index',
+            'admin.ai.configurator',
+            'admin.site-settings.index',
+            'admin.memberships.index',
+            'admin.admin-users.index',
+        ];
+
+        $lastPos = -1;
+        foreach ($expectedOrder as $routeName) {
+            $pos = strpos($sidebar, 'href="'.route($routeName).'"');
+            $this->assertNotFalse($pos, "侧边栏缺少导航项: {$routeName}");
+            $this->assertGreaterThan($lastPos, $pos, "导航顺序不符: {$routeName}");
+            $lastPos = $pos;
+        }
+    }
+
     private function admin(string $role, string $username = 'shell_admin'): Admin
     {
         return Admin::query()->create([

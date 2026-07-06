@@ -3,15 +3,16 @@
     $currentAdmin = auth('admin')->user();
     $isSuperAdmin = $currentAdmin && method_exists($currentAdmin, 'isSuperAdmin') && $currentAdmin->isSuperAdmin();
     $menu = [
+        // 侧边栏按 GEO 执行流程排序:概览 → 调研/选题 → 备料/生产/分发 → 配置(超管项在末尾条件追加)
         'dashboard' => ['route' => 'admin.dashboard', 'name' => __('admin.nav.dashboard')],
         'analytics' => ['route' => 'admin.analytics', 'name' => __('admin.nav.analytics')],
-        'tasks' => ['route' => 'admin.tasks.index', 'name' => __('admin.nav.tasks')],
-        'distribution' => ['route' => 'admin.distribution.index', 'name' => __('admin.nav.distribution')],
-        'articles' => ['route' => 'admin.articles.index', 'name' => __('admin.nav.articles')],
-        'materials' => ['route' => 'admin.materials.index', 'name' => __('admin.nav.materials')],
         'keyword_trends' => ['route' => 'admin.keyword-trends.index', 'name' => __('admin.nav.keyword_trends')],
         'google_search_console' => ['route' => 'admin.google-search-console.index', 'name' => __('admin.nav.google_search_console')],
         'topic_plans' => ['route' => 'admin.topic-plans.index', 'name' => __('admin.nav.topic_plans')],
+        'materials' => ['route' => 'admin.materials.index', 'name' => __('admin.nav.materials')],
+        'tasks' => ['route' => 'admin.tasks.index', 'name' => __('admin.nav.tasks')],
+        'articles' => ['route' => 'admin.articles.index', 'name' => __('admin.nav.articles')],
+        'distribution' => ['route' => 'admin.distribution.index', 'name' => __('admin.nav.distribution')],
         'ai_config' => ['route' => 'admin.ai.configurator', 'name' => __('admin.nav.ai_config')],
     ];
     if ($isSuperAdmin) {
