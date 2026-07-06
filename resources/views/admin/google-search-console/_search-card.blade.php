@@ -1,5 +1,12 @@
 @php
     $dateSeries = $insights['dateSeries'] ?? [];
+    $chartTotals = collect($dateSeries)->reduce(
+        fn (array $totals, array $point): array => [
+            'clicks' => $totals['clicks'] + (int) ($point['clicks'] ?? 0),
+            'impressions' => $totals['impressions'] + (int) ($point['impressions'] ?? 0),
+        ],
+        ['clicks' => 0, 'impressions' => 0],
+    );
     $searchMeta = $insights['searchMeta'] ?? [];
     $searchTables = $insights['tables'] ?? [];
     $activeSearchTab = (string) ($searchMeta['active_tab'] ?? 'query');
@@ -53,32 +60,38 @@
                 <input type="number" min="1" max="365" value="{{ $activeRangeDays }}" name="range_days" class="h-8 w-20 rounded-md border border-gray-200 px-2 text-xs focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100" data-gsc-custom-days>
                 <span>&#22825;</span>
             </form>
-            <div class="flex items-center gap-4 text-xs text-gray-600">
-                <label class="inline-flex cursor-pointer items-center gap-1.5 text-emerald-600">
-                    <input type="checkbox" class="h-3.5 w-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-200" data-gsc-metric="clicks" checked>
-                    {{ __('admin.gsc.field.clicks') }}
+        </div>
+        <div class="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-white" data-gsc-chart-root data-gsc-series='@json($dateSeries)'>
+            <div class="grid max-w-xl grid-cols-1 sm:grid-cols-2">
+                <label class="group min-h-32 cursor-pointer bg-blue-500 p-5 text-white transition data-[inactive=true]:bg-white data-[inactive=true]:text-gray-500" data-gsc-metric-card="clicks">
+                    <span class="flex items-center gap-2 text-sm font-medium">
+                        <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-blue-600 focus:ring-2 focus:ring-white/60 group-data-[inactive=true]:border-gray-400 group-data-[inactive=true]:text-blue-500" data-gsc-metric="clicks" checked>
+                        {{ __('admin.gsc.field.clicks') }}
+                    </span>
+                    <span class="mt-5 block text-4xl font-light leading-none">{{ number_format($chartTotals['clicks']) }}</span>
                 </label>
-                <label class="inline-flex cursor-pointer items-center gap-1.5 text-indigo-600">
-                    <input type="checkbox" class="h-3.5 w-3.5 rounded border-gray-300 text-indigo-500 focus:ring-indigo-200" data-gsc-metric="impressions" checked>
-                    {{ __('admin.gsc.field.impressions') }}
+                <label class="group min-h-32 cursor-pointer bg-violet-700 p-5 text-white transition data-[inactive=true]:bg-white data-[inactive=true]:text-gray-500" data-gsc-metric-card="impressions">
+                    <span class="flex items-center gap-2 text-sm font-medium">
+                        <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-violet-700 focus:ring-2 focus:ring-white/60 group-data-[inactive=true]:border-gray-400 group-data-[inactive=true]:text-violet-600" data-gsc-metric="impressions" checked>
+                        {{ __('admin.gsc.field.impressions') }}
+                    </span>
+                    <span class="mt-5 block text-4xl font-light leading-none">{{ number_format($chartTotals['impressions']) }}</span>
                 </label>
             </div>
-        </div>
-        <div class="mb-4" data-gsc-chart-root data-gsc-series='@json($dateSeries)'>
-            <svg viewBox="0 0 720 210" class="w-full select-none" data-gsc-chart>
+            <svg viewBox="0 0 760 260" class="w-full select-none" data-gsc-chart>
                 <g data-gsc-grid></g>
-                <polyline data-gsc-line="impressions" fill="none" stroke="#818cf8" stroke-width="2" vector-effect="non-scaling-stroke" />
-                <polyline data-gsc-line="clicks" fill="none" stroke="#34d399" stroke-width="2" vector-effect="non-scaling-stroke" />
+                <polyline data-gsc-line="impressions" fill="none" stroke="#5b36b8" stroke-width="2" vector-effect="non-scaling-stroke" />
+                <polyline data-gsc-line="clicks" fill="none" stroke="#4285f4" stroke-width="2" vector-effect="non-scaling-stroke" />
                 <g data-gsc-hover class="hidden">
-                    <line data-gsc-hover-line x1="0" x2="0" y1="8" y2="166" stroke="#94a3b8" stroke-dasharray="3 3" stroke-width="1" />
-                    <circle data-gsc-hover-dot="clicks" r="3.5" fill="#34d399" stroke="#ffffff" stroke-width="2" />
-                    <circle data-gsc-hover-dot="impressions" r="3.5" fill="#818cf8" stroke="#ffffff" stroke-width="2" />
-                    <text data-gsc-hover-value="clicks" fill="#059669" font-size="11" font-weight="600"></text>
-                    <text data-gsc-hover-value="impressions" fill="#4f46e5" font-size="11" font-weight="600"></text>
-                    <rect data-gsc-hover-date-bg y="183" width="74" height="20" rx="4" fill="#f1f5f9" stroke="#cbd5e1" />
-                    <text data-gsc-hover-date y="197" fill="#475569" font-size="10" text-anchor="middle"></text>
+                    <line data-gsc-hover-line x1="0" x2="0" y1="44" y2="204" stroke="#9ca3af" stroke-dasharray="3 3" stroke-width="1" />
+                    <circle data-gsc-hover-dot="clicks" r="3.5" fill="#4285f4" stroke="#ffffff" stroke-width="2" />
+                    <circle data-gsc-hover-dot="impressions" r="3.5" fill="#5b36b8" stroke="#ffffff" stroke-width="2" />
+                    <text data-gsc-hover-value="clicks" fill="#2563eb" font-size="11" font-weight="600"></text>
+                    <text data-gsc-hover-value="impressions" fill="#5b36b8" font-size="11" font-weight="600"></text>
+                    <rect data-gsc-hover-date-bg y="224" width="74" height="20" rx="4" fill="#f1f5f9" stroke="#cbd5e1" />
+                    <text data-gsc-hover-date y="238" fill="#475569" font-size="10" text-anchor="middle"></text>
                 </g>
-                <rect x="30" y="8" width="684" height="176" fill="transparent" data-gsc-chart-hitbox />
+                <rect x="42" y="44" width="664" height="160" fill="transparent" data-gsc-chart-hitbox />
             </svg>
         </div>
     @endif

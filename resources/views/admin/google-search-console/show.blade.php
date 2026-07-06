@@ -8,6 +8,13 @@
     $indexingTrend = $insights['indexingTrend'] ?? [];
     $maxIndexed = collect($indexingTrend)->max('indexed') ?: 1;
     $dateSeries = $insights['dateSeries'] ?? [];
+    $chartTotals = collect($dateSeries)->reduce(
+        fn (array $totals, array $point): array => [
+            'clicks' => $totals['clicks'] + (int) ($point['clicks'] ?? 0),
+            'impressions' => $totals['impressions'] + (int) ($point['impressions'] ?? 0),
+        ],
+        ['clicks' => 0, 'impressions' => 0],
+    );
     $breakdowns = $insights['breakdowns'] ?? [];
     $searchMeta = $insights['searchMeta'] ?? [];
     $searchTables = $insights['tables'] ?? [];
@@ -98,32 +105,38 @@
                         <input type="number" min="1" max="365" value="{{ $activeRangeDays }}" name="range_days" class="h-8 w-20 rounded-md border border-gray-200 px-2 text-xs focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100" data-gsc-custom-days>
                         <span>&#22825;</span>
                     </form>
-                    <div class="flex items-center gap-4 text-xs text-gray-600">
-                        <label class="inline-flex cursor-pointer items-center gap-1.5 text-emerald-600">
-                            <input type="checkbox" class="h-3.5 w-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-200" data-gsc-metric="clicks" checked>
-                            {{ __('admin.gsc.field.clicks') }}
+                </div>
+                <div class="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-white" data-gsc-chart-root data-gsc-series='@json($dateSeries)'>
+                    <div class="grid max-w-xl grid-cols-1 sm:grid-cols-2">
+                        <label class="group min-h-32 cursor-pointer bg-blue-500 p-5 text-white transition data-[inactive=true]:bg-white data-[inactive=true]:text-gray-500" data-gsc-metric-card="clicks">
+                            <span class="flex items-center gap-2 text-sm font-medium">
+                                <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-blue-600 focus:ring-2 focus:ring-white/60 group-data-[inactive=true]:border-gray-400 group-data-[inactive=true]:text-blue-500" data-gsc-metric="clicks" checked>
+                                {{ __('admin.gsc.field.clicks') }}
+                            </span>
+                            <span class="mt-5 block text-4xl font-light leading-none">{{ number_format($chartTotals['clicks']) }}</span>
                         </label>
-                        <label class="inline-flex cursor-pointer items-center gap-1.5 text-indigo-600">
-                            <input type="checkbox" class="h-3.5 w-3.5 rounded border-gray-300 text-indigo-500 focus:ring-indigo-200" data-gsc-metric="impressions" checked>
-                            {{ __('admin.gsc.field.impressions') }}
+                        <label class="group min-h-32 cursor-pointer bg-violet-700 p-5 text-white transition data-[inactive=true]:bg-white data-[inactive=true]:text-gray-500" data-gsc-metric-card="impressions">
+                            <span class="flex items-center gap-2 text-sm font-medium">
+                                <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-violet-700 focus:ring-2 focus:ring-white/60 group-data-[inactive=true]:border-gray-400 group-data-[inactive=true]:text-violet-600" data-gsc-metric="impressions" checked>
+                                {{ __('admin.gsc.field.impressions') }}
+                            </span>
+                            <span class="mt-5 block text-4xl font-light leading-none">{{ number_format($chartTotals['impressions']) }}</span>
                         </label>
                     </div>
-                </div>
-                <div class="mb-4" data-gsc-chart-root data-gsc-series='@json($dateSeries)'>
-                    <svg viewBox="0 0 720 210" class="w-full select-none" data-gsc-chart>
+                    <svg viewBox="0 0 760 260" class="w-full select-none" data-gsc-chart>
                         <g data-gsc-grid></g>
-                        <polyline data-gsc-line="impressions" fill="none" stroke="#818cf8" stroke-width="2" vector-effect="non-scaling-stroke" />
-                        <polyline data-gsc-line="clicks" fill="none" stroke="#34d399" stroke-width="2" vector-effect="non-scaling-stroke" />
+                        <polyline data-gsc-line="impressions" fill="none" stroke="#5b36b8" stroke-width="2" vector-effect="non-scaling-stroke" />
+                        <polyline data-gsc-line="clicks" fill="none" stroke="#4285f4" stroke-width="2" vector-effect="non-scaling-stroke" />
                         <g data-gsc-hover class="hidden">
-                            <line data-gsc-hover-line x1="0" x2="0" y1="8" y2="166" stroke="#94a3b8" stroke-dasharray="3 3" stroke-width="1" />
-                            <circle data-gsc-hover-dot="clicks" r="3.5" fill="#34d399" stroke="#ffffff" stroke-width="2" />
-                            <circle data-gsc-hover-dot="impressions" r="3.5" fill="#818cf8" stroke="#ffffff" stroke-width="2" />
-                            <text data-gsc-hover-value="clicks" fill="#059669" font-size="11" font-weight="600"></text>
-                            <text data-gsc-hover-value="impressions" fill="#4f46e5" font-size="11" font-weight="600"></text>
-                            <rect data-gsc-hover-date-bg y="183" width="74" height="20" rx="4" fill="#f1f5f9" stroke="#cbd5e1" />
-                            <text data-gsc-hover-date y="197" fill="#475569" font-size="10" text-anchor="middle"></text>
+                            <line data-gsc-hover-line x1="0" x2="0" y1="44" y2="204" stroke="#9ca3af" stroke-dasharray="3 3" stroke-width="1" />
+                            <circle data-gsc-hover-dot="clicks" r="3.5" fill="#4285f4" stroke="#ffffff" stroke-width="2" />
+                            <circle data-gsc-hover-dot="impressions" r="3.5" fill="#5b36b8" stroke="#ffffff" stroke-width="2" />
+                            <text data-gsc-hover-value="clicks" fill="#2563eb" font-size="11" font-weight="600"></text>
+                            <text data-gsc-hover-value="impressions" fill="#5b36b8" font-size="11" font-weight="600"></text>
+                            <rect data-gsc-hover-date-bg y="224" width="74" height="20" rx="4" fill="#f1f5f9" stroke="#cbd5e1" />
+                            <text data-gsc-hover-date y="238" fill="#475569" font-size="10" text-anchor="middle"></text>
                         </g>
-                        <rect x="30" y="8" width="684" height="176" fill="transparent" data-gsc-chart-hitbox />
+                        <rect x="42" y="44" width="664" height="160" fill="transparent" data-gsc-chart-hitbox />
                     </svg>
                 </div>
             @endif
@@ -342,7 +355,11 @@
             var customToggle = toolbar ? toolbar.querySelector('[data-gsc-custom-toggle]') : null;
             var customPanel = toolbar ? toolbar.querySelector('[data-gsc-custom-panel]') : null;
             var customInput = toolbar ? toolbar.querySelector('[data-gsc-custom-days]') : null;
-            var metricInputs = toolbar ? toolbar.querySelectorAll('[data-gsc-metric]') : [];
+            var metricInputs = root.querySelectorAll('[data-gsc-metric]');
+            var metricCards = {
+                impressions: root.querySelector('[data-gsc-metric-card="impressions"]'),
+                clicks: root.querySelector('[data-gsc-metric-card="clicks"]'),
+            };
             var grid = root.querySelector('[data-gsc-grid]');
             var hitbox = root.querySelector('[data-gsc-chart-hitbox]');
             var hover = root.querySelector('[data-gsc-hover]');
@@ -367,7 +384,7 @@
                 points: [],
                 labels: [],
             };
-            var chart = { w: 720, h: 210, left: 30, right: 6, top: 8, bottom: 34 };
+            var chart = { w: 760, h: 260, left: 42, right: 54, top: 44, bottom: 56 };
             chart.plotW = chart.w - chart.left - chart.right;
             chart.plotH = chart.h - chart.top - chart.bottom;
             chart.axisY = chart.top + chart.plotH;
@@ -406,7 +423,7 @@
                 });
             }
 
-            function buildPoints(series, maxValue) {
+            function buildPoints(series, maxClicks, maxImpressions) {
                 return series.map(function (point, index) {
                     var x = xAt(index, series.length);
                     var clicks = parseInt(point.clicks || 0, 10);
@@ -417,8 +434,8 @@
                         clicks: clicks,
                         impressions: impressions,
                         x: x,
-                        yClicks: yAt(clicks, maxValue),
-                        yImpressions: yAt(impressions, maxValue),
+                        yClicks: yAt(clicks, maxClicks),
+                        yImpressions: yAt(impressions, maxImpressions),
                     };
                 });
             }
@@ -441,19 +458,31 @@
                 });
             }
 
-            function drawGrid(maxValue) {
+            function roundedMax(values) {
+                var rawMax = Math.max.apply(null, values.concat([1]));
+                var step = Math.max(1, Math.ceil(rawMax / 4));
+
+                return step * 4;
+            }
+
+            function drawGrid(maxClicks, maxImpressions) {
                 var html = '';
                 var ticks = 4;
 
                 for (var t = 0; t <= ticks; t++) {
-                    var tickValue = Math.round((maxValue * t) / ticks);
-                    var y = yAt(tickValue, maxValue);
-                    html += '<line x1="' + chart.left + '" y1="' + y.toFixed(1) + '" x2="' + chart.w + '" y2="' + y.toFixed(1) + '" stroke="#f1f5f9" stroke-width="1" />';
-                    html += '<text x="2" y="' + (y + 4).toFixed(1) + '" font-size="11" fill="#9ca3af">' + tickValue + '</text>';
+                    var clicksValue = Math.round((maxClicks * t) / ticks);
+                    var impressionsValue = Math.round((maxImpressions * t) / ticks);
+                    var y = yAt(clicksValue, maxClicks);
+                    html += '<line x1="' + chart.left + '" y1="' + y.toFixed(1) + '" x2="' + (chart.w - chart.right) + '" y2="' + y.toFixed(1) + '" stroke="#e5e7eb" stroke-width="1" />';
+                    html += '<text data-gsc-axis="clicks" x="6" y="' + (y + 4).toFixed(1) + '" font-size="11" fill="#6b7280">' + numberLabel(clicksValue) + '</text>';
+                    html += '<text data-gsc-axis="impressions" x="' + (chart.w - 6) + '" y="' + (y + 4).toFixed(1) + '" font-size="11" fill="#6b7280" text-anchor="end">' + numberLabel(impressionsValue) + '</text>';
                 }
 
+                html += '<text data-gsc-axis="clicks" x="' + chart.left + '" y="26" font-size="12" fill="#374151">' + '\u70b9\u51fb\u6b21\u6570' + '</text>';
+                html += '<text data-gsc-axis="impressions" x="' + (chart.w - 6) + '" y="26" font-size="12" fill="#374151" text-anchor="end">' + '\u66dd\u5149\u6b21\u6570' + '</text>';
+
                 state.labels.forEach(function (label) {
-                    html += '<text data-gsc-axis-label x="' + label.x.toFixed(1) + '" y="197" font-size="10" fill="#9ca3af" text-anchor="' + label.anchor + '">' + label.date + '</text>';
+                    html += '<text data-gsc-axis-label x="' + label.x.toFixed(1) + '" y="238" font-size="10" fill="#6b7280" text-anchor="' + label.anchor + '">' + label.date + '</text>';
                 });
 
                 grid.innerHTML = html;
@@ -468,25 +497,36 @@
                 });
             }
 
-            function drawChart() {
-                var series = selectedSeries();
-                var activeValues = [];
-
-                series.forEach(function (point) {
-                    if (state.activeMetrics.clicks) {
-                        activeValues.push(parseInt(point.clicks || 0, 10));
-                    }
-                    if (state.activeMetrics.impressions) {
-                        activeValues.push(parseInt(point.impressions || 0, 10));
+            function syncMetricCards() {
+                Object.keys(metricCards).forEach(function (metric) {
+                    if (metricCards[metric]) {
+                        metricCards[metric].dataset.inactive = state.activeMetrics[metric] ? 'false' : 'true';
                     }
                 });
+            }
 
-                var rawMax = Math.max.apply(null, activeValues.concat([1]));
-                var step = Math.max(1, Math.ceil(rawMax / 4));
-                var maxValue = step * 4;
-                state.points = buildPoints(series, maxValue);
+            function drawChart() {
+                var series = selectedSeries();
+                var clickValues = [];
+                var impressionValues = [];
+
+                series.forEach(function (point) {
+                    clickValues.push(parseInt(point.clicks || 0, 10));
+                    impressionValues.push(parseInt(point.impressions || 0, 10));
+                });
+
+                var maxClicks = roundedMax(clickValues);
+                var maxImpressions = roundedMax(impressionValues);
+                state.points = buildPoints(series, maxClicks, maxImpressions);
                 state.labels = buildLabels(state.points);
-                drawGrid(maxValue);
+                drawGrid(maxClicks, maxImpressions);
+
+                root.querySelectorAll('[data-gsc-axis="clicks"]').forEach(function (axis) {
+                    axis.classList.toggle('hidden', !state.activeMetrics.clicks);
+                });
+                root.querySelectorAll('[data-gsc-axis="impressions"]').forEach(function (axis) {
+                    axis.classList.toggle('hidden', !state.activeMetrics.impressions);
+                });
 
                 lines.clicks.setAttribute('points', state.activeMetrics.clicks ? state.points.map(function (point) {
                     return point.x.toFixed(1) + ',' + point.yClicks.toFixed(1);
@@ -494,6 +534,7 @@
                 lines.impressions.setAttribute('points', state.activeMetrics.impressions ? state.points.map(function (point) {
                     return point.x.toFixed(1) + ',' + point.yImpressions.toFixed(1);
                 }).join(' ') : '');
+                syncMetricCards();
                 hideHover();
             }
 
