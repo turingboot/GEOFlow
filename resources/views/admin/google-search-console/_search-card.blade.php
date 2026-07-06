@@ -4,9 +4,12 @@
         fn (array $totals, array $point): array => [
             'clicks' => $totals['clicks'] + (int) ($point['clicks'] ?? 0),
             'impressions' => $totals['impressions'] + (int) ($point['impressions'] ?? 0),
+            'position_weight' => $totals['position_weight'] + ((float) ($point['position'] ?? 0) * (int) ($point['impressions'] ?? 0)),
         ],
-        ['clicks' => 0, 'impressions' => 0],
+        ['clicks' => 0, 'impressions' => 0, 'position_weight' => 0.0],
     );
+    $chartTotals['ctr'] = $chartTotals['impressions'] > 0 ? $chartTotals['clicks'] / $chartTotals['impressions'] : 0;
+    $chartTotals['position'] = $chartTotals['impressions'] > 0 ? $chartTotals['position_weight'] / $chartTotals['impressions'] : 0;
     $searchMeta = $insights['searchMeta'] ?? [];
     $searchTables = $insights['tables'] ?? [];
     $activeSearchTab = (string) ($searchMeta['active_tab'] ?? 'query');
@@ -61,38 +64,55 @@
                 <span>&#22825;</span>
             </form>
         </div>
-        <div class="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-white" data-gsc-chart-root data-gsc-series='@json($dateSeries)'>
-            <div class="grid max-w-xl grid-cols-1 sm:grid-cols-2">
-                <label class="group min-h-32 cursor-pointer bg-blue-500 p-5 text-white transition data-[inactive=true]:bg-white data-[inactive=true]:text-gray-500" data-gsc-metric-card="clicks">
-                    <span class="flex items-center gap-2 text-sm font-medium">
-                        <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-blue-600 focus:ring-2 focus:ring-white/60 group-data-[inactive=true]:border-gray-400 group-data-[inactive=true]:text-blue-500" data-gsc-metric="clicks" checked>
-                        {{ __('admin.gsc.field.clicks') }}
+        <div class="relative mb-4 overflow-hidden rounded-xl border border-gray-100 bg-white" data-gsc-chart-root data-gsc-series='@json($dateSeries)'>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+                <label class="group min-h-28 cursor-pointer border-r border-white/20 p-5 transition" data-gsc-metric-card="clicks" data-gsc-active-bg="#4285f4" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; background-color: #4285f4; color: #ffffff;">
+                    <span class="inline-flex items-center gap-2 text-sm font-medium leading-none">
+                        <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-blue-600 focus:ring-2 focus:ring-white/60" data-gsc-metric="clicks" checked>
+                        &#24635;&#28857;&#20987;&#27425;&#25968;
                     </span>
-                    <span class="mt-5 block text-4xl font-light leading-none">{{ number_format($chartTotals['clicks']) }}</span>
+                    <span class="mt-5 block text-[40px] font-light leading-none" style="font-size: 40px !important;">{{ number_format($chartTotals['clicks']) }}</span>
                 </label>
-                <label class="group min-h-32 cursor-pointer bg-violet-700 p-5 text-white transition data-[inactive=true]:bg-white data-[inactive=true]:text-gray-500" data-gsc-metric-card="impressions">
-                    <span class="flex items-center gap-2 text-sm font-medium">
-                        <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-violet-700 focus:ring-2 focus:ring-white/60 group-data-[inactive=true]:border-gray-400 group-data-[inactive=true]:text-violet-600" data-gsc-metric="impressions" checked>
-                        {{ __('admin.gsc.field.impressions') }}
+                <label class="group min-h-28 cursor-pointer border-r border-white/20 p-5 transition" data-gsc-metric-card="impressions" data-gsc-active-bg="#5b36b8" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; background-color: #5b36b8; color: #ffffff;">
+                    <span class="inline-flex items-center gap-2 text-sm font-medium leading-none">
+                        <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-indigo-600 focus:ring-2 focus:ring-white/60" data-gsc-metric="impressions" checked>
+                        &#24635;&#26333;&#20809;&#27425;&#25968;
                     </span>
-                    <span class="mt-5 block text-4xl font-light leading-none">{{ number_format($chartTotals['impressions']) }}</span>
+                    <span class="mt-5 block text-[40px] font-light leading-none" style="font-size: 40px !important;">{{ number_format($chartTotals['impressions']) }}</span>
+                </label>
+                <label class="group min-h-28 cursor-pointer border-r border-gray-200 p-5 text-gray-500 transition" data-gsc-metric-card="ctr" data-gsc-active-bg="#00897b" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; background-color: #ffffff; color: #6b7280;">
+                    <span class="inline-flex items-center gap-2 text-sm font-medium leading-none">
+                        <input type="checkbox" class="h-4 w-4 rounded border-gray-400 bg-transparent text-teal-600 focus:ring-2 focus:ring-teal-100" data-gsc-metric="ctr">
+                        &#24179;&#22343;&#28857;&#20987;&#29575;
+                    </span>
+                    <span class="mt-5 block text-[40px] font-light leading-none" style="font-size: 40px !important;">{{ number_format($chartTotals['ctr'] * 100, 1) }}%</span>
+                </label>
+                <label class="group min-h-28 cursor-pointer p-5 text-gray-500 transition" data-gsc-metric-card="position" data-gsc-active-bg="#e8710a" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; background-color: #ffffff; color: #6b7280;">
+                    <span class="inline-flex items-center gap-2 text-sm font-medium leading-none">
+                        <input type="checkbox" class="h-4 w-4 rounded border-gray-400 bg-transparent text-orange-600 focus:ring-2 focus:ring-orange-100" data-gsc-metric="position">
+                        &#24179;&#22343;&#25490;&#21517;
+                    </span>
+                    <span class="mt-5 block text-[40px] font-light leading-none" style="font-size: 40px !important;">{{ number_format($chartTotals['position'], 1) }}</span>
                 </label>
             </div>
             <svg viewBox="0 0 760 260" class="w-full select-none" data-gsc-chart>
                 <g data-gsc-grid></g>
+                <polyline data-gsc-line="position" fill="none" stroke="#e8710a" stroke-width="2" vector-effect="non-scaling-stroke" />
+                <polyline data-gsc-line="ctr" fill="none" stroke="#00897b" stroke-width="2" vector-effect="non-scaling-stroke" />
                 <polyline data-gsc-line="impressions" fill="none" stroke="#5b36b8" stroke-width="2" vector-effect="non-scaling-stroke" />
                 <polyline data-gsc-line="clicks" fill="none" stroke="#4285f4" stroke-width="2" vector-effect="non-scaling-stroke" />
                 <g data-gsc-hover class="hidden">
                     <line data-gsc-hover-line x1="0" x2="0" y1="44" y2="204" stroke="#9ca3af" stroke-dasharray="3 3" stroke-width="1" />
                     <circle data-gsc-hover-dot="clicks" r="3.5" fill="#4285f4" stroke="#ffffff" stroke-width="2" />
                     <circle data-gsc-hover-dot="impressions" r="3.5" fill="#5b36b8" stroke="#ffffff" stroke-width="2" />
-                    <text data-gsc-hover-value="clicks" fill="#2563eb" font-size="11" font-weight="600"></text>
-                    <text data-gsc-hover-value="impressions" fill="#5b36b8" font-size="11" font-weight="600"></text>
+                    <circle data-gsc-hover-dot="ctr" r="3.5" fill="#00897b" stroke="#ffffff" stroke-width="2" />
+                    <circle data-gsc-hover-dot="position" r="3.5" fill="#e8710a" stroke="#ffffff" stroke-width="2" />
                     <rect data-gsc-hover-date-bg y="224" width="74" height="20" rx="4" fill="#f1f5f9" stroke="#cbd5e1" />
                     <text data-gsc-hover-date y="238" fill="#475569" font-size="10" text-anchor="middle"></text>
                 </g>
                 <rect x="42" y="44" width="664" height="160" fill="transparent" data-gsc-chart-hitbox />
             </svg>
+            <div class="pointer-events-none absolute z-30 hidden min-w-40 rounded-md border border-gray-200/90 bg-white/[0.92] px-3 py-2 text-xs text-gray-800 shadow-xl ring-1 ring-white/80 backdrop-blur-sm" data-gsc-hover-card></div>
         </div>
     @endif
 

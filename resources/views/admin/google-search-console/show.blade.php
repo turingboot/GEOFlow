@@ -12,9 +12,12 @@
         fn (array $totals, array $point): array => [
             'clicks' => $totals['clicks'] + (int) ($point['clicks'] ?? 0),
             'impressions' => $totals['impressions'] + (int) ($point['impressions'] ?? 0),
+            'position_weight' => $totals['position_weight'] + ((float) ($point['position'] ?? 0) * (int) ($point['impressions'] ?? 0)),
         ],
-        ['clicks' => 0, 'impressions' => 0],
+        ['clicks' => 0, 'impressions' => 0, 'position_weight' => 0.0],
     );
+    $chartTotals['ctr'] = $chartTotals['impressions'] > 0 ? $chartTotals['clicks'] / $chartTotals['impressions'] : 0;
+    $chartTotals['position'] = $chartTotals['impressions'] > 0 ? $chartTotals['position_weight'] / $chartTotals['impressions'] : 0;
     $breakdowns = $insights['breakdowns'] ?? [];
     $searchMeta = $insights['searchMeta'] ?? [];
     $searchTables = $insights['tables'] ?? [];
@@ -106,38 +109,55 @@
                         <span>&#22825;</span>
                     </form>
                 </div>
-                <div class="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-white" data-gsc-chart-root data-gsc-series='@json($dateSeries)'>
-                    <div class="grid max-w-xl grid-cols-1 sm:grid-cols-2">
-                        <label class="group min-h-32 cursor-pointer bg-blue-500 p-5 text-white transition data-[inactive=true]:bg-white data-[inactive=true]:text-gray-500" data-gsc-metric-card="clicks">
-                            <span class="flex items-center gap-2 text-sm font-medium">
-                                <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-blue-600 focus:ring-2 focus:ring-white/60 group-data-[inactive=true]:border-gray-400 group-data-[inactive=true]:text-blue-500" data-gsc-metric="clicks" checked>
-                                {{ __('admin.gsc.field.clicks') }}
+                <div class="relative mb-4 overflow-hidden rounded-xl border border-gray-100 bg-white" data-gsc-chart-root data-gsc-series='@json($dateSeries)'>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+                        <label class="group min-h-28 cursor-pointer border-r border-white/20 p-5 transition" data-gsc-metric-card="clicks" data-gsc-active-bg="#4285f4" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; background-color: #4285f4; color: #ffffff;">
+                            <span class="inline-flex items-center gap-2 text-sm font-medium leading-none">
+                                <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-blue-600 focus:ring-2 focus:ring-white/60" data-gsc-metric="clicks" checked>
+                                &#24635;&#28857;&#20987;&#27425;&#25968;
                             </span>
-                            <span class="mt-5 block text-4xl font-light leading-none">{{ number_format($chartTotals['clicks']) }}</span>
+                            <span class="mt-5 block text-[40px] font-light leading-none" style="font-size: 40px !important;">{{ number_format($chartTotals['clicks']) }}</span>
                         </label>
-                        <label class="group min-h-32 cursor-pointer bg-violet-700 p-5 text-white transition data-[inactive=true]:bg-white data-[inactive=true]:text-gray-500" data-gsc-metric-card="impressions">
-                            <span class="flex items-center gap-2 text-sm font-medium">
-                                <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-violet-700 focus:ring-2 focus:ring-white/60 group-data-[inactive=true]:border-gray-400 group-data-[inactive=true]:text-violet-600" data-gsc-metric="impressions" checked>
-                                {{ __('admin.gsc.field.impressions') }}
+                        <label class="group min-h-28 cursor-pointer border-r border-white/20 p-5 transition" data-gsc-metric-card="impressions" data-gsc-active-bg="#5b36b8" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; background-color: #5b36b8; color: #ffffff;">
+                            <span class="inline-flex items-center gap-2 text-sm font-medium leading-none">
+                                <input type="checkbox" class="h-4 w-4 rounded border-white/70 bg-transparent text-indigo-600 focus:ring-2 focus:ring-white/60" data-gsc-metric="impressions" checked>
+                                &#24635;&#26333;&#20809;&#27425;&#25968;
                             </span>
-                            <span class="mt-5 block text-4xl font-light leading-none">{{ number_format($chartTotals['impressions']) }}</span>
+                            <span class="mt-5 block text-[40px] font-light leading-none" style="font-size: 40px !important;">{{ number_format($chartTotals['impressions']) }}</span>
+                        </label>
+                        <label class="group min-h-28 cursor-pointer border-r border-gray-200 p-5 text-gray-500 transition" data-gsc-metric-card="ctr" data-gsc-active-bg="#00897b" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; background-color: #ffffff; color: #6b7280;">
+                            <span class="inline-flex items-center gap-2 text-sm font-medium leading-none">
+                                <input type="checkbox" class="h-4 w-4 rounded border-gray-400 bg-transparent text-teal-600 focus:ring-2 focus:ring-teal-100" data-gsc-metric="ctr">
+                                &#24179;&#22343;&#28857;&#20987;&#29575;
+                            </span>
+                            <span class="mt-5 block text-[40px] font-light leading-none" style="font-size: 40px !important;">{{ number_format($chartTotals['ctr'] * 100, 1) }}%</span>
+                        </label>
+                        <label class="group min-h-28 cursor-pointer p-5 text-gray-500 transition" data-gsc-metric-card="position" data-gsc-active-bg="#e8710a" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; background-color: #ffffff; color: #6b7280;">
+                            <span class="inline-flex items-center gap-2 text-sm font-medium leading-none">
+                                <input type="checkbox" class="h-4 w-4 rounded border-gray-400 bg-transparent text-orange-600 focus:ring-2 focus:ring-orange-100" data-gsc-metric="position">
+                                &#24179;&#22343;&#25490;&#21517;
+                            </span>
+                            <span class="mt-5 block text-[40px] font-light leading-none" style="font-size: 40px !important;">{{ number_format($chartTotals['position'], 1) }}</span>
                         </label>
                     </div>
                     <svg viewBox="0 0 760 260" class="w-full select-none" data-gsc-chart>
                         <g data-gsc-grid></g>
+                        <polyline data-gsc-line="position" fill="none" stroke="#e8710a" stroke-width="2" vector-effect="non-scaling-stroke" />
+                        <polyline data-gsc-line="ctr" fill="none" stroke="#00897b" stroke-width="2" vector-effect="non-scaling-stroke" />
                         <polyline data-gsc-line="impressions" fill="none" stroke="#5b36b8" stroke-width="2" vector-effect="non-scaling-stroke" />
                         <polyline data-gsc-line="clicks" fill="none" stroke="#4285f4" stroke-width="2" vector-effect="non-scaling-stroke" />
                         <g data-gsc-hover class="hidden">
                             <line data-gsc-hover-line x1="0" x2="0" y1="44" y2="204" stroke="#9ca3af" stroke-dasharray="3 3" stroke-width="1" />
                             <circle data-gsc-hover-dot="clicks" r="3.5" fill="#4285f4" stroke="#ffffff" stroke-width="2" />
                             <circle data-gsc-hover-dot="impressions" r="3.5" fill="#5b36b8" stroke="#ffffff" stroke-width="2" />
-                            <text data-gsc-hover-value="clicks" fill="#2563eb" font-size="11" font-weight="600"></text>
-                            <text data-gsc-hover-value="impressions" fill="#5b36b8" font-size="11" font-weight="600"></text>
+                            <circle data-gsc-hover-dot="ctr" r="3.5" fill="#00897b" stroke="#ffffff" stroke-width="2" />
+                            <circle data-gsc-hover-dot="position" r="3.5" fill="#e8710a" stroke="#ffffff" stroke-width="2" />
                             <rect data-gsc-hover-date-bg y="224" width="74" height="20" rx="4" fill="#f1f5f9" stroke="#cbd5e1" />
                             <text data-gsc-hover-date y="238" fill="#475569" font-size="10" text-anchor="middle"></text>
                         </g>
                         <rect x="42" y="44" width="664" height="160" fill="transparent" data-gsc-chart-hitbox />
                     </svg>
+                    <div class="pointer-events-none absolute z-30 hidden min-w-40 rounded-md border border-gray-200/90 bg-white/[0.92] px-3 py-2 text-xs text-gray-800 shadow-xl ring-1 ring-white/80 backdrop-blur-sm" data-gsc-hover-card></div>
                 </div>
             @endif
 
@@ -356,9 +376,17 @@
             var customPanel = toolbar ? toolbar.querySelector('[data-gsc-custom-panel]') : null;
             var customInput = toolbar ? toolbar.querySelector('[data-gsc-custom-days]') : null;
             var metricInputs = root.querySelectorAll('[data-gsc-metric]');
+            var metricConfig = {
+                clicks: { label: '\u70b9\u51fb\u6b21\u6570', color: '#4285f4', format: function (value) { return numberLabel(Math.round(value)); } },
+                impressions: { label: '\u66dd\u5149\u6b21\u6570', color: '#5b36b8', format: function (value) { return numberLabel(Math.round(value)); } },
+                ctr: { label: '\u5e73\u5747\u70b9\u51fb\u7387', color: '#00897b', format: function (value) { return (value * 100).toFixed(1) + '%'; } },
+                position: { label: '\u5e73\u5747\u6392\u540d', color: '#e8710a', format: function (value) { return value.toFixed(1); } },
+            };
             var metricCards = {
                 impressions: root.querySelector('[data-gsc-metric-card="impressions"]'),
                 clicks: root.querySelector('[data-gsc-metric-card="clicks"]'),
+                ctr: root.querySelector('[data-gsc-metric-card="ctr"]'),
+                position: root.querySelector('[data-gsc-metric-card="position"]'),
             };
             var grid = root.querySelector('[data-gsc-grid]');
             var hitbox = root.querySelector('[data-gsc-chart-hitbox]');
@@ -366,21 +394,22 @@
             var hoverLine = root.querySelector('[data-gsc-hover-line]');
             var dateBg = root.querySelector('[data-gsc-hover-date-bg]');
             var dateText = root.querySelector('[data-gsc-hover-date]');
+            var hoverCard = root.querySelector('[data-gsc-hover-card]');
             var lines = {
                 impressions: root.querySelector('[data-gsc-line="impressions"]'),
                 clicks: root.querySelector('[data-gsc-line="clicks"]'),
+                ctr: root.querySelector('[data-gsc-line="ctr"]'),
+                position: root.querySelector('[data-gsc-line="position"]'),
             };
             var dots = {
                 impressions: root.querySelector('[data-gsc-hover-dot="impressions"]'),
                 clicks: root.querySelector('[data-gsc-hover-dot="clicks"]'),
-            };
-            var values = {
-                impressions: root.querySelector('[data-gsc-hover-value="impressions"]'),
-                clicks: root.querySelector('[data-gsc-hover-value="clicks"]'),
+                ctr: root.querySelector('[data-gsc-hover-dot="ctr"]'),
+                position: root.querySelector('[data-gsc-hover-dot="position"]'),
             };
             var state = {
                 rangeDays: 90,
-                activeMetrics: { clicks: true, impressions: true },
+                activeMetrics: { clicks: true, impressions: true, ctr: false, position: false },
                 points: [],
                 labels: [],
             };
@@ -413,6 +442,18 @@
                 return new Intl.NumberFormat().format(value);
             }
 
+            function escapeHtml(value) {
+                return String(value).replace(/[&<>"']/g, function (char) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#039;',
+                    }[char];
+                });
+            }
+
             function selectedSeries() {
                 if (! rawSeries.length) {
                     return [];
@@ -423,19 +464,35 @@
                 });
             }
 
-            function buildPoints(series, maxClicks, maxImpressions) {
+            function metricMax(series, metric) {
+                return Math.max.apply(null, series.map(function (point) {
+                    var value = parseFloat(point[metric] || 0);
+
+                    return Number.isFinite(value) ? value : 0;
+                }).concat([metric === 'ctr' ? 0.01 : 1]));
+            }
+
+            function buildPoints(series, scales) {
                 return series.map(function (point, index) {
                     var x = xAt(index, series.length);
                     var clicks = parseInt(point.clicks || 0, 10);
                     var impressions = parseInt(point.impressions || 0, 10);
+                    var ctr = parseFloat(point.ctr || 0);
+                    var position = parseFloat(point.position || 0);
 
                     return {
                         date: point.date,
                         clicks: clicks,
                         impressions: impressions,
+                        ctr: Number.isFinite(ctr) ? ctr : 0,
+                        position: Number.isFinite(position) ? position : 0,
                         x: x,
-                        yClicks: yAt(clicks, maxClicks),
-                        yImpressions: yAt(impressions, maxImpressions),
+                        y: {
+                            clicks: yAt(clicks, scales.clicks),
+                            impressions: yAt(impressions, scales.impressions),
+                            ctr: yAt(Number.isFinite(ctr) ? ctr : 0, scales.ctr),
+                            position: yAt(Number.isFinite(position) ? position : 0, scales.position),
+                        },
                     };
                 });
             }
@@ -475,11 +532,11 @@
                     var y = yAt(clicksValue, maxClicks);
                     html += '<line x1="' + chart.left + '" y1="' + y.toFixed(1) + '" x2="' + (chart.w - chart.right) + '" y2="' + y.toFixed(1) + '" stroke="#e5e7eb" stroke-width="1" />';
                     html += '<text data-gsc-axis="clicks" x="6" y="' + (y + 4).toFixed(1) + '" font-size="11" fill="#6b7280">' + numberLabel(clicksValue) + '</text>';
-                    html += '<text data-gsc-axis="impressions" x="' + (chart.w - 6) + '" y="' + (y + 4).toFixed(1) + '" font-size="11" fill="#6b7280" text-anchor="end">' + numberLabel(impressionsValue) + '</text>';
+                    html += '<text data-gsc-axis="impressions" x="' + (chart.w - 14) + '" y="' + (y + 4).toFixed(1) + '" font-size="11" fill="#6b7280" text-anchor="end">' + numberLabel(impressionsValue) + '</text>';
                 }
 
-                html += '<text data-gsc-axis="clicks" x="' + chart.left + '" y="26" font-size="12" fill="#374151">' + '\u70b9\u51fb\u6b21\u6570' + '</text>';
-                html += '<text data-gsc-axis="impressions" x="' + (chart.w - 6) + '" y="26" font-size="12" fill="#374151" text-anchor="end">' + '\u66dd\u5149\u6b21\u6570' + '</text>';
+                html += '<text data-gsc-axis="clicks" x="6" y="26" font-size="12" fill="#374151">' + '\u70b9\u51fb\u6b21\u6570' + '</text>';
+                html += '<text data-gsc-axis="impressions" x="' + (chart.w - 14) + '" y="26" font-size="12" fill="#374151" text-anchor="end">' + '\u66dd\u5149\u6b21\u6570' + '</text>';
 
                 state.labels.forEach(function (label) {
                     html += '<text data-gsc-axis-label x="' + label.x.toFixed(1) + '" y="238" font-size="10" fill="#6b7280" text-anchor="' + label.anchor + '">' + label.date + '</text>';
@@ -492,6 +549,9 @@
                 if (hover) {
                     hover.classList.add('hidden');
                 }
+                if (hoverCard) {
+                    hoverCard.classList.add('hidden');
+                }
                 root.querySelectorAll('[data-gsc-axis-label]').forEach(function (label) {
                     label.classList.remove('opacity-0');
                 });
@@ -500,26 +560,28 @@
             function syncMetricCards() {
                 Object.keys(metricCards).forEach(function (metric) {
                     if (metricCards[metric]) {
-                        metricCards[metric].dataset.inactive = state.activeMetrics[metric] ? 'false' : 'true';
+                        if (state.activeMetrics[metric]) {
+                            metricCards[metric].style.backgroundColor = metricCards[metric].getAttribute('data-gsc-active-bg') || '#ffffff';
+                            metricCards[metric].style.color = '#ffffff';
+                        } else {
+                            metricCards[metric].style.backgroundColor = '#ffffff';
+                            metricCards[metric].style.color = '#6b7280';
+                        }
                     }
                 });
             }
 
             function drawChart() {
                 var series = selectedSeries();
-                var clickValues = [];
-                var impressionValues = [];
-
-                series.forEach(function (point) {
-                    clickValues.push(parseInt(point.clicks || 0, 10));
-                    impressionValues.push(parseInt(point.impressions || 0, 10));
-                });
-
-                var maxClicks = roundedMax(clickValues);
-                var maxImpressions = roundedMax(impressionValues);
-                state.points = buildPoints(series, maxClicks, maxImpressions);
+                var scales = {
+                    clicks: roundedMax(series.map(function (point) { return parseInt(point.clicks || 0, 10); })),
+                    impressions: roundedMax(series.map(function (point) { return parseInt(point.impressions || 0, 10); })),
+                    ctr: metricMax(series, 'ctr'),
+                    position: metricMax(series, 'position'),
+                };
+                state.points = buildPoints(series, scales);
                 state.labels = buildLabels(state.points);
-                drawGrid(maxClicks, maxImpressions);
+                drawGrid(scales.clicks, scales.impressions);
 
                 root.querySelectorAll('[data-gsc-axis="clicks"]').forEach(function (axis) {
                     axis.classList.toggle('hidden', !state.activeMetrics.clicks);
@@ -528,44 +590,21 @@
                     axis.classList.toggle('hidden', !state.activeMetrics.impressions);
                 });
 
-                lines.clicks.setAttribute('points', state.activeMetrics.clicks ? state.points.map(function (point) {
-                    return point.x.toFixed(1) + ',' + point.yClicks.toFixed(1);
-                }).join(' ') : '');
-                lines.impressions.setAttribute('points', state.activeMetrics.impressions ? state.points.map(function (point) {
-                    return point.x.toFixed(1) + ',' + point.yImpressions.toFixed(1);
-                }).join(' ') : '');
+                Object.keys(lines).forEach(function (metric) {
+                    if (! lines[metric]) {
+                        return;
+                    }
+                    lines[metric].setAttribute('points', state.activeMetrics[metric] ? state.points.map(function (point) {
+                        return point.x.toFixed(1) + ',' + point.y[metric].toFixed(1);
+                    }).join(' ') : '');
+                });
                 syncMetricCards();
                 hideHover();
             }
 
-            function showHover(point) {
+            function showHover(point, event) {
                 var dateBoxWidth = 74;
                 var dateX = Math.max(dateBoxWidth / 2, Math.min(chart.w - dateBoxWidth / 2, point.x));
-                var valueOnLeft = point.x > chart.w - 120;
-                var valueX = valueOnLeft ? Math.max(chart.left + 4, point.x - 92) : Math.min(point.x + 8, chart.w - 92);
-
-                function boundedValueY(y, offset) {
-                    var next = y + offset;
-                    if (next < chart.top + 12) {
-                        next = y + 16;
-                    }
-                    if (next > chart.axisY - 8) {
-                        next = chart.axisY - 8;
-                    }
-
-                    return next;
-                }
-
-                var clicksY = boundedValueY(point.yClicks, -8);
-                var impressionsY = boundedValueY(point.yImpressions, -8);
-                if (Math.abs(clicksY - impressionsY) < 14) {
-                    var topY = Math.min(point.yClicks, point.yImpressions);
-                    clicksY = boundedValueY(topY, state.activeMetrics.impressions ? -18 : -8);
-                    impressionsY = boundedValueY(topY, state.activeMetrics.clicks ? 18 : -8);
-                    if (Math.abs(clicksY - impressionsY) < 14) {
-                        impressionsY = Math.min(chart.axisY - 8, clicksY + 16);
-                    }
-                }
 
                 hover.classList.remove('hidden');
                 hoverLine.setAttribute('x1', point.x.toFixed(1));
@@ -574,21 +613,41 @@
                 dateText.setAttribute('x', dateX.toFixed(1));
                 dateText.textContent = point.date;
 
-                dots.clicks.classList.toggle('hidden', !state.activeMetrics.clicks);
-                values.clicks.classList.toggle('hidden', !state.activeMetrics.clicks);
-                dots.impressions.classList.toggle('hidden', !state.activeMetrics.impressions);
-                values.impressions.classList.toggle('hidden', !state.activeMetrics.impressions);
+                Object.keys(dots).forEach(function (metric) {
+                    if (! dots[metric]) {
+                        return;
+                    }
+                    dots[metric].classList.toggle('hidden', !state.activeMetrics[metric]);
+                    dots[metric].setAttribute('cx', point.x.toFixed(1));
+                    dots[metric].setAttribute('cy', point.y[metric].toFixed(1));
+                });
 
-                dots.clicks.setAttribute('cx', point.x.toFixed(1));
-                dots.clicks.setAttribute('cy', point.yClicks.toFixed(1));
-                dots.impressions.setAttribute('cx', point.x.toFixed(1));
-                dots.impressions.setAttribute('cy', point.yImpressions.toFixed(1));
-                values.clicks.setAttribute('x', valueX.toFixed(1));
-                values.clicks.setAttribute('y', clicksY.toFixed(1));
-                values.clicks.textContent = '\u70b9\u51fb ' + numberLabel(point.clicks);
-                values.impressions.setAttribute('x', valueX.toFixed(1));
-                values.impressions.setAttribute('y', impressionsY.toFixed(1));
-                values.impressions.textContent = '\u66dd\u5149 ' + numberLabel(point.impressions);
+                if (hoverCard && event) {
+                    var activeRows = Object.keys(metricConfig).filter(function (metric) {
+                        return state.activeMetrics[metric];
+                    }).map(function (metric) {
+                        return '<div class="mt-1 flex items-center justify-between gap-5">'
+                            + '<span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background-color: ' + metricConfig[metric].color + ';"></span>' + metricConfig[metric].label + '</span>'
+                            + '<span class="font-medium text-gray-900">' + metricConfig[metric].format(point[metric]) + '</span>'
+                            + '</div>';
+                    }).join('');
+                    hoverCard.innerHTML = '<div class="mb-1 font-medium text-gray-900">' + escapeHtml(point.date) + '</div>' + activeRows;
+                    hoverCard.classList.remove('hidden');
+
+                    var rootRect = root.getBoundingClientRect();
+                    var cardWidth = hoverCard.offsetWidth || 180;
+                    var cardHeight = hoverCard.offsetHeight || 96;
+                    var left = event.clientX - rootRect.left + 14;
+                    var top = event.clientY - rootRect.top - cardHeight - 12;
+                    if (left + cardWidth > rootRect.width - 8) {
+                        left = event.clientX - rootRect.left - cardWidth - 14;
+                    }
+                    if (top < 8) {
+                        top = event.clientY - rootRect.top + 14;
+                    }
+                    hoverCard.style.left = Math.max(8, left) + 'px';
+                    hoverCard.style.top = Math.max(8, top) + 'px';
+                }
 
                 root.querySelectorAll('[data-gsc-axis-label]').forEach(function (label) {
                     var labelX = parseFloat(label.getAttribute('x') || '0');
@@ -637,7 +696,7 @@
                 hitbox.addEventListener('mousemove', function (event) {
                     var point = pointFromEvent(event);
                     if (point) {
-                        showHover(point);
+                        showHover(point, event);
                     }
                 });
                 hitbox.addEventListener('mouseleave', hideHover);

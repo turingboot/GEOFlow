@@ -260,7 +260,7 @@ class AdminGscPageTest extends TestCase
             ]);
         }
 
-        $this->actingAs($admin, 'admin')
+        $response = $this->actingAs($admin, 'admin')
             ->get(route('admin.google-search-console.show', $property->id))
             ->assertOk()
             ->assertSee(__('admin.gsc.section.search'))
@@ -281,10 +281,15 @@ class AdminGscPageTest extends TestCase
             ->assertSee('name="per_page"', false)
             ->assertSee('data-gsc-metric-card="clicks"', false)
             ->assertSee('data-gsc-metric-card="impressions"', false)
+            ->assertSee('data-gsc-metric-card="ctr"', false)
+            ->assertSee('data-gsc-metric-card="position"', false)
             ->assertSee('data-gsc-metric="clicks"', false)
             ->assertSee('data-gsc-metric="impressions"', false)
+            ->assertSee('data-gsc-metric="ctr"', false)
+            ->assertSee('data-gsc-metric="position"', false)
             ->assertSee('data-gsc-metric="clicks" checked', false)
             ->assertSee('data-gsc-metric="impressions" checked', false)
+            ->assertSee('data-gsc-hover-card', false)
             ->assertSee('data-gsc-axis="clicks"', false)
             ->assertSee('data-gsc-axis="impressions"', false)
             ->assertSee('data-gsc-hover-line', false)
@@ -301,6 +306,9 @@ class AdminGscPageTest extends TestCase
             ->assertSee('POL - 波兰')
             ->assertSee('BEL - 比利时')
             ->assertSee('brandword');
+
+        $this->assertSame(4, substr_count($response->getContent(), 'style="font-size: 40px !important;"'));
+        $this->assertStringContainsString('data-gsc-axis="clicks" x="6" y="26"', $response->getContent());
     }
 
     public function test_gsc_country_name_maps_current_country_codes(): void
@@ -350,15 +358,20 @@ class AdminGscPageTest extends TestCase
         $this->createSearchMetric($snapshot, $property, 'date', '2026-06-21', 1, 12, 5.0, '2026-06-21');
         $this->createSearchMetric($snapshot, $property, 'query', 'brandword', 10, 100, 5.0);
 
-        $this->actingAs($admin, 'admin')
+        $response = $this->actingAs($admin, 'admin')
             ->withHeader('X-Requested-With', 'XMLHttpRequest')
             ->get(route('admin.google-search-console.show', $property->id).'?range_days=7&tab=query&partial=search')
             ->assertOk()
             ->assertSee('data-gsc-search-card', false)
             ->assertSee('data-gsc-metric-card="clicks"', false)
             ->assertSee('data-gsc-metric-card="impressions"', false)
+            ->assertSee('data-gsc-metric-card="ctr"', false)
+            ->assertSee('data-gsc-metric-card="position"', false)
+            ->assertSee('data-gsc-hover-card', false)
             ->assertSee('brandword')
             ->assertDontSee('admin-hero-title', false);
+
+        $this->assertSame(4, substr_count($response->getContent(), 'style="font-size: 40px !important;"'));
     }
 
     public function test_show_page_ignores_partial_parameter_without_ajax(): void
