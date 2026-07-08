@@ -234,6 +234,15 @@ body.admin-shell {
     background-attachment: fixed;
 }
 
+.admin-main-shell {
+    min-height: 0;
+}
+
+.admin-main-content {
+    min-height: 0;
+    overscroll-behavior: contain;
+}
+
 /* Data tables */
 .admin-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .admin-table thead th {

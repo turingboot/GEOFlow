@@ -28,13 +28,13 @@
         'adminBrandName' => $adminBrandName,
         'activeMenu' => $activeMenu ?? '',
     ])
-    <div class="flex min-w-0 flex-1 flex-col">
+    <div class="admin-main-shell flex min-w-0 flex-1 flex-col">
         @include('admin.partials.topbar', [
             'adminBrandName' => $adminBrandName,
             'adminSiteName' => $adminSiteName ?? $adminBrandName,
             'pageTitle' => $pageTitle ?? '',
         ])
-        <main class="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+        <main class="admin-main-content flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
             <div class="mx-auto w-full max-w-[1600px]">
                 @if (session('message'))
                     <div class="admin-flash-alert mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">

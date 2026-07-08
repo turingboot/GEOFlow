@@ -1,0 +1,146 @@
+[
+  {
+    "name": "07-首页-总览",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\07-首页-总览.png",
+    "caption": "图：后台首页总览，进入系统后先看快捷入口和整体运行状态。",
+    "url": "/dashboard"
+  },
+  {
+    "name": "08-增长中心-总览",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\08-增长中心-总览.png",
+    "caption": "图：增长中心总览，用于查看访问、线索和内容效果数据。",
+    "url": "/analytics"
+  },
+  {
+    "name": "09-任务管理-列表",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\09-任务管理-列表.png",
+    "caption": "图：任务管理列表，可查看任务状态，也可以进入新建任务页面。",
+    "url": "/tasks"
+  },
+  {
+    "name": "09-任务管理-新建基础信息",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\09-任务管理-新建基础信息.png",
+    "caption": "图：新建任务的基础信息区域，先设置任务名称、标题来源和关键词等基础内容。",
+    "url": "/tasks/create"
+  },
+  {
+    "name": "09-任务管理-生成与发布设置",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\09-任务管理-生成与发布设置.png",
+    "caption": "图：任务的生成、审核和发布设置区域，决定文章如何生成以及生成后进入什么状态。",
+    "url": "/tasks/create"
+  },
+  {
+    "name": "10-分发管理-渠道列表",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\10-分发管理-渠道列表.png",
+    "caption": "图：分发管理列表，用于查看和维护外部发布目标。",
+    "url": "/distribution"
+  },
+  {
+    "name": "10-分发管理-创建渠道",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\10-分发管理-创建渠道.png",
+    "caption": "图：创建分发渠道页面，按目标站点类型填写连接信息。",
+    "url": "/distribution/create"
+  },
+  {
+    "name": "10-分发管理-分发队列",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\10-分发管理-分发队列.png",
+    "caption": "图：分发队列页面，用于查看文章同步到外部站点的执行结果。",
+    "url": "/distribution/jobs"
+  },
+  {
+    "name": "11-内容管理-文章列表",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\11-内容管理-文章列表.png",
+    "caption": "图：内容管理列表，可筛选、审核、编辑和发布文章。",
+    "url": "/articles"
+  },
+  {
+    "name": "11-内容管理-文章编辑",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\11-内容管理-文章编辑.png",
+    "caption": "图：文章编辑页面，用于维护标题、正文、分类、状态等内容。",
+    "url": "/articles/create"
+  },
+  {
+    "name": "12-知识资产-总览",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\12-知识资产-总览.png",
+    "caption": "图：知识资产总览，统一进入知识库、标题库、关键词库、图片库和作者管理。",
+    "url": "/materials"
+  },
+  {
+    "name": "12-知识资产-创建知识库",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\12-知识资产-创建知识库.png",
+    "caption": "图：创建知识库页面，先建立知识库，再上传企业资料。",
+    "url": "/knowledge-bases/create"
+  },
+  {
+    "name": "12-知识资产-关键词库",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\12-知识资产-关键词库.png",
+    "caption": "图：关键词库列表，用于维护任务和选题会用到的关键词素材。",
+    "url": "/keyword-libraries"
+  },
+  {
+    "name": "12-知识资产-标题库",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\12-知识资产-标题库.png",
+    "caption": "图：标题库列表，用于维护文章生成时可以调用的标题素材。",
+    "url": "/title-libraries"
+  },
+  {
+    "name": "12-知识资产-图片库",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\12-知识资产-图片库.png",
+    "caption": "图：图片库列表，用于维护文章配图素材。",
+    "url": "/image-libraries"
+  },
+  {
+    "name": "13-关键词趋势-列表",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\13-关键词趋势-列表.png",
+    "caption": "图：关键词趋势列表，用于管理趋势来源和抓取结果。",
+    "url": "/keyword-trends"
+  },
+  {
+    "name": "13-关键词趋势-创建来源",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\13-关键词趋势-创建来源.png",
+    "caption": "图：创建趋势数据源页面，用于设置关键词来源和抓取规则。",
+    "url": "/keyword-trends/create"
+  },
+  {
+    "name": "14-谷歌搜录-总览",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\14-谷歌搜录-总览.png",
+    "caption": "图：谷歌搜录总览，用于查看 Google Search Console 连接和站点数据。",
+    "url": "/google-search-console"
+  },
+  {
+    "name": "15-选题规划-列表",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\15-选题规划-列表.png",
+    "caption": "图：选题规划列表，用于查看已生成的选题计划。",
+    "url": "/topic-plans"
+  },
+  {
+    "name": "15-选题规划-创建计划",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\15-选题规划-创建计划.png",
+    "caption": "图：创建选题计划页面，选择关键词、知识库和生成要求后生成候选选题。",
+    "url": "/topic-plans/create"
+  },
+  {
+    "name": "16-AI配置器-总览",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\16-AI配置器-总览.png",
+    "caption": "图：AI 配置器总览，用于进入模型、提示词和特殊提示词配置。",
+    "url": "/ai-configurator"
+  },
+  {
+    "name": "16-AI配置器-模型配置",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\16-AI配置器-模型配置.png",
+    "caption": "图：AI 模型配置页面，用于查看已有模型、添加模型和测试连接。",
+    "url": "/ai-models"
+  },
+  {
+    "name": "16-AI配置器-提示词",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\16-AI配置器-提示词.png",
+    "caption": "图：提示词配置页面，用于维护文章生成时使用的写作要求。",
+    "url": "/ai-prompts"
+  },
+  {
+    "name": "16-AI配置器-特殊提示词",
+    "file": "D:\\Project Files\\GEOFlow\\docs\\manual-screenshots\\16-AI配置器-特殊提示词.png",
+    "caption": "图：特殊提示词页面，用于维护关键词、描述等专项生成规则。",
+    "url": "/ai-special-prompts"
+  }
+]
