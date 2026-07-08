@@ -46,6 +46,7 @@ use App\Http\Controllers\Site\ArticleController as SiteArticleController;
 use App\Http\Controllers\Site\CategoryController as SiteCategoryController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\LeadFormController as SiteLeadFormController;
+use App\Http\Controllers\Site\LegalController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -76,6 +77,12 @@ if ((bool) config('geoflow.public_site_enabled', true)) {
     Route::get('/forms/{slug}', static fn () => abort(404))->name('site.lead-forms.show');
     Route::post('/forms/{slug}/submissions', static fn () => abort(404))->name('site.lead-forms.submit');
 }
+
+// 平台级法律页面（隐私政策 / 服务条款）：用于 Google OAuth 应用发布验证与对外接入。
+// 无条件注册（不受 public_site_enabled 前台总开关影响），独立于租户主题与语言中间件，
+// 始终与 GSC OAuth 回调同域名，保证 Google 审核所需的三个 URL 恒可访问。
+Route::get('/privacy', [LegalController::class, 'privacy'])->name('site.legal.privacy');
+Route::get('/terms', [LegalController::class, 'terms'])->name('site.legal.terms');
 
 $adminPrefix = trim((string) config('geoflow.admin_base_path', '/geo_admin'), '/');
 

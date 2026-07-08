@@ -32,6 +32,18 @@ return [
     // SEO 关键词（逗号分隔等，依前端使用方式）
     'site_keywords' => env('SITE_KEYWORDS', ''),
 
+    // 法律页面（隐私政策 / 服务条款）：用于 Google OAuth 应用发布验证与对外接入。
+    // 页面为平台级、独立于租户前台主题，即便 public_site_enabled=false 也始终可访问，
+    // 并与 GSC OAuth 回调同域名（Google 要求首页/隐私/条款均在已验证所有权的域名下）。
+    'legal' => [
+        // 页面署名主体（默认跟随站点名 SITE_NAME）
+        'company_name' => trim((string) env('GEOFLOW_LEGAL_COMPANY_NAME', '')) ?: (string) env('SITE_NAME', 'GEOFlow'),
+        // 隐私/条款咨询联系邮箱（Google 审核要求隐私政策提供有效联系方式；发布前务必设为真实邮箱）
+        'contact_email' => trim((string) env('GEOFLOW_LEGAL_CONTACT_EMAIL', '')) ?: (trim((string) env('GEOFLOW_ADMIN_EMAIL', '')) ?: 'admin@example.com'),
+        // 生效日期（固定值，避免每次部署变动；发布前按需调整为实际生效日）
+        'effective_date' => trim((string) env('GEOFLOW_LEGAL_EFFECTIVE_DATE', '')) ?: '2026-07-09',
+    ],
+
     // 后台入口路径前缀，如 /geo_admin（勿与前台路由冲突）
     'admin_base_path' => '/'.$adminBasePath,
 
