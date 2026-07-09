@@ -4,7 +4,7 @@
 
 @section('content')
     <h1>隐私政策 · Privacy Policy</h1>
-    <p class="legal-meta">生效日期 / Effective date: {{ $effectiveDate }} · 适用于 / Applies to: {{ $companyName }}（{{ $siteName }}）</p>
+    <p class="legal-meta">生效日期 / Effective date: {{ $effectiveDate }} · 适用于 / Applies to: {{ $companyName }}@if($siteName !== '' && $siteName !== $companyName)（{{ $siteName }}）@endif</p>
 
     <p>{{ $companyName }}（以下简称"我们"）通过 {{ $siteName }} 平台向用户提供 GEO 内容工程与 Google Search Console（以下简称"GSC"）数据监控服务。本政策说明我们如何收集、使用、存储和保护通过 Google 账号授权获取的信息。</p>
     <p class="en">{{ $companyName }} ("we", "us") operates the {{ $siteName }} platform, which provides GEO content engineering and Google Search Console ("GSC") monitoring. This Privacy Policy explains how we collect, use, store and protect information obtained when you connect your Google account.</p>

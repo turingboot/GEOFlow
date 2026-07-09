@@ -4,7 +4,7 @@
 
 @section('content')
     <h1>服务条款 · Terms of Service</h1>
-    <p class="legal-meta">生效日期 / Effective date: {{ $effectiveDate }} · 适用于 / Applies to: {{ $companyName }}（{{ $siteName }}）</p>
+    <p class="legal-meta">生效日期 / Effective date: {{ $effectiveDate }} · 适用于 / Applies to: {{ $companyName }}@if($siteName !== '' && $siteName !== $companyName)（{{ $siteName }}）@endif</p>
 
     <p>欢迎使用 {{ $siteName }}（由 {{ $companyName }} 提供，以下简称"本服务"）。使用本服务即表示您同意本条款；若不同意，请勿使用。</p>
     <p class="en">Welcome to {{ $siteName }}, provided by {{ $companyName }} (the "Service"). By using the Service you agree to these Terms; if you do not agree, do not use the Service.</p>
