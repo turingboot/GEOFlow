@@ -4,7 +4,7 @@
     供 Google OAuth 应用审核抓取。
 --}}
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
