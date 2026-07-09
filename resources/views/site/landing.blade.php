@@ -43,7 +43,8 @@
         .eyebrow { display:inline-block; font-size:13px; color:var(--brand); background:var(--accent);
             border:1px solid var(--accent-line); border-radius:999px; padding:5px 14px; margin-bottom:20px; }
         .hero h1 { font-size:46px; line-height:1.12; margin:0 0 16px; letter-spacing:-.5px; }
-        .hero p.lead { font-size:18px; color:var(--fg); max-width:720px; margin:0 auto 26px; }
+        .hero p.lead { font-size:18px; color:var(--fg); max-width:730px; margin:0 auto 10px; }
+        .hero p.purpose { font-size:16px; color:var(--muted); max-width:700px; margin:0 auto 26px; }
         .cta-row { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
 
         section.block { margin:40px 0; }
@@ -92,6 +93,7 @@
         <span class="eyebrow">GEO Optimization Platform</span>
         <h1>{{ $companyName }}</h1>
         <p class="lead">{{ $companyName }} is a GEO (Generative Engine Optimization) content-engineering and search-monitoring platform. It produces content at scale with AI and feeds real Google Search Console keyword signals back into your content strategy.</p>
+        <p class="purpose">Connect your Google Search Console to see which keywords bring real traffic to your verified sites — then turn those insights into better GEO content, all in one dashboard.</p>
         <div class="cta-row">
             <a class="btn btn-primary" href="{{ route('admin.login') }}">Open console</a>
             <a class="btn btn-ghost" href="{{ route('site.legal.privacy') }}">Privacy &amp; data</a>
@@ -100,7 +102,8 @@
 
     <section class="block">
         <h2>About {{ $companyName }}</h2>
-        <p>{{ $companyName }} serves businesses and content teams with an end-to-end workflow: keyword and topic planning, AI content generation, human review, and multi-site publishing. You may optionally connect your own Google Search Console account to monitor search performance and indexing and to inform your content-optimization decisions. The platform is operated by {{ $companyName }} and hosted on this domain, <b>{{ $siteUrl !== '' ? $siteUrl : url('/') }}</b>.</p>
+        <p>{{ $companyName }} is a web application that helps businesses and content teams plan, generate, review and publish content at scale. Its workflow covers keyword and topic planning, AI-assisted content generation, human review, and multi-site publishing to websites you own.</p>
+        <p>To close the loop, you can optionally connect your own Google Search Console account. {{ $companyName }} then reads — on a strictly <b>read-only</b> basis — your verified sites, search performance (clicks, impressions, CTR, average position) and indexing status, and shows them in your own dashboard. This lets you see which keywords bring real traffic and feed that back into your content optimization. We request no write access, and this data is shown only to you. The platform is operated by {{ $companyName }} and hosted on this domain, <b>{{ $siteUrl !== '' ? $siteUrl : url('/') }}</b>.</p>
 
         <div class="grid">
             <div class="feat"><div class="ic">✍️</div><h3>AI content engineering</h3><p>An end-to-end pipeline: keyword & title libraries → AI generation → human review → publishing.</p></div>
