@@ -224,6 +224,14 @@ class AdminAiModelsPageTest extends TestCase
             'tenant_id' => (int) $tenantOne->id,
         ]);
         $model = $this->createAiModel('chat', [
+            'tenant_id' => (int) $tenantOne->id,
+            'used_today' => 26,
+            'total_used' => 80,
+        ]);
+        $this->createAiModel('chat', [
+            'tenant_id' => (int) $tenantTwo->id,
+            'name' => 'Other Tenant Configurator Chat',
+            'model_id' => 'other-tenant-configurator-chat',
             'used_today' => 999,
             'total_used' => 999,
         ]);
@@ -248,8 +256,9 @@ class AdminAiModelsPageTest extends TestCase
 
         $response->assertOk()
             ->assertSee('>1</div>', false)
-            ->assertSee('>2</div>', false)
-            ->assertDontSee('>9</div>', false);
+            ->assertSee('>80</div>', false)
+            ->assertSee('>26</div>', false)
+            ->assertDontSee('>999</div>', false);
     }
 
     public function test_admin_models_page_works_before_max_tokens_migration_runs(): void
