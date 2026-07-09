@@ -45,6 +45,7 @@ use App\Http\Controllers\Site\ArchiveController;
 use App\Http\Controllers\Site\ArticleController as SiteArticleController;
 use App\Http\Controllers\Site\CategoryController as SiteCategoryController;
 use App\Http\Controllers\Site\HomeController;
+use App\Http\Controllers\Site\LandingController;
 use App\Http\Controllers\Site\LeadFormController as SiteLeadFormController;
 use App\Http\Controllers\Site\LegalController;
 use Illuminate\Support\Facades\Auth;
@@ -69,7 +70,9 @@ if ((bool) config('geoflow.public_site_enabled', true)) {
             ->name('site.lead-forms.submit');
     });
 } else {
-    Route::get('/', static fn () => redirect()->route('admin.login'))->name('site.home');
+    // 前台文章站关闭时，根路径渲染产品落地页（应用说明 + 登录入口 + 隐私/条款），
+    // 而非直接 302 到后台登录，兼作 Google OAuth「应用首页」。
+    Route::get('/', [LandingController::class, 'index'])->name('site.home');
     Route::get('/archive', static fn () => abort(404))->name('site.archive');
     Route::get('/archive/{year}/{month}', static fn () => abort(404))->name('site.archive.month');
     Route::get('/category/{slug}', static fn () => abort(404))->name('site.category');
