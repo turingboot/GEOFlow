@@ -548,7 +548,7 @@ class TaskController extends Controller
             'task_name' => ['required', 'string', 'max:200'],
             'title_library_id' => ['required', 'integer', 'min:1', $this->tenantExistsRule((new TitleLibrary)->getTable())],
             'prompt_id' => ['required', 'integer', 'min:1', $this->tenantExistsRule((new Prompt)->getTable())],
-            'ai_model_id' => ['required', 'integer', 'min:1', $this->tenantExistsRule((new AiModel)->getTable())],
+            'ai_model_id' => ['required', 'integer', 'min:1', $this->activeAiModelRule()],
             'author_id' => ['nullable', 'integer', 'min:0', $this->optionalTenantExistsRule((new Author)->getTable())],
             'image_library_id' => ['nullable', 'integer', 'min:1', $this->tenantExistsRule((new ImageLibrary)->getTable())],
             'image_count' => ['nullable', 'integer', 'min:0', 'max:5'],
@@ -573,6 +573,20 @@ class TaskController extends Controller
     {
         return function (string $attribute, mixed $value, \Closure $fail) use ($table): void {
             if (! $this->resourceExistsForCurrentTenant($table, (int) $value)) {
+                $fail(__('validation.exists', ['attribute' => $attribute]));
+            }
+        };
+    }
+
+    private function activeAiModelRule(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            $exists = AiModel::query()
+                ->whereKey((int) $value)
+                ->where('status', 'active')
+                ->exists();
+
+            if (! $exists) {
                 $fail(__('validation.exists', ['attribute' => $attribute]));
             }
         };

@@ -12,7 +12,6 @@ use App\Services\Admin\SiteThemeReplication\ThemeReplicationPublishService;
 use App\Services\Admin\SiteThemeReplicationService;
 use App\Support\AdminWeb;
 use App\Support\Site\SiteThemeCatalog;
-use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,9 +52,6 @@ class SiteThemeReplicationController extends Controller
                     $query
                         ->where('status', 'active')
                         ->whereRaw("COALESCE(NULLIF(model_type, ''), 'chat') = 'chat'");
-                    if (TenantContext::id()) {
-                        $query->where('tenant_id', TenantContext::id());
-                    }
                 }),
             ],
             'home_url' => ['required', 'url', 'max:500'],

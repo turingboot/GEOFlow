@@ -85,6 +85,13 @@ class AdminTenantContext
         return Tenant::query()
             ->whereKey($tenantId)
             ->where('status', 'active')
+            ->where(function ($query): void {
+                $query->where('slug', 'default')
+                    ->orWhereHas('admins', function ($adminQuery): void {
+                        $adminQuery->where('status', 'active')
+                            ->whereNotIn('role', ['super_admin', 'superadmin']);
+                    });
+            })
             ->exists();
     }
 
@@ -97,6 +104,13 @@ class AdminTenantContext
     {
         return Tenant::query()
             ->where('status', 'active')
+            ->where(function ($query): void {
+                $query->where('slug', 'default')
+                    ->orWhereHas('admins', function ($adminQuery): void {
+                        $adminQuery->where('status', 'active')
+                            ->whereNotIn('role', ['super_admin', 'superadmin']);
+                    });
+            })
             ->orderBy('id')
             ->get(['id', 'name', 'slug']);
     }

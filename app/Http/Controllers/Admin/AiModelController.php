@@ -3,15 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use App\Models\AiModel;
 use App\Models\Article;
 use App\Models\SiteSetting;
+use App\Models\Task;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\ApiKeyCrypto;
 use App\Support\GeoFlow\OpenAiRuntimeProvider;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -42,10 +46,13 @@ class AiModelController extends Controller
      */
     public function index(): View
     {
+        $admin = request()->user('admin');
+
         return view('admin.ai-models.index', [
             'pageTitle' => __('admin.ai_models.page_title'),
             'activeMenu' => 'ai_config',
             'adminSiteName' => AdminWeb::siteName(),
+            'canManageAiModels' => $this->canManageModels($admin),
             'models' => $this->loadModels(),
             'embeddingModels' => $this->loadActiveEmbeddingModels(),
             'chatModels' => $this->loadActiveChatModels(),
@@ -66,6 +73,8 @@ class AiModelController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $this->ensureCanManageModels($request);
+
         $payload = $this->validateModelPayload($request, false);
 
         $apiKey = trim((string) ($payload['api_key'] ?? ''));
@@ -113,6 +122,8 @@ class AiModelController extends Controller
      */
     public function update(Request $request, int $modelId): RedirectResponse
     {
+        $this->ensureCanManageModels($request);
+
         $model = AiModel::query()->whereKey($modelId)->firstOrFail();
         $payload = $this->validateModelPayload($request, true);
 
@@ -164,6 +175,8 @@ class AiModelController extends Controller
      */
     public function destroy(int $modelId): RedirectResponse
     {
+        $this->ensureCanManageModels(request());
+
         $model = AiModel::query()->whereKey($modelId)->firstOrFail();
         $taskCount = $model->tasks()->count();
         if ($taskCount > 0) {
@@ -340,6 +353,7 @@ class AiModelController extends Controller
     private function loadModels(): array
     {
         $supportsMaxTokens = $this->supportsModelMaxTokens();
+        $supportsTenantId = Schema::hasTable('ai_models') && Schema::hasColumn('ai_models', 'tenant_id');
         $columns = [
             'id',
             'name',
@@ -356,6 +370,9 @@ class AiModelController extends Controller
             'created_at',
             'updated_at',
         ];
+        if ($supportsTenantId) {
+            $columns[] = 'tenant_id';
+        }
         if ($supportsMaxTokens) {
             $columns[] = 'max_tokens';
         }
@@ -364,10 +381,18 @@ class AiModelController extends Controller
             ->select($columns)
             ->withCount('tasks as task_count')
             ->addSelect([
+                'task_generated_count' => Task::query()
+                    ->selectRaw('COALESCE(SUM(created_count), 0)')
+                    ->whereColumn('ai_model_id', 'ai_models.id'),
                 'article_count' => Article::query()
                     ->selectRaw('COUNT(articles.id)')
                     ->join('tasks', 'articles.task_id', '=', 'tasks.id')
                     ->whereColumn('tasks.ai_model_id', 'ai_models.id'),
+                'article_today_count' => Article::query()
+                    ->selectRaw('COUNT(articles.id)')
+                    ->join('tasks', 'articles.task_id', '=', 'tasks.id')
+                    ->whereColumn('tasks.ai_model_id', 'ai_models.id')
+                    ->whereDate('articles.created_at', Carbon::today()),
             ])
             ->orderByDesc('created_at')
             ->get();
@@ -376,6 +401,8 @@ class AiModelController extends Controller
 
         return $models->map(function (AiModel $model) use ($defaultEmbeddingModelId, $supportsMaxTokens): array {
             $modelType = $this->normalizeModelType((string) ($model->model_type ?? 'chat'));
+            $taskCount = (int) ($model->task_count ?? 0);
+            $articleCount = (int) ($model->article_count ?? 0);
 
             return [
                 'id' => (int) $model->id,
@@ -386,16 +413,42 @@ class AiModelController extends Controller
                 'api_url' => (string) ($model->api_url ?? ''),
                 'failover_priority' => (int) ($model->failover_priority ?? 100),
                 'daily_limit' => (int) ($model->daily_limit ?? 0),
-                'used_today' => (int) ($model->used_today ?? 0),
-                'total_used' => (int) ($model->total_used ?? 0),
+                'used_today' => (int) ($model->article_today_count ?? 0),
+                'total_used' => $this->visibleTotalUsed($model),
                 'status' => (string) ($model->status ?? 'active'),
                 'max_tokens' => $supportsMaxTokens && $model->max_tokens !== null ? (int) $model->max_tokens : null,
-                'task_count' => (int) ($model->task_count ?? 0),
-                'article_count' => (int) ($model->article_count ?? 0),
+                'task_count' => $taskCount,
+                'article_count' => $articleCount,
                 'masked_api_key' => $this->maskApiKey((string) ($model->getRawOriginal('api_key') ?? '')),
                 'is_default_embedding' => $modelType === 'embedding' && $defaultEmbeddingModelId === (int) $model->id,
             ];
         })->all();
+    }
+
+    private function visibleTotalUsed(AiModel $model): int
+    {
+        if (TenantContext::shouldBypass() || ! Schema::hasColumn('ai_models', 'tenant_id')) {
+            return (int) ($model->total_used ?? 0);
+        }
+
+        $tenantId = TenantContext::id();
+        if ($tenantId === null) {
+            return (int) ($model->total_used ?? 0);
+        }
+
+        return (int) ($model->tenant_id ?? 0) === $tenantId
+            ? (int) ($model->total_used ?? 0)
+            : 0;
+    }
+
+    private function canManageModels(mixed $admin): bool
+    {
+        return $admin instanceof Admin && $admin->isSuperAdmin();
+    }
+
+    private function ensureCanManageModels(Request $request): void
+    {
+        abort_unless($this->canManageModels($request->user('admin')), 403);
     }
 
     /**
@@ -564,7 +617,7 @@ class AiModelController extends Controller
             $row = DB::selectOne("SELECT extname FROM pg_extension WHERE extname = 'vector' LIMIT 1");
 
             return $row !== null;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }

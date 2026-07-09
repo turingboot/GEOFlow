@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Admin;
+use App\Models\Tenant;
+use App\Support\Tenancy\AdminTenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -88,13 +90,49 @@ class AdminUsersManagementTest extends TestCase
     {
         $superAdmin = $this->createAdmin('root_admin', 'super_admin');
         $standardAdmin = $this->createAdmin('editor_admin', 'admin');
+        $tenant = Tenant::query()->create([
+            'name' => 'Editor Tenant',
+            'slug' => 'editor-tenant',
+            'owner_admin_id' => (int) $standardAdmin->id,
+            'status' => 'active',
+        ]);
+        $standardAdmin->forceFill(['tenant_id' => (int) $tenant->id])->save();
+
+        $this->actingAs($superAdmin, 'admin')
+            ->withSession([AdminTenantContext::SESSION_KEY => (int) $tenant->id])
+            ->post(route('admin.admin-users.delete', ['adminId' => $standardAdmin->id]))
+            ->assertRedirect(route('admin.admin-users.index'))
+            ->assertSessionMissing(AdminTenantContext::SESSION_KEY);
+
+        $this->assertDatabaseMissing('admins', [
+            'id' => $standardAdmin->id,
+        ]);
+        $this->assertDatabaseHas('tenants', [
+            'id' => (int) $tenant->id,
+            'owner_admin_id' => null,
+            'status' => 'inactive',
+        ]);
+    }
+
+    public function test_deleting_standard_admin_does_not_disable_default_tenant(): void
+    {
+        $superAdmin = $this->createAdmin('root_admin', 'super_admin');
+        $standardAdmin = $this->createAdmin('editor_admin', 'admin');
+        $tenant = Tenant::query()->where('slug', 'default')->firstOrFail();
+        $tenant->forceFill([
+            'owner_admin_id' => (int) $standardAdmin->id,
+            'status' => 'active',
+        ])->save();
+        $standardAdmin->forceFill(['tenant_id' => (int) $tenant->id])->save();
 
         $this->actingAs($superAdmin, 'admin')
             ->post(route('admin.admin-users.delete', ['adminId' => $standardAdmin->id]))
             ->assertRedirect(route('admin.admin-users.index'));
 
-        $this->assertDatabaseMissing('admins', [
-            'id' => $standardAdmin->id,
+        $this->assertDatabaseHas('tenants', [
+            'id' => (int) $tenant->id,
+            'slug' => 'default',
+            'status' => 'active',
         ]);
     }
 

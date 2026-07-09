@@ -12,12 +12,14 @@
                     <p class="admin-hero-sub">{{ __('admin.ai_models.page_subtitle') }}</p>
                 </div>
             </div>
-            <div class="admin-hero-actions">
-                <button type="button" onclick="showCreateModelModal()" class="admin-btn admin-btn-primary">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    {{ __('admin.ai_models.create') }}
-                </button>
-            </div>
+            @if ($canManageAiModels ?? false)
+                <div class="admin-hero-actions">
+                    <button type="button" onclick="showCreateModelModal()" class="admin-btn admin-btn-primary">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        {{ __('admin.ai_models.create') }}
+                    </button>
+                </div>
+            @endif
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -133,9 +135,11 @@
                             <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                                 <i data-lucide="cpu" class="w-8 h-8 mx-auto mb-2 text-gray-400"></i>
                                 <p>{{ __('admin.ai_models.empty') }}</p>
-                                <button type="button" onclick="showCreateModelModal()" class="mt-2 text-blue-600 hover:text-blue-800">
-                                    {{ __('admin.ai_models.add_first') }}
-                                </button>
+                                @if ($canManageAiModels ?? false)
+                                    <button type="button" onclick="showCreateModelModal()" class="mt-2 text-blue-600 hover:text-blue-800">
+                                        {{ __('admin.ai_models.add_first') }}
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @else
@@ -193,8 +197,10 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex items-center gap-3">
                                         <button type="button" onclick="testModelConnection({{ (int) $model['id'] }}, this)" class="text-emerald-600 hover:text-emerald-900">{{ __('admin.ai_models.test') }}</button>
-                                        <button type="button" onclick='editModel(@json($model, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP))' class="text-blue-600 hover:text-blue-900">{{ __('admin.ai_models.edit') }}</button>
-                                        <button type="button" onclick="deleteModel({{ (int) $model['id'] }}, @js($model['name']))" class="text-red-600 hover:text-red-900">{{ __('admin.ai_models.delete') }}</button>
+                                        @if ($canManageAiModels ?? false)
+                                            <button type="button" onclick='editModel(@json($model, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP))' class="text-blue-600 hover:text-blue-900">{{ __('admin.ai_models.edit') }}</button>
+                                            <button type="button" onclick="deleteModel({{ (int) $model['id'] }}, @js($model['name']))" class="text-red-600 hover:text-red-900">{{ __('admin.ai_models.delete') }}</button>
+                                        @endif
                                     </div>
                                     <div id="model-test-result-{{ (int) $model['id'] }}" class="mt-2 text-xs whitespace-normal max-w-xs"></div>
                                 </td>
@@ -207,7 +213,8 @@
         </div>
     </div>
 
-    <div id="modelModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    @if ($canManageAiModels ?? false)
+        <div id="modelModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
         <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
             <div class="mt-3">
                 <div class="flex items-center justify-between mb-4">
@@ -318,7 +325,8 @@
                 </form>
             </div>
         </div>
-    </div>
+        </div>
+    @endif
 @endsection
 
 @push('scripts')
@@ -338,6 +346,7 @@
             testNetworkError: @json(__('admin.ai_models.test_network_error')),
         };
         const SUPPORTS_MODEL_MAX_TOKENS = @json((bool) ($supportsModelMaxTokens ?? false));
+        const CAN_MANAGE_AI_MODELS = @json((bool) ($canManageAiModels ?? false));
         const UPDATE_URL_TEMPLATE = @json(\App\Support\AdminWeb::routePath('admin.ai-models.update', ['modelId' => '__MODEL_ID__']));
         const DELETE_URL_TEMPLATE = @json(\App\Support\AdminWeb::routePath('admin.ai-models.delete', ['modelId' => '__MODEL_ID__']));
         const TEST_URL_TEMPLATE = @json(\App\Support\AdminWeb::routePath('admin.ai-models.test', ['modelId' => '__MODEL_ID__']));
@@ -358,6 +367,10 @@
         };
 
         function showCreateModelModal() {
+            if (!CAN_MANAGE_AI_MODELS) {
+                return;
+            }
+
             document.getElementById('modalTitle').textContent = AI_MODELS_I18N.modalCreate;
             document.getElementById('modelForm').action = @json(route('admin.ai-models.store'));
             document.getElementById('formMethod').value = 'POST';
@@ -375,6 +388,10 @@
         }
 
         function editModel(model) {
+            if (!CAN_MANAGE_AI_MODELS) {
+                return;
+            }
+
             document.getElementById('modalTitle').textContent = AI_MODELS_I18N.modalEdit;
             document.getElementById('modelForm').action = UPDATE_URL_TEMPLATE.replace('__MODEL_ID__', String(model.id));
             document.getElementById('formMethod').value = 'PUT';
@@ -398,10 +415,14 @@
         }
 
         function closeModelModal() {
-            document.getElementById('modelModal').classList.add('hidden');
+            document.getElementById('modelModal')?.classList.add('hidden');
         }
 
         function deleteModel(id, name) {
+            if (!CAN_MANAGE_AI_MODELS) {
+                return;
+            }
+
             if (!confirm(AI_MODELS_I18N.confirmDelete.replace('__NAME__', name))) {
                 return;
             }

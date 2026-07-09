@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiModel;
+use App\Models\Article;
 use App\Models\Prompt;
 use App\Models\Task;
 use App\Support\AdminWeb;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 /**
@@ -197,11 +199,21 @@ class LegacyController extends Controller
      */
     private function loadAiConfiguratorStats(): array
     {
+        $totalUsage = (int) Article::query()
+            ->whereNull('deleted_at')
+            ->where('is_ai_generated', 1)
+            ->count();
+        $todayUsage = (int) Article::query()
+            ->whereNull('deleted_at')
+            ->where('is_ai_generated', 1)
+            ->whereDate('created_at', Carbon::today())
+            ->count();
+
         return [
             'model_count' => AiModel::query()->where('status', 'active')->count(),
             'prompt_count' => Prompt::query()->count(),
-            'total_usage' => (int) (AiModel::query()->sum('total_used') ?? 0),
-            'today_usage' => (int) (AiModel::query()->sum('used_today') ?? 0),
+            'total_usage' => $totalUsage,
+            'today_usage' => $todayUsage,
         ];
     }
 }

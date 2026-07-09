@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Services\Admin\MembershipService;
 use App\Support\AdminWeb;
+use App\Support\Tenancy\AdminTenantContext;
 use App\Support\Tenancy\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -207,10 +208,31 @@ class AdminUserController extends Controller
         }
 
         try {
-            DB::transaction(static function () use ($targetAdmin, $currentAdminId): void {
+            $affectedTenantIds = collect([$targetAdmin->tenant_id])
+                ->filter(static fn (mixed $tenantId): bool => (int) $tenantId > 0)
+                ->map(static fn (mixed $tenantId): int => (int) $tenantId)
+                ->unique()
+                ->values();
+
+            DB::transaction(static function () use ($targetAdmin, $currentAdminId, $affectedTenantIds): void {
                 DB::table('admins')
                     ->where('created_by', $targetAdmin->id)
                     ->update(['created_by' => null]);
+
+                DB::table('tenants')
+                    ->where(function ($query) use ($targetAdmin, $affectedTenantIds): void {
+                        $query->where('owner_admin_id', $targetAdmin->id);
+
+                        if ($affectedTenantIds->isNotEmpty()) {
+                            $query->orWhereIn('id', $affectedTenantIds->all());
+                        }
+                    })
+                    ->where('slug', '!=', 'default')
+                    ->update([
+                        'owner_admin_id' => null,
+                        'status' => 'inactive',
+                        'updated_at' => now(),
+                    ]);
 
                 if (Schema::hasTable('article_reviews')) {
                     // article_reviews.admin_id is non-null in the legacy schema; keep old review rows valid.
@@ -221,6 +243,10 @@ class AdminUserController extends Controller
 
                 $targetAdmin->delete();
             });
+
+            if ($affectedTenantIds->contains(AdminTenantContext::activeTenantId())) {
+                AdminTenantContext::setActiveTenantId(null);
+            }
 
             return redirect()->route('admin.admin-users.index')->with('message', __('admin.admin_users.message.delete_success'));
         } catch (Throwable $exception) {

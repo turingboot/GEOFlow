@@ -432,7 +432,7 @@ class AdminTenantIsolationTest extends TestCase
             ->assertSessionHasErrors('target_keyword_library_id');
     }
 
-    public function test_topic_plans_are_isolated_and_reject_foreign_resources(): void
+    public function test_topic_plans_are_isolated_while_ai_models_are_shared(): void
     {
         [$adminOne, $tenantOne] = $this->adminWithTenant('tenant_one_topic', 'tenant-one-topic');
         [, $tenantTwo] = $this->adminWithTenant('tenant_two_topic', 'tenant-two-topic');
@@ -472,13 +472,12 @@ class AdminTenantIsolationTest extends TestCase
             ->assertSee($planOne->name)
             ->assertDontSee($planTwo->name);
 
-        $this->actingAs($adminOne, 'admin')
-            ->post(route('admin.topic-plans.store'), [
-                'name' => 'Cross Tenant Topic Plan',
-                'ai_model_id' => (int) $foreignModel->id,
-                'target_count' => 3,
-            ])
-            ->assertSessionHasErrors('ai_model_id');
+        $this->assertTrue(
+            AiModel::query()
+                ->whereKey((int) $foreignModel->id)
+                ->where('status', 'active')
+                ->exists()
+        );
     }
 
     public function test_url_import_jobs_are_isolated(): void
@@ -550,7 +549,7 @@ class AdminTenantIsolationTest extends TestCase
         $this->assertSame('Tenant Two Site', $nameTwo);
     }
 
-    public function test_site_theme_replications_are_isolated_and_reject_foreign_ai_model(): void
+    public function test_site_theme_replications_are_isolated_while_ai_models_are_shared(): void
     {
         [$adminOne, $tenantOne] = $this->adminWithTenant('tenant_one_theme', 'tenant-one-theme');
         [, $tenantTwo] = $this->adminWithTenant('tenant_two_theme', 'tenant-two-theme');
@@ -597,7 +596,7 @@ class AdminTenantIsolationTest extends TestCase
                 'style_preference' => 'content_site',
                 'compliance_ack' => '1',
             ])
-            ->assertSessionHasErrors('ai_model_id');
+            ->assertRedirect();
 
         $this->actingAs($adminOne, 'admin')
             ->post(route('admin.site-settings.theme-replications.store'), [

@@ -17,14 +17,46 @@ class AdminTenantSwitchTest extends TestCase
 
     public function test_super_admin_sees_tenant_switcher_with_all_option_and_tenants(): void
     {
+        $defaultTenant = Tenant::query()->where('slug', 'default')->firstOrFail();
         $tenant = Tenant::query()->create(['name' => 'Acme', 'slug' => 'acme', 'status' => 'active']);
+        $this->normalAdmin($tenant->id);
 
         $this->actingAs($this->superAdmin(), 'admin')
             ->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee(route('admin.tenant.switch'), false)
             ->assertSee(__('admin.tenant_switch.all'))
+            ->assertSee($defaultTenant->name)
             ->assertSee($tenant->name);
+    }
+
+    public function test_super_admin_does_not_see_or_switch_to_orphan_tenants(): void
+    {
+        $tenant = Tenant::query()->create(['name' => 'Orphan', 'slug' => 'orphan', 'status' => 'active']);
+        $superAdmin = $this->superAdmin();
+
+        $this->actingAs($superAdmin, 'admin')
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee($tenant->name);
+
+        $this->actingAs($superAdmin, 'admin')
+            ->from(route('admin.dashboard'))
+            ->post(route('admin.tenant.switch'), ['tenant_id' => $tenant->id])
+            ->assertRedirect(route('admin.dashboard'))
+            ->assertSessionHasErrors('tenant_id')
+            ->assertSessionMissing(AdminTenantContext::SESSION_KEY);
+    }
+
+    public function test_super_admin_can_switch_into_default_tenant_without_owner_admin(): void
+    {
+        $tenant = Tenant::query()->where('slug', 'default')->firstOrFail();
+
+        $this->actingAs($this->superAdmin(), 'admin')
+            ->from(route('admin.dashboard'))
+            ->post(route('admin.tenant.switch'), ['tenant_id' => $tenant->id])
+            ->assertRedirect(route('admin.dashboard'))
+            ->assertSessionHas(AdminTenantContext::SESSION_KEY, $tenant->id);
     }
 
     public function test_normal_admin_does_not_see_tenant_switcher(): void
@@ -40,6 +72,7 @@ class AdminTenantSwitchTest extends TestCase
     public function test_super_admin_can_switch_into_a_specific_tenant(): void
     {
         $tenant = Tenant::query()->create(['name' => 'Acme', 'slug' => 'acme', 'status' => 'active']);
+        $this->normalAdmin($tenant->id);
 
         $this->actingAs($this->superAdmin(), 'admin')
             ->from(route('admin.dashboard'))

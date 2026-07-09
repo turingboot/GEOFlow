@@ -61,7 +61,7 @@ class TopicPlanController extends Controller
             'knowledge_base_ids.*' => ['integer', $this->tenantExistsRule('knowledge_bases')],
             'trend_source_ids' => ['nullable', 'array'],
             'trend_source_ids.*' => ['integer', $this->tenantExistsRule('keyword_trend_sources')],
-            'ai_model_id' => ['required', 'integer', $this->tenantExistsRule('ai_models')],
+            'ai_model_id' => ['required', 'integer', $this->activeAiModelRule()],
         ]);
 
         try {
@@ -137,7 +137,7 @@ class TopicPlanController extends Controller
 
         $data = $request->validate([
             'prompt_id' => ['required', 'integer', $this->tenantExistsRule('prompts')],
-            'ai_model_id' => ['required', 'integer', $this->tenantExistsRule('ai_models')],
+            'ai_model_id' => ['required', 'integer', $this->activeAiModelRule()],
             'publish_interval' => ['nullable', 'integer', 'min:60'],
             'need_review' => ['nullable', 'boolean'],
             'category_mode' => ['nullable', 'in:smart,fixed'],
@@ -200,6 +200,13 @@ class TopicPlanController extends Controller
             if (TenantContext::id()) {
                 $query->where('tenant_id', TenantContext::id());
             }
+        });
+    }
+
+    private function activeAiModelRule(): Exists
+    {
+        return Rule::exists('ai_models', 'id')->where(static function ($query): void {
+            $query->where('status', 'active');
         });
     }
 }
