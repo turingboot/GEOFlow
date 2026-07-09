@@ -152,8 +152,11 @@
             </a>
         @endforeach
     </nav>
+    {{-- 侧边栏版本号暂时隐藏（如需恢复取消注释即可） --}}
+    {{--
     <div class="shrink-0 border-t border-slate-800 px-5 py-3 text-xs text-slate-500">
         {{ __('admin.footer.version', ['version' => $appVersion]) }}
     </div>
+    --}}
 </aside>
 <div id="admin-sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 z-30 hidden bg-slate-900/50 lg:hidden"></div>
