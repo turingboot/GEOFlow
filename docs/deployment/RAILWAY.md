@@ -54,6 +54,17 @@ GEOFLOW_ADMIN_USERNAME=admin
 GEOFLOW_ADMIN_EMAIL=you@example.com
 GEOFLOW_ADMIN_PASSWORD=<强密码>
 
+# 站点绝对链接（法律页返回链接/SEO 用）；不设会退回 http://localhost。
+# 注意：别写 ${APP_URL} 这种嵌套——Railway 直接注入 OS 环境变量、无 .env 文件，不会展开，直接写完整域名。
+SITE_URL=https://<你的域名>
+
+# 法律页（/privacy、/terms，用于 Google OAuth 发布验证）：仅能从 env 读，无后台 UI。
+GEOFLOW_LEGAL_COMPANY_NAME=<对外品牌名，如 TavixGEO>
+GEOFLOW_LEGAL_CONTACT_EMAIL=<真实联系邮箱，Google 审核会看>
+GEOFLOW_LEGAL_EFFECTIVE_DATE=2026-07-09
+# 谷歌 OAuth Client ID/Secret/redirect_uri 走后台「谷歌搜录→设置」存 DB（DB 优先于 env），此处不设；
+# redirect_uri 留空时按 APP_URL 自动推导为 https://<域名>/geo_admin/google-search-console/oauth/callback。
+
 # 首发开自动迁移+安装；跑通后建议改 false，避免每次部署重复执行
 AUTO_WAIT_FOR_DB=true
 AUTO_MIGRATE=true
