@@ -28,7 +28,9 @@
 <footer class="shrink-0 bg-white border-t border-gray-200">
     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col md:flex-row md:flex-wrap justify-center items-center gap-3 md:gap-4 text-sm text-gray-500 text-center">
-            <span>{{ __('admin.footer.copyright') }}</span>
+            <span>© 2026 {{ config('geoflow.legal.company_name', 'TavixGEO') }}</span>
+            {{-- 仅保留版权；版本 / 作者 / 项目链接按需隐藏（原内容保留在下方注释中便于恢复） --}}
+            {{--
             <span>|</span>
             <span>{{ __('admin.footer.version', ['version' => $appVersion]) }}</span>
             <span>|</span>
@@ -43,6 +45,7 @@
                     {{ __('admin.footer.project_intro_link') }}
                 </button>
             </span>
+            --}}
         </div>
     </div>
 </footer>

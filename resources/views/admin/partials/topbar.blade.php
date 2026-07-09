@@ -30,7 +30,7 @@
         <h1 class="truncate text-base font-semibold text-gray-900">{{ ($pageTitle ?? '') !== '' ? $pageTitle : $adminBrandName }}</h1>
     </div>
     <div class="flex shrink-0 items-center gap-2 sm:gap-3">
-        <div class="relative">
+        <div class="relative hidden">{{-- 通知铃铛已隐藏（如需恢复，删掉外层容器的 hidden 类即可） --}}
             <button onclick="toggleAdminNotifications()" class="relative rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors duration-200" type="button" aria-label="{{ __('admin.header.notifications.label') }}" title="{{ __('admin.header.notifications.label') }}">
                 <i data-lucide="bell" class="w-5 h-5"></i>
                 @if($hasVersionUpdate)
