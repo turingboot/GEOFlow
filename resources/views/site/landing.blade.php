@@ -92,8 +92,8 @@
     <section class="hero">
         <span class="eyebrow">GEO Optimization Platform</span>
         <h1>{{ $companyName }}</h1>
-        <p class="lead">{{ $companyName }} is a GEO (Generative Engine Optimization) content-engineering and search-monitoring platform. It produces content at scale with AI and feeds real Google Search Console keyword signals back into your content strategy.</p>
-        <p class="purpose">Connect your Google Search Console to see which keywords bring real traffic to your verified sites — then turn those insights into better GEO content, all in one dashboard.</p>
+        <p class="lead">{{ $companyName }} is a web application for creating website content at scale with AI and measuring how that content performs in Google Search.</p>
+        <p class="purpose"><b>The purpose of {{ $companyName }}</b> is to help businesses and content teams turn real Google Search Console data — the keywords and pages that actually bring traffic — into better, higher-performing content, all in one dashboard.</p>
         <div class="cta-row">
             <a class="btn btn-primary" href="{{ route('admin.login') }}">Open console</a>
             <a class="btn btn-ghost" href="{{ route('site.legal.privacy') }}">Privacy &amp; data</a>
@@ -101,8 +101,8 @@
     </section>
 
     <section class="block">
-        <h2>About {{ $companyName }}</h2>
-        <p>{{ $companyName }} is a web application that helps businesses and content teams plan, generate, review and publish content at scale. Its workflow covers keyword and topic planning, AI-assisted content generation, human review, and multi-site publishing to websites you own.</p>
+        <h2>What {{ $companyName }} is for</h2>
+        <p><b>The purpose of {{ $companyName }} is to help businesses and content teams plan, generate, review and publish website content at scale, and then improve that content using real search-performance data from Google Search Console.</b> The workflow covers keyword and topic planning, AI-assisted content generation, human review, and multi-site publishing to websites you own.</p>
         <p>To close the loop, you can optionally connect your own Google Search Console account. {{ $companyName }} then reads — on a strictly <b>read-only</b> basis — your verified sites, search performance (clicks, impressions, CTR, average position) and indexing status, and shows them in your own dashboard. This lets you see which keywords bring real traffic and feed that back into your content optimization. We request no write access, and this data is shown only to you. The platform is operated by {{ $companyName }} and hosted on this domain, <b>{{ $siteUrl !== '' ? $siteUrl : url('/') }}</b>.</p>
 
         <div class="grid">
