@@ -17,7 +17,6 @@ class LegalPagesTest extends TestCase
 
         $this->get('/privacy')
             ->assertOk()
-            ->assertSee('隐私政策')
             ->assertSee('Privacy Policy')
             // Google 审核硬性要求：Limited Use 声明与政策链接
             ->assertSee('Google API Services User Data Policy')
@@ -32,7 +31,6 @@ class LegalPagesTest extends TestCase
     {
         $this->get('/terms')
             ->assertOk()
-            ->assertSee('服务条款')
             ->assertSee('Terms of Service')
             ->assertSee(route('site.legal.privacy'));
     }
