@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\SensitiveWord;
 use App\Models\SiteSetting;
 use App\Support\AdminWeb;
+use App\Support\Site\HomepageModuleBuilder;
 use App\Support\Site\SiteThemeCatalog;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,7 +20,7 @@ class AdminSiteSettingsPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_authenticated_admin_can_view_admin_base_path_setting(): void
+    public function test_authenticated_admin_can_view_fixed_admin_base_path(): void
     {
         $admin = Admin::query()->create([
             'username' => 'site_settings_admin',
@@ -36,7 +37,11 @@ class AdminSiteSettingsPageTest extends TestCase
             ->assertSee(__('admin.site_settings.field_admin_base_path'))
             ->assertSee(__('admin.site_settings.section_home_carousel'))
             ->assertSee(__('admin.site_settings.module_sensitive_words'))
-            ->assertSee('value="'.AdminWeb::basePath().'"', false);
+            ->assertSee('TavixGEO')
+            ->assertSee('utm_source=tavixgeo&utm_medium=article_text_ad', false)
+            ->assertDontSee('utm_source=geoflow&utm_medium=article_text_ad', false)
+            ->assertSee('value="geo"', false)
+            ->assertDontSee('name="admin_base_path"', false);
     }
 
     public function test_site_settings_page_renders_before_lead_forms_table_is_migrated(): void
@@ -91,26 +96,26 @@ class AdminSiteSettingsPageTest extends TestCase
         ]);
 
         $expectedThemes = [
-            'geoflow-template-01-ink-editorial' => 'GEOFlow 01 Ink Editorial',
-            'geoflow-template-02-market-briefing' => 'GEOFlow 02 Market Briefing',
-            'geoflow-template-03-salmon-insight' => 'GEOFlow 03 Salmon Insight',
-            'geoflow-template-04-red-opinion' => 'GEOFlow 04 Red Opinion',
-            'geoflow-template-05-wire-clean' => 'GEOFlow 05 Wire Clean',
-            'geoflow-template-06-public-broadcast' => 'GEOFlow 06 Public Broadcast',
-            'geoflow-template-07-breaking-red' => 'GEOFlow 07 Breaking Red',
-            'geoflow-template-08-section-blue' => 'GEOFlow 08 Section Blue',
-            'geoflow-template-09-tech-spectrum' => 'GEOFlow 09 Tech Spectrum',
-            'geoflow-template-10-wired-feature' => 'GEOFlow 10 Wired Feature',
-            'geoflow-template-11-product-newsroom' => 'GEOFlow 11 Product Newsroom',
-            'geoflow-template-12-saas-gradient' => 'GEOFlow 12 SaaS Gradient',
-            'geoflow-template-13-linear-system' => 'GEOFlow 13 Linear System',
-            'geoflow-template-14-knowledge-paper' => 'GEOFlow 14 Knowledge Paper',
-            'geoflow-template-15-reading-medium' => 'GEOFlow 15 Reading Medium',
-            'geoflow-template-16-newsletter-letter' => 'GEOFlow 16 Newsletter Letter',
-            'geoflow-template-17-executive-review' => 'GEOFlow 17 Executive Review',
-            'geoflow-template-18-consulting-insight' => 'GEOFlow 18 Consulting Insight',
-            'geoflow-template-19-tech-review' => 'GEOFlow 19 Tech Review',
-            'geoflow-template-20-research-journal' => 'GEOFlow 20 Research Journal',
+            'geoflow-template-01-ink-editorial' => 'TavixGEO 01 Ink Editorial',
+            'geoflow-template-02-market-briefing' => 'TavixGEO 02 Market Briefing',
+            'geoflow-template-03-salmon-insight' => 'TavixGEO 03 Salmon Insight',
+            'geoflow-template-04-red-opinion' => 'TavixGEO 04 Red Opinion',
+            'geoflow-template-05-wire-clean' => 'TavixGEO 05 Wire Clean',
+            'geoflow-template-06-public-broadcast' => 'TavixGEO 06 Public Broadcast',
+            'geoflow-template-07-breaking-red' => 'TavixGEO 07 Breaking Red',
+            'geoflow-template-08-section-blue' => 'TavixGEO 08 Section Blue',
+            'geoflow-template-09-tech-spectrum' => 'TavixGEO 09 Tech Spectrum',
+            'geoflow-template-10-wired-feature' => 'TavixGEO 10 Wired Feature',
+            'geoflow-template-11-product-newsroom' => 'TavixGEO 11 Product Newsroom',
+            'geoflow-template-12-saas-gradient' => 'TavixGEO 12 SaaS Gradient',
+            'geoflow-template-13-linear-system' => 'TavixGEO 13 Linear System',
+            'geoflow-template-14-knowledge-paper' => 'TavixGEO 14 Knowledge Paper',
+            'geoflow-template-15-reading-medium' => 'TavixGEO 15 Reading Medium',
+            'geoflow-template-16-newsletter-letter' => 'TavixGEO 16 Newsletter Letter',
+            'geoflow-template-17-executive-review' => 'TavixGEO 17 Executive Review',
+            'geoflow-template-18-consulting-insight' => 'TavixGEO 18 Consulting Insight',
+            'geoflow-template-19-tech-review' => 'TavixGEO 19 Tech Review',
+            'geoflow-template-20-research-journal' => 'TavixGEO 20 Research Journal',
         ];
 
         $catalogIds = collect(app(SiteThemeCatalog::class)->all())
@@ -243,7 +248,7 @@ class AdminSiteSettingsPageTest extends TestCase
         $this->assertDatabaseMissing('sensitive_words', ['word' => '测试敏感词']);
     }
 
-    public function test_admin_base_path_rejects_unsafe_value(): void
+    public function test_admin_base_path_payload_is_ignored_when_saving_site_settings(): void
     {
         $this->withoutMiddleware(ValidateCsrfToken::class);
 
@@ -272,7 +277,12 @@ class AdminSiteSettingsPageTest extends TestCase
                 'per_page' => 12,
                 'admin_base_path' => '../admin',
             ])
-            ->assertSessionHasErrors('admin_base_path');
+            ->assertRedirect(route('admin.site-settings.index'));
+
+        $this->assertSame('geo', AdminWeb::basePath());
+        $this->assertDatabaseMissing('site_settings', [
+            'setting_key' => 'admin_base_path',
+        ]);
     }
 
     public function test_site_settings_save_home_carousel_slides(): void
@@ -795,12 +805,46 @@ class AdminSiteSettingsPageTest extends TestCase
         $this->assertSame('hero', $modules[0]['type']);
         $this->assertSame('把首页升级成业务增长入口', $modules[0]['title']);
         $this->assertSame('#2563eb', $style['accent_color']);
+        $this->assertSame('#f8fafc', $style['background_color']);
+        $this->assertSame('#eff6ff', $modules[0]['surface_color']);
 
         $this->get(route('site.home'))
             ->assertOk()
             ->assertSee('把首页升级成业务增长入口')
             ->assertSee('核心能力')
             ->assertSee('运营概览');
+    }
+
+    public function test_homepage_module_presets_have_distinct_scene_styles(): void
+    {
+        $styleSignatures = [];
+        $moduleSurfaceColors = [];
+
+        foreach (HomepageModuleBuilder::presetIds() as $presetId) {
+            $preset = HomepageModuleBuilder::buildPreset($presetId);
+            $style = $preset['style'];
+
+            $styleSignatures[] = implode('|', [
+                $style['accent_color'],
+                $style['background_color'],
+                $style['surface_color'],
+                $style['container_width'],
+                $style['section_spacing'],
+                $style['radius'],
+            ]);
+
+            $moduleSurfaceColors[$presetId] = array_values(array_filter(
+                array_column($preset['modules'], 'surface_color'),
+                static fn (mixed $color): bool => is_string($color) && $color !== ''
+            ));
+        }
+
+        $this->assertSame(HomepageModuleBuilder::presetIds(), array_values(array_unique(HomepageModuleBuilder::presetIds())));
+        $this->assertCount(count(HomepageModuleBuilder::presetIds()), array_unique($styleSignatures));
+
+        foreach ($moduleSurfaceColors as $presetId => $colors) {
+            $this->assertNotEmpty($colors, $presetId.' should define visible module surface colors.');
+        }
     }
 
     public function test_homepage_module_preset_can_append_existing_modules(): void

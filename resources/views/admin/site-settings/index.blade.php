@@ -148,16 +148,14 @@
                         </div>
                     </div>
 
-                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <label class="block text-sm font-medium text-gray-900 mb-2">{{ __('admin.site_settings.field_admin_base_path') }}</label>
                         <div class="flex rounded-md shadow-sm">
                             <span class="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-white px-3 text-sm text-gray-500">{{ rtrim(url('/'), '/') }}/</span>
-                            <input type="text" name="admin_base_path" required
-                                   value="{{ $settings['admin_base_path'] }}"
-                                   class="w-full min-w-0 flex-1 rounded-none rounded-r-md border border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-                                   placeholder="{{ __('admin.site_settings.placeholder_admin_base_path') }}">
+                            <input type="text" value="{{ $settings['admin_base_path'] }}" readonly
+                                   class="w-full min-w-0 flex-1 cursor-not-allowed rounded-none rounded-r-md border border-gray-300 bg-white px-3 py-2 text-gray-700 shadow-sm">
                         </div>
-                        <p class="mt-2 text-xs leading-5 text-amber-800">{{ __('admin.site_settings.admin_base_path_help') }}</p>
+                        <p class="mt-2 text-xs leading-5 text-slate-600">{{ __('admin.site_settings.admin_base_path_help') }}</p>
                     </div>
 
                     <div>
@@ -340,16 +338,16 @@
 
                 <form method="POST" action="{{ route('admin.site-settings.homepage-modules.preset') }}" class="mb-5 rounded-2xl border border-indigo-100 bg-white p-5">
                     @csrf
-                    <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                        <div class="min-w-0 flex-1">
+                    <div class="grid grid-cols-1 gap-5 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-end">
+                        <div class="min-w-0">
                             <div class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100">
                                 <i data-lucide="sparkles" class="mr-1.5 h-3.5 w-3.5"></i>
                                 {{ __('admin.site_settings.homepage.preset_title') }}
                             </div>
                             <p class="mt-3 text-sm leading-6 text-gray-600">{{ __('admin.site_settings.homepage.preset_desc') }}</p>
                         </div>
-                        <div class="grid w-full grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto] xl:max-w-3xl">
-                            <div>
+                        <div class="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-[minmax(220px,1fr)_180px_auto]">
+                            <div class="min-w-0">
                                 <label class="mb-2 block text-xs font-medium text-gray-600">{{ __('admin.site_settings.homepage.preset_field') }}</label>
                                 <select name="homepage_preset" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                     @foreach ($homepagePresets as $preset)
@@ -357,7 +355,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div>
+                            <div class="min-w-0">
                                 <label class="mb-2 block text-xs font-medium text-gray-600">{{ __('admin.site_settings.homepage.preset_mode') }}</label>
                                 <select name="preset_mode" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                     @foreach ($homepagePresetModes as $mode)
@@ -365,7 +363,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="flex items-end">
+                            <div class="flex min-w-0 items-end">
                                 <button type="submit" class="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
                                     <i data-lucide="wand-sparkles" class="mr-2 h-4 w-4"></i>
                                     {{ __('admin.site_settings.homepage.preset_apply') }}
@@ -377,32 +375,36 @@
 
                 <form method="POST" action="{{ route('admin.site-settings.homepage-modules.import') }}" class="mb-5 rounded-2xl border border-blue-100 bg-white p-5">
                     @csrf
-                    <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
+                    <div class="grid grid-cols-1 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
                         <div class="min-w-0">
                             <div class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
                                 <i data-lucide="braces" class="mr-1.5 h-3.5 w-3.5"></i>
                                 {{ __('admin.site_settings.homepage.import_title') }}
                             </div>
                             <p class="mt-3 text-sm leading-6 text-gray-600">{{ __('admin.site_settings.homepage.import_desc') }}</p>
+                        </div>
+                        <div class="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
+                            <div class="min-w-0">
                             <label class="mt-4 mb-2 block text-xs font-medium text-gray-600">{{ __('admin.site_settings.homepage.import_field') }}</label>
                             <textarea name="homepage_design_json" rows="5" class="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs leading-5 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="{{ __('admin.site_settings.homepage.import_placeholder') }}">{{ old('homepage_design_json') }}</textarea>
                             @error('homepage_design_json')
                                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                             @enderror
-                        </div>
-                        <div class="flex flex-col justify-end gap-3">
-                            <div>
-                                <label class="mb-2 block text-xs font-medium text-gray-600">{{ __('admin.site_settings.homepage.import_mode') }}</label>
-                                <select name="import_mode" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    @foreach ($homepagePresetModes as $mode)
-                                        <option value="{{ $mode }}" @selected(old('import_mode', 'replace') === $mode)>{{ __('admin.site_settings.homepage.preset_mode_'.$mode) }}</option>
-                                    @endforeach
-                                </select>
                             </div>
-                            <button type="submit" class="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-                                <i data-lucide="upload" class="mr-2 h-4 w-4"></i>
-                                {{ __('admin.site_settings.homepage.import_apply') }}
-                            </button>
+                            <div class="flex min-w-0 flex-col justify-end gap-3">
+                                <div>
+                                    <label class="mb-2 block text-xs font-medium text-gray-600">{{ __('admin.site_settings.homepage.import_mode') }}</label>
+                                    <select name="import_mode" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        @foreach ($homepagePresetModes as $mode)
+                                            <option value="{{ $mode }}" @selected(old('import_mode', 'replace') === $mode)>{{ __('admin.site_settings.homepage.preset_mode_'.$mode) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                                    <i data-lucide="upload" class="mr-2 h-4 w-4"></i>
+                                    {{ __('admin.site_settings.homepage.import_apply') }}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -942,7 +944,7 @@
                                                     </div>
                                                     <div class="lg:col-span-2">
                                                         <label class="mb-2 block text-sm font-medium text-gray-700">{{ __('admin.site_settings.ads.text_field_tracking') }}</label>
-                                                        <input type="text" name="text_ad_modules[{{ $index }}][links][{{ $linkIndex }}][tracking_param]" value="{{ $link['tracking_param'] ?? '' }}" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="utm_source=geoflow&utm_medium=article_text_ad">
+                                                        <input type="text" name="text_ad_modules[{{ $index }}][links][{{ $linkIndex }}][tracking_param]" value="{{ $link['tracking_param'] ?? '' }}" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="utm_source=tavixgeo&utm_medium=article_text_ad">
                                                     </div>
                                                     <div>
                                                         <label class="mb-2 block text-sm font-medium text-gray-700">{{ __('admin.site_settings.ads.text_field_sort') }}</label>
@@ -1349,7 +1351,7 @@
                 </div>
                 <div class="lg:col-span-2">
                     <label class="mb-2 block text-sm font-medium text-gray-700">{{ __('admin.site_settings.ads.text_field_tracking') }}</label>
-                    <input type="text" name="text_ad_modules[__INDEX__][links][__LINK_INDEX__][tracking_param]" value="" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="utm_source=geoflow&utm_medium=article_text_ad">
+                    <input type="text" name="text_ad_modules[__INDEX__][links][__LINK_INDEX__][tracking_param]" value="" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="utm_source=tavixgeo&utm_medium=article_text_ad">
                 </div>
                 <div>
                     <label class="mb-2 block text-sm font-medium text-gray-700">{{ __('admin.site_settings.ads.text_field_sort') }}</label>

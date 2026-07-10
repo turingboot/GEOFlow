@@ -385,13 +385,14 @@
                 'icon' => 'layers-3',
                 'tone' => 'blue',
             ],
-            [
-                'title' => __('admin.dashboard.skill_resources.design_title'),
-                'desc' => __('admin.dashboard.skill_resources.design_desc'),
-                'href' => 'https://github.com/yaojingang/yao-geo-skills/tree/main/skills/yao-geoflow-design',
-                'icon' => 'palette',
-                'tone' => 'violet',
-            ],
+            // yao-geoflow-design 仅作为外部设计资料入口，当前由站点设置里的模板/首页模块能力替代，保留代码但停用。
+            // [
+            //     'title' => __('admin.dashboard.skill_resources.design_title'),
+            //     'desc' => __('admin.dashboard.skill_resources.design_desc'),
+            //     'href' => 'https://github.com/yaojingang/yao-geo-skills/tree/main/skills/yao-geoflow-design',
+            //     'icon' => 'palette',
+            //     'tone' => 'violet',
+            // ],
             [
                 'title' => __('admin.dashboard.skill_resources.cli_title'),
                 'desc' => __('admin.dashboard.skill_resources.cli_desc'),

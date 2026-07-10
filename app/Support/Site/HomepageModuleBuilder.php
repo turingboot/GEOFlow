@@ -132,6 +132,9 @@ final class HomepageModuleBuilder
         return self::normalizePreset([
             'style' => self::whiteStyle([
                 'accent_color' => '#2563eb',
+                'background_color' => '#f8fafc',
+                'surface_color' => '#ffffff',
+                'muted_color' => '#475569',
                 'container_width' => 'wide',
                 'section_spacing' => 'relaxed',
                 'radius' => 'soft',
@@ -144,6 +147,8 @@ final class HomepageModuleBuilder
                     'body' => '集中展示业务价值、解决方案、客户证据和最新内容，让首页同时承担认知、信任和转化。',
                     'link_text' => '查看解决方案',
                     'link_url' => '/category/geo-growth',
+                    'surface_color' => '#eff6ff',
+                    'accent_color' => '#2563eb',
                 ]),
                 self::presetModule('enterprise_brand', 'feature_grid', 20, [
                     'layout' => 'grid',
@@ -155,6 +160,7 @@ final class HomepageModuleBuilder
                     'layout' => 'grid',
                     'title' => '运营概览',
                     'body' => "内容资产|100+\n渠道站点|12\n知识片段|500+\n更新节奏|每日",
+                    'surface_color' => '#eef2ff',
                 ]),
                 self::presetModule('enterprise_brand', 'article_collection', 40, [
                     'layout' => 'grid',
@@ -182,9 +188,13 @@ final class HomepageModuleBuilder
         return self::normalizePreset([
             'style' => self::whiteStyle([
                 'accent_color' => '#0f766e',
+                'background_color' => '#f0fdfa',
+                'surface_color' => '#ffffff',
+                'text_color' => '#134e4a',
+                'muted_color' => '#0f766e',
                 'container_width' => 'wide',
-                'section_spacing' => 'normal',
-                'radius' => 'soft',
+                'section_spacing' => 'compact',
+                'radius' => 'none',
             ]),
             'modules' => [
                 self::presetModule('content_portal', 'hero', 10, [
@@ -194,6 +204,8 @@ final class HomepageModuleBuilder
                     'body' => '把专题、精选、最新和热门内容组织成一个可扫描、可复用、可持续更新的内容入口。',
                     'link_text' => '浏览内容',
                     'link_url' => '/articles',
+                    'surface_color' => '#ccfbf1',
+                    'accent_color' => '#0f766e',
                 ]),
                 self::presetModule('content_portal', 'article_collection', 20, [
                     'layout' => 'grid',
@@ -208,6 +220,7 @@ final class HomepageModuleBuilder
                     'title' => '热门阅读',
                     'subtitle' => '用高关注内容承接用户兴趣',
                     'limit' => 8,
+                    'surface_color' => '#ecfeff',
                 ]),
                 self::presetModule('content_portal', 'rich_text', 40, [
                     'layout' => 'single',
@@ -232,9 +245,12 @@ final class HomepageModuleBuilder
         return self::normalizePreset([
             'style' => self::whiteStyle([
                 'accent_color' => '#7c3aed',
+                'background_color' => '#faf5ff',
+                'surface_color' => '#ffffff',
+                'muted_color' => '#6d28d9',
                 'container_width' => 'default',
                 'section_spacing' => 'relaxed',
-                'radius' => 'soft',
+                'radius' => 'round',
             ]),
             'modules' => [
                 self::presetModule('service_solution', 'hero', 10, [
@@ -244,11 +260,14 @@ final class HomepageModuleBuilder
                     'body' => '围绕客户问题、服务步骤、交付证据和内容案例，让首页变成清晰的方案入口。',
                     'link_text' => '了解服务流程',
                     'link_url' => '/category/ai-content-workflow',
+                    'surface_color' => '#f3e8ff',
+                    'accent_color' => '#7c3aed',
                 ]),
                 self::presetModule('service_solution', 'feature_grid', 20, [
                     'layout' => 'grid',
                     'title' => '服务路径',
                     'body' => "诊断问题|判断品牌在 AI 搜索和内容结构中的短板。|/category/geo-growth\n建设知识库|沉淀事实、案例和 FAQ，形成可复用证据。|/category/ai-content-workflow\n持续分发|按渠道策略发布内容并观察效果。|/category/tech-news",
+                    'surface_color' => '#ffffff',
                 ]),
                 self::presetModule('service_solution', 'metric_band', 30, [
                     'layout' => 'grid',
@@ -279,6 +298,10 @@ final class HomepageModuleBuilder
         return self::normalizePreset([
             'style' => self::whiteStyle([
                 'accent_color' => '#b45309',
+                'background_color' => '#fffbeb',
+                'surface_color' => '#fef3c7',
+                'text_color' => '#3f2a0a',
+                'muted_color' => '#92400e',
                 'container_width' => 'default',
                 'section_spacing' => 'normal',
                 'radius' => 'none',
@@ -289,6 +312,8 @@ final class HomepageModuleBuilder
                     'title' => '把诊断、报告和案例组织成入口',
                     'subtitle' => '报告中心首页',
                     'body' => '适合展示诊断报告、行业观察、案例拆解和方法论内容，强调证据、结构和可复查。',
+                    'surface_color' => '#fef3c7',
+                    'accent_color' => '#b45309',
                 ]),
                 self::presetModule('report_hub', 'rich_text', 20, [
                     'title' => '报告型首页的重点',
@@ -298,6 +323,7 @@ final class HomepageModuleBuilder
                     'layout' => 'grid',
                     'title' => '诊断维度',
                     'body' => "可见度|监测\n引用质量|评估\n内容覆盖|盘点\n改进建议|输出",
+                    'surface_color' => '#fff7ed',
                 ]),
                 self::presetModule('report_hub', 'article_collection', 40, [
                     'layout' => 'grid',
@@ -321,6 +347,10 @@ final class HomepageModuleBuilder
         return self::normalizePreset([
             'style' => self::whiteStyle([
                 'accent_color' => '#db2777',
+                'background_color' => '#fdf2f8',
+                'surface_color' => '#ffffff',
+                'text_color' => '#500724',
+                'muted_color' => '#be185d',
                 'container_width' => 'wide',
                 'section_spacing' => 'relaxed',
                 'radius' => 'round',
@@ -333,6 +363,8 @@ final class HomepageModuleBuilder
                     'body' => '通过主视觉、能力介绍、关键指标和发布文章，让用户在一个页面里理解产品定位和使用路径。',
                     'link_text' => '查看发布内容',
                     'link_url' => '/articles',
+                    'surface_color' => '#fce7f3',
+                    'accent_color' => '#db2777',
                 ]),
                 self::presetModule('product_launch', 'image_band', 20, [
                     'layout' => 'split',
@@ -340,6 +372,7 @@ final class HomepageModuleBuilder
                     'body' => '把产品适合谁、解决什么问题、为什么现在需要讲清楚，再把用户导向更详细的文章或案例。',
                     'link_text' => '查看案例',
                     'link_url' => '/category/tech-news',
+                    'surface_color' => '#fff1f2',
                 ]),
                 self::presetModule('product_launch', 'feature_grid', 30, [
                     'layout' => 'grid',

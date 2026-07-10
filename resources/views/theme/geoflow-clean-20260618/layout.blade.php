@@ -11,7 +11,7 @@
         @endif
     @endisset
     @if(!empty($siteFavicon))
-        <link rel="icon" href="{{ $siteFavicon }}">
+        <link rel="icon" type="image/png" href="{{ $siteFavicon }}">
     @endif
     <link rel="canonical" href="{{ $canonicalUrl ?? url()->current() }}">
     @stack('head')

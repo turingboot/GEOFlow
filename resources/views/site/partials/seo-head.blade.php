@@ -20,7 +20,7 @@
     <meta name="keywords" content="{{ $seoKeywords }}">
 @endif
 @if(!empty($siteFavicon))
-    <link rel="icon" href="{{ $siteFavicon }}">
+    <link rel="icon" type="image/png" href="{{ $siteFavicon }}">
 @endif
 @if($seoCanonical !== '')
     <link rel="canonical" href="{{ $seoCanonical }}">

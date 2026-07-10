@@ -5,8 +5,6 @@
  *
  * 环境变量键名与默认值见各条目旁注释；修改后建议 `php artisan config:clear`。
  */
-$adminBasePath = trim((string) env('ADMIN_BASE_PATH', 'geo_admin'), '/');
-$adminBasePath = $adminBasePath !== '' ? $adminBasePath : 'geo_admin';
 $defaultUpdateMetadataUrl = 'https://raw.githubusercontent.com/yaojingang/GEOFlow/main/version.json';
 $updateMetadataUrl = trim((string) env('GEOFLOW_UPDATE_METADATA_URL', $defaultUpdateMetadataUrl));
 $updateMetadataUrl = $updateMetadataUrl !== '' ? $updateMetadataUrl : $defaultUpdateMetadataUrl;
@@ -20,11 +18,11 @@ $appVersion = $appVersion !== '' ? $appVersion : '2.1.0';
 return [
 
     // 站点展示名称（页眉、标题等）
-    'site_name' => env('SITE_NAME', 'GEOFlow'),
+    'site_name' => env('SITE_NAME', 'TavixGEO'),
     // 后台品牌名（侧栏/标题展示）
-    'admin_brand_name' => env('ADMIN_BRAND_NAME', 'AI GEO 工作台'),
+    'admin_brand_name' => env('ADMIN_BRAND_NAME', 'TavixGEO'),
     // 站点完整/副标题文案
-    'site_full_name' => env('SITE_FULL_NAME', 'GEOFlow'),
+    'site_full_name' => env('SITE_FULL_NAME', 'TavixGEO'),
     // 站点根 URL，用于生成绝对链接（末尾无斜杠）
     'site_url' => rtrim((string) env('SITE_URL', 'http://localhost'), '/'),
     // SEO 描述
@@ -37,7 +35,7 @@ return [
     // 并与 GSC OAuth 回调同域名（Google 要求首页/隐私/条款均在已验证所有权的域名下）。
     'legal' => [
         // 页面署名主体（默认跟随站点名 SITE_NAME）
-        'company_name' => trim((string) env('GEOFLOW_LEGAL_COMPANY_NAME', '')) ?: (string) env('SITE_NAME', 'GEOFlow'),
+        'company_name' => trim((string) env('GEOFLOW_LEGAL_COMPANY_NAME', '')) ?: (string) env('SITE_NAME', 'TavixGEO'),
         // 隐私/条款咨询联系邮箱（Google 审核要求隐私政策提供有效联系方式；发布前务必设为真实邮箱）
         'contact_email' => trim((string) env('GEOFLOW_LEGAL_CONTACT_EMAIL', '')) ?: (trim((string) env('GEOFLOW_ADMIN_EMAIL', '')) ?: 'admin@example.com'),
         // 生效日期（固定值，避免每次部署变动；发布前按需调整为实际生效日）
@@ -45,7 +43,7 @@ return [
     ],
 
     // 后台入口路径前缀，如 /geo_admin（勿与前台路由冲突）
-    'admin_base_path' => '/'.$adminBasePath,
+    'admin_base_path' => '/geo',
 
     // 前台 Blade 使用的 Laravel 翻译 locale（与 APP_LOCALE、后台会话语言独立；对齐旧站中文导航）
     'public_locale' => env('GEOFLOW_PUBLIC_LOCALE', 'zh_CN'),

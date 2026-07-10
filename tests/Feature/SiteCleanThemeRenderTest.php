@@ -48,6 +48,7 @@ class SiteCleanThemeRenderTest extends TestCase
 
         $this->get(route('site.home'))
             ->assertOk()
+            ->assertSee('rel="icon" type="image/png" href="'.asset('favicon.png').'"', false)
             ->assertSee('themes/geoflow-clean-20260618/theme.css', false)
             ->assertSee('gc-accent-bar', false)
             ->assertSee('gc-card', false)

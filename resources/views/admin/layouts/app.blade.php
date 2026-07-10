@@ -13,6 +13,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <title>@isset($pageTitle){{ $pageTitle }} — @endisset{{ $adminBrandName }}</title>
     {{-- Precompiled admin Tailwind (Tavix-blue tokens baked in) — replaces the runtime Play CDN
          so styles apply on first paint with no FOUC / sidebar flicker. Rebuild with:

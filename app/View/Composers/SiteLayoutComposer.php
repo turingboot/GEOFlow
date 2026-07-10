@@ -17,7 +17,7 @@ final class SiteLayoutComposer
         $map = SiteSettingsBag::all();
         $siteName = (string) ($map['site_name'] ?? config('geoflow.site_name', config('app.name')));
         $siteLogo = (string) ($map['site_logo'] ?? '');
-        $siteFavicon = (string) ($map['site_favicon'] ?? '');
+        $siteFavicon = trim((string) ($map['site_favicon'] ?? '')) ?: asset('favicon.png');
         $copyright = (string) ($map['copyright_info'] ?? '');
         $analyticsCode = (string) ($map['analytics_code'] ?? '');
 

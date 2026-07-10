@@ -137,7 +137,7 @@
                 <div class="grid">
                     <div class="feat"><div class="ic">✍️</div><h3>AI content engineering</h3><p>An end-to-end pipeline: keyword & title libraries → AI generation → human review → publishing.</p></div>
                     <div class="feat"><div class="ic">📚</div><h3>Knowledge-base RAG</h3><p>Inject enterprise knowledge with vector retrieval to produce more professional, trustworthy content.</p></div>
-                    <div class="feat"><div class="ic">🌐</div><h3>Multi-site distribution</h3><p>Publish in one click to GeoFlow Agent sites, WordPress, and generic HTTP APIs.</p></div>
+                    <div class="feat"><div class="ic">🌐</div><h3>Multi-site distribution</h3><p>Publish in one click to TavixGEO Agent sites, WordPress, and generic HTTP APIs.</p></div>
                     <div class="feat"><div class="ic">📈</div><h3>GSC keyword reflow</h3><p>Read-only Search Console access feeds search performance back into content optimization.</p></div>
                 </div>
             </div>

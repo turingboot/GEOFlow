@@ -1273,15 +1273,17 @@ blockquote {
     --geo-home-module-text: var(--geo-home-text);
     --geo-home-module-muted: var(--geo-home-muted);
     position: relative;
+    overflow: hidden;
     margin: 0 0 1.25rem;
-    padding: 1.5rem 0;
-    border-top: 1px solid rgba(17, 24, 39, 0.08);
+    padding: 1.5rem;
+    border: 1px solid rgba(17, 24, 39, 0.08);
     color: var(--geo-home-module-text);
     background: var(--geo-home-module-surface);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.05);
 }
 
 .geo-home-module:first-child {
-    border-top: 0;
+    border-top-color: rgba(17, 24, 39, 0.08);
 }
 
 .geo-home-module--align-center {
@@ -1374,7 +1376,7 @@ blockquote {
 }
 
 .geo-home-module__link::after {
-    content: "→";
+    content: "->";
     font-weight: 700;
 }
 
@@ -1614,7 +1616,7 @@ blockquote {
     }
 
     .geo-home-module {
-        padding: 1.15rem 0;
+        padding: 1.15rem;
     }
 
     .geo-home-module__title {

@@ -19,6 +19,7 @@ class AdminShellLayoutTest extends TestCase
         // Sidebar shell + every primary navigation entry must be reachable.
         $response->assertSee('id="admin-sidebar"', false);
         $response->assertSee('toggleSidebar()', false);
+        $response->assertSee('rel="icon" type="image/png" href="'.asset('favicon.png').'"', false);
         foreach ([
             'admin.dashboard',
             'admin.analytics',

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\LeadForm;
 use App\Models\SiteSetting;
 use App\Services\Admin\SiteThemeReplicationService;
-use App\Support\AdminBasePathManager;
 use App\Support\AdminWeb;
 use App\Support\Site\ArticleTextAdPicker;
 use App\Support\Site\HomepageModuleBuilder;
@@ -103,30 +102,10 @@ class SiteSettingsController extends Controller
             'home_carousel_slides.*.title' => ['nullable', 'string', 'max:120'],
             'home_carousel_slides.*.link_url' => ['nullable', 'string', 'max:500'],
             'home_carousel_slides.*.enabled' => ['nullable'],
-            'admin_base_path' => [
-                'required',
-                'string',
-                'min:3',
-                'max:48',
-                'regex:/^[a-z0-9][a-z0-9_-]*[a-z0-9]$/',
-                Rule::notIn(AdminBasePathManager::reservedSegments()),
-            ],
         ], [
             'site_name.required' => __('admin.site_settings.error.site_name_required'),
-            'admin_base_path.required' => __('admin.site_settings.error.admin_base_path_required'),
-            'admin_base_path.min' => __('admin.site_settings.error.admin_base_path_invalid'),
-            'admin_base_path.max' => __('admin.site_settings.error.admin_base_path_invalid'),
-            'admin_base_path.regex' => __('admin.site_settings.error.admin_base_path_invalid'),
-            'admin_base_path.not_in' => __('admin.site_settings.error.admin_base_path_reserved'),
         ]);
 
-        try {
-            $newAdminBasePath = AdminBasePathManager::normalize((string) $payload['admin_base_path']);
-        } catch (\Throwable) {
-            return back()->withErrors(['admin_base_path' => __('admin.site_settings.error.admin_base_path_invalid')])->withInput();
-        }
-
-        $currentAdminBasePath = AdminWeb::basePath();
         $currentSettings = $this->loadSettings();
         $canEditAnalytics = auth('admin')->user()?->isSuperAdmin() === true;
 
@@ -147,7 +126,6 @@ class SiteSettingsController extends Controller
             'featured_limit' => (string) ((int) ($payload['featured_limit'] ?? 6)),
             'per_page' => (string) ((int) ($payload['per_page'] ?? 12)),
             'home_carousel_slides' => (string) json_encode($this->normalizeHomeCarouselSlides($payload['home_carousel_slides'] ?? []), JSON_UNESCAPED_UNICODE),
-            'admin_base_path' => $newAdminBasePath,
         ];
 
         foreach ($settings as $settingKey => $settingValue) {
@@ -158,20 +136,6 @@ class SiteSettingsController extends Controller
         }
 
         SiteSettingsBag::forget();
-
-        if ($newAdminBasePath !== $currentAdminBasePath) {
-            try {
-                AdminBasePathManager::persist($newAdminBasePath);
-            } catch (\Throwable $e) {
-                return back()->withErrors([
-                    'admin_base_path' => __('admin.site_settings.error.admin_base_path_save_failed', ['message' => $e->getMessage()]),
-                ])->withInput();
-            }
-
-            $newAdminUrl = url('/'.$newAdminBasePath.'/site-settings');
-
-            return redirect()->to($newAdminUrl)->with('message', __('admin.site_settings.message.saved_admin_base_path', ['url' => $newAdminUrl]));
-        }
 
         return redirect()->route('admin.site-settings.index')->with('message', __('admin.site_settings.message.saved'));
     }
@@ -430,11 +394,11 @@ class SiteSettingsController extends Controller
     private function loadSettings(): array
     {
         $defaults = [
-            'site_name' => 'GEOFlow',
+            'site_name' => 'TavixGEO',
             'site_subtitle' => '',
             'site_description' => '基于AI的智能内容生成与发布平台',
             'site_keywords' => 'AI内容生成,GEO优化,智能发布,内容管理',
-            'copyright_info' => '© 2026 GEOFlow. All rights reserved.',
+            'copyright_info' => '© 2026 TavixGEO. All rights reserved.',
             'site_logo' => '',
             'site_favicon' => '',
             'analytics_code' => '',
@@ -753,7 +717,7 @@ class SiteSettingsController extends Controller
 
             $trackingEnabled = ! empty($postedLink['tracking_enabled']);
             if ($trackingEnabled && $trackingParam === '') {
-                $trackingParam = 'utm_source=geoflow&utm_medium=article_text_ad';
+                $trackingParam = 'utm_source=tavixgeo&utm_medium=article_text_ad';
             }
             $trackingParam = ltrim($trackingParam, "? \t\n\r\0\x0B");
 

@@ -23,7 +23,7 @@ final class AdminWeb
 
     public static function siteName(): string
     {
-        return (string) config('geoflow.admin_brand_name', 'GEO自动化系统');
+        return (string) config('geoflow.admin_brand_name', 'TavixGEO');
     }
 
     public static function basePath(): string

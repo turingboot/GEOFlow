@@ -42,7 +42,7 @@
 
         @if ($previews === [])
             <div class="rounded-lg border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500 shadow">
-                当前没有可同步的 GeoFlow Agent 渠道。
+                当前没有可同步的 TavixGEO Agent 渠道。
             </div>
         @else
             <div class="space-y-5">
