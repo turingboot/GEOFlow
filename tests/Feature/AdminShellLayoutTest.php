@@ -49,11 +49,16 @@ class AdminShellLayoutTest extends TestCase
             ->assertSee(route('admin.admin-users.index'), false)
             ->assertSee(route('admin.api-tokens.index'), false);
 
-        $this->actingAs($this->admin('admin', 'standard_admin'), 'admin')
+        $standardContent = $this->actingAs($this->admin('admin', 'standard_admin'), 'admin')
             ->get(route('admin.dashboard'))
             ->assertOk()
             ->assertDontSee(route('admin.api-tokens.index'), false)
-            ->assertDontSee(route('admin.admin-activity-logs'), false);
+            ->assertDontSee(route('admin.admin-activity-logs'), false)
+            ->getContent();
+
+        $standardSidebar = $this->sidebarHtml($standardContent);
+        $this->assertStringNotContainsString(route('admin.analytics'), $standardSidebar);
+        $this->assertStringNotContainsString(__('admin.nav.analytics'), $standardSidebar);
     }
 
     public function test_sidebar_navigation_is_ordered_by_geo_execution_flow(): void
@@ -106,5 +111,15 @@ class AdminShellLayoutTest extends TestCase
             'role' => $role,
             'status' => 'active',
         ]);
+    }
+
+    private function sidebarHtml(string $content): string
+    {
+        $start = strpos($content, 'id="admin-sidebar"');
+        $this->assertNotFalse($start, '未渲染侧边栏');
+        $end = strpos($content, '</aside>', $start);
+        $this->assertNotFalse($end, '侧边栏未正确闭合');
+
+        return substr($content, $start, $end - $start);
     }
 }

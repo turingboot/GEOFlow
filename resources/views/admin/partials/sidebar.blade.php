@@ -5,7 +5,6 @@
     $menu = [
         // 侧边栏按 GEO 执行流程排序:概览 → 调研/选题 → 备料/生产/分发 → 配置(超管项在末尾条件追加)
         'dashboard' => ['route' => 'admin.dashboard', 'name' => __('admin.nav.dashboard')],
-        'analytics' => ['route' => 'admin.analytics', 'name' => __('admin.nav.analytics')],
         'keyword_trends' => ['route' => 'admin.keyword-trends.index', 'name' => __('admin.nav.keyword_trends')],
         'google_search_console' => ['route' => 'admin.google-search-console.index', 'name' => __('admin.nav.google_search_console')],
         'topic_plans' => ['route' => 'admin.topic-plans.index', 'name' => __('admin.nav.topic_plans')],
@@ -16,6 +15,9 @@
         'ai_config' => ['route' => 'admin.ai.configurator', 'name' => __('admin.nav.ai_config')],
     ];
     if ($isSuperAdmin) {
+        $menu = array_slice($menu, 0, 1, true)
+            + ['analytics' => ['route' => 'admin.analytics', 'name' => __('admin.nav.analytics')]]
+            + array_slice($menu, 1, null, true);
         // 本站设置 / 用户管理 仅超级管理员可见
         $menu['site_settings'] = ['route' => 'admin.site-settings.index', 'name' => __('admin.nav.site_settings')];
         $menu['memberships'] = ['route' => 'admin.memberships.index', 'name' => '会员管理'];
