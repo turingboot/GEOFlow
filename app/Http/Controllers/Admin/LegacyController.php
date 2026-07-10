@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use App\Models\AiModel;
 use App\Models\Prompt;
 use App\Models\Task;
@@ -135,11 +136,14 @@ class LegacyController extends Controller
 
     public function aiConfigurator(): View
     {
+        $admin = request()->user('admin');
+
         return view('admin.ai-configurator.index', [
             'pageTitle' => __('admin.ai_configurator.page_title'),
             'activeMenu' => 'ai_config',
             'adminSiteName' => AdminWeb::siteName(),
             'stats' => $this->loadAiConfiguratorStats(),
+            'canManageKeywordDataSource' => $admin instanceof Admin && $admin->isSuperAdmin(),
         ]);
     }
 

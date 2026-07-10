@@ -5,9 +5,8 @@ namespace Tests\Feature;
 use App\Models\KeywordLibrary;
 use App\Models\KeywordTrend;
 use App\Models\KeywordTrendSource;
-use App\Models\KeywordTrendSourceSecret;
+use App\Services\GeoFlow\KeywordTrend\KeywordTrendDataSourceCredentialService;
 use App\Services\GeoFlow\KeywordTrend\KeywordTrendOrchestrator;
-use App\Support\GeoFlow\ApiKeyCrypto;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -27,13 +26,7 @@ class KeywordTrendSerpApiTest extends TestCase
             'auto_import' => false, 'status' => 'active',
         ]);
 
-        KeywordTrendSourceSecret::query()->create([
-            'keyword_trend_source_id' => $source->id,
-            'key_id' => 'kts_serp',
-            'secret_ciphertext' => app(ApiKeyCrypto::class)->encrypt('serp-key'),
-            'status' => 'active',
-            'scopes' => ['trend.fetch'],
-        ]);
+        app(KeywordTrendDataSourceCredentialService::class)->saveSerpApiApiKey('serp-key');
 
         Http::fake(['serpapi.com/*' => Http::response([
             'related_queries' => [

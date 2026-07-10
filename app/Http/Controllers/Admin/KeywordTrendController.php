@@ -7,6 +7,7 @@ use App\Jobs\FetchKeywordTrendsJob;
 use App\Models\KeywordLibrary;
 use App\Models\KeywordTrend;
 use App\Models\KeywordTrendSource;
+use App\Services\GeoFlow\KeywordTrend\KeywordTrendDataSourceCredentialService;
 use App\Services\GeoFlow\KeywordTrend\KeywordTrendImportService;
 use App\Support\AdminWeb;
 use App\Support\GeoFlow\ApiKeyCrypto;
@@ -23,6 +24,7 @@ class KeywordTrendController extends Controller
     public function __construct(
         private readonly ApiKeyCrypto $apiKeyCrypto,
         private readonly KeywordTrendImportService $importer,
+        private readonly KeywordTrendDataSourceCredentialService $credentials,
     ) {}
 
     public function index(): View
@@ -54,14 +56,15 @@ class KeywordTrendController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validateSource($request);
+        if (! $this->credentials->hasSerpApiApiKey()) {
+            return back()->withInput()->withErrors([
+                'provider' => __('admin.keyword_trends.message.serpapi_key_missing'),
+            ]);
+        }
 
         $source = KeywordTrendSource::query()->create($this->mapAttributes($data) + [
             'created_by_admin_id' => auth('admin')->id(),
         ]);
-
-        if (trim((string) ($data['api_key'] ?? '')) !== '') {
-            $this->storeSecret($source, (string) $data['api_key']);
-        }
 
         return redirect()->route('admin.keyword-trends.show', $source->id)
             ->with('message', __('admin.keyword_trends.message.created'));
@@ -85,11 +88,13 @@ class KeywordTrendController extends Controller
         }
 
         $data = $this->validateSource($request);
-        $source->update($this->mapAttributes($data));
-
-        if (trim((string) ($data['api_key'] ?? '')) !== '') {
-            $this->storeSecret($source, (string) $data['api_key']);
+        if (! $this->credentials->hasSerpApiApiKey()) {
+            return back()->withInput()->withErrors([
+                'provider' => __('admin.keyword_trends.message.serpapi_key_missing'),
+            ]);
         }
+
+        $source->update($this->mapAttributes($data));
 
         return redirect()->route('admin.keyword-trends.show', $source->id)
             ->with('message', __('admin.keyword_trends.message.updated'));
@@ -199,9 +204,11 @@ class KeywordTrendController extends Controller
      */
     private function validateSource(Request $request): array
     {
+        $request->merge(['provider' => 'serpapi']);
+
         return $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'provider' => ['required', 'string', 'in:'.implode(',', KeywordTrendSource::PROVIDERS)],
+            'provider' => ['required', 'string', 'in:serpapi'],
             'category' => ['required', 'string', 'max:160'],
             'seed_keywords' => ['nullable', 'string', 'max:2000'],
             'region' => ['nullable', 'string', 'max:16'],
@@ -221,9 +228,6 @@ class KeywordTrendController extends Controller
             'auto_import' => ['nullable', 'boolean'],
             'ai_relevance' => ['nullable', 'boolean'],
             'schedule' => ['nullable', 'string', 'in:manual,hourly,daily,weekly'],
-            'dataforseo_login' => ['nullable', 'string', 'max:160'],
-            'location_name' => ['nullable', 'string', 'max:120'],
-            'api_key' => ['nullable', 'string', 'max:500'],
         ]);
     }
 
@@ -252,10 +256,7 @@ class KeywordTrendController extends Controller
             'auto_import' => (bool) ($data['auto_import'] ?? false),
             'ai_relevance' => (bool) ($data['ai_relevance'] ?? false),
             'schedule' => $data['schedule'] ?? 'manual',
-            'config' => array_filter([
-                'login' => $data['dataforseo_login'] ?? null,
-                'location_name' => $data['location_name'] ?? null,
-            ], static fn ($v): bool => $v !== null && $v !== ''),
+            'config' => [],
             'status' => 'active',
         ];
     }

@@ -3,6 +3,7 @@
 namespace App\Services\GeoFlow\KeywordTrend;
 
 use App\Models\KeywordTrendSource;
+use App\Support\GeoFlow\ApiKeyCrypto;
 use App\Support\GeoFlow\OutboundHttpProxy;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -19,6 +20,14 @@ use Throwable;
 class SerpApiTrendsProvider extends AbstractKeywordTrendProvider
 {
     private const BASE = 'https://serpapi.com/search.json';
+
+    public function __construct(
+        ApiKeyCrypto $apiKeyCrypto,
+        KeywordHeatNormalizer $normalizer,
+        private readonly KeywordTrendDataSourceCredentialService $credentials,
+    ) {
+        parent::__construct($apiKeyCrypto, $normalizer);
+    }
 
     public function fetchTrends(KeywordTrendSource $source, array $options = []): array
     {
@@ -121,7 +130,7 @@ class SerpApiTrendsProvider extends AbstractKeywordTrendProvider
      */
     private function search(array $params, KeywordTrendSource $source): array
     {
-        $apiKey = $this->secretFor($source);
+        $apiKey = $this->credentials->serpApiApiKey();
         if ($apiKey === '') {
             throw new RuntimeException('SerpApi 密钥缺失');
         }

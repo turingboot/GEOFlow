@@ -9,7 +9,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 {{ ! empty($canManageKeywordDataSource) ? 'xl:grid-cols-4' : 'lg:grid-cols-3' }} gap-6 mb-8">
             <div class="overflow-hidden admin-card">
                 <div class="p-6">
                     <div class="flex items-center">
@@ -84,6 +84,31 @@
                     </div>
                 </div>
             </div>
+
+            @if (! empty($canManageKeywordDataSource))
+                <div class="overflow-hidden admin-card">
+                    <div class="p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <img src="{{ asset('assets/admin/keyword-data-source-icon.png') }}" alt="" class="w-8 h-8 rounded-md object-cover">
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">{{ __('admin.ai_configurator.keyword_source_title') }}</dt>
+                                    <dd class="text-lg font-medium text-gray-900">{{ __('admin.ai_configurator.keyword_source_desc') }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-6 py-3">
+                        <div class="text-sm">
+                            <a href="{{ route('admin.keyword-data-source.edit') }}" class="font-medium hover:opacity-80" style="color: #FF7A3D;">
+                                {{ __('admin.ai_configurator.keyword_source_action') }} <span aria-hidden="true">&rarr;</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <div class="admin-card">
@@ -124,6 +149,9 @@
                             <li>{{ __('admin.ai_configurator.help_models') }}</li>
                             <li>{{ __('admin.ai_configurator.help_content_prompts') }}</li>
                             <li>{{ __('admin.ai_configurator.help_special_prompts') }}</li>
+                            @if (! empty($canManageKeywordDataSource))
+                                <li>{{ __('admin.ai_configurator.help_keyword_source') }}</li>
+                            @endif
                             <li>{{ __('admin.ai_configurator.help_pipeline') }}</li>
                         </ul>
                     </div>

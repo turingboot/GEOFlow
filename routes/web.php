@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\GoogleSearchConsoleController;
 use App\Http\Controllers\Admin\ImageLibraryController;
 use App\Http\Controllers\Admin\KeywordLibraryController;
 use App\Http\Controllers\Admin\KeywordTrendController;
+use App\Http\Controllers\Admin\KeywordTrendDataSourceController;
 use App\Http\Controllers\Admin\KnowledgeBaseController;
 use App\Http\Controllers\Admin\LeadController;
 use App\Http\Controllers\Admin\LeadFormController;
@@ -397,6 +398,10 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
             Route::get('ai-special-prompts', [AiSpecialPromptController::class, 'index'])->name('ai-special-prompts');
             Route::post('ai-special-prompts/keyword', [AiSpecialPromptController::class, 'updateKeyword'])->name('ai-special-prompts.keyword');
             Route::post('ai-special-prompts/description', [AiSpecialPromptController::class, 'updateDescription'])->name('ai-special-prompts.description');
+            Route::middleware('admin.super')->group(function () {
+                Route::get('keyword-data-source', [KeywordTrendDataSourceController::class, 'edit'])->name('keyword-data-source.edit');
+                Route::post('keyword-data-source', [KeywordTrendDataSourceController::class, 'update'])->name('keyword-data-source.update');
+            });
         });
 
         Route::prefix('site-settings')->name('site-settings.')->group(function () {

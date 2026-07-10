@@ -1,7 +1,6 @@
 @php
     $isEdit = isset($source) && $source;
     $action = $isEdit ? route('admin.keyword-trends.update', $source->id) : route('admin.keyword-trends.store');
-    $cfg = $isEdit ? $source->resolvedConfig() : [];
     $seedText = $isEdit && is_array($source->seed_keywords) ? implode("\n", $source->seed_keywords) : old('seed_keywords');
 @endphp
 <form method="POST" action="{{ $action }}" class="space-y-5">
@@ -14,12 +13,9 @@
             <input class="admin-input" type="text" id="name" name="name" value="{{ old('name', $isEdit ? $source->name : '') }}" required>
         </div>
         <div class="admin-field">
-            <label class="admin-label" for="provider">{{ __('admin.keyword_trends.field.provider') }}</label>
-            <select class="admin-select" id="provider" name="provider">
-                @foreach ($providers as $p)
-                    <option value="{{ $p }}" @selected(old('provider', $isEdit ? $source->provider : 'dataforseo') === $p)>{{ __('admin.keyword_trends.provider.'.$p) }}</option>
-                @endforeach
-            </select>
+            <label class="admin-label">{{ __('admin.keyword_trends.field.provider') }}</label>
+            <input type="hidden" name="provider" value="serpapi">
+            <div class="admin-input flex items-center bg-gray-50 text-gray-700">{{ __('admin.keyword_trends.provider.serpapi') }}</div>
         </div>
     </div>
 
@@ -43,10 +39,6 @@
         <div class="admin-field">
             <label class="admin-label" for="language">{{ __('admin.keyword_trends.field.language') }}</label>
             <input class="admin-input" type="text" id="language" name="language" value="{{ old('language', $isEdit ? $source->language : config('geoflow.keyword_trends.default_language', 'en')) }}">
-        </div>
-        <div class="admin-field" data-provider-only="dataforseo">
-            <label class="admin-label" for="location_name">{{ __('admin.keyword_trends.field.location_name') }}</label>
-            <input class="admin-input" type="text" id="location_name" name="location_name" value="{{ old('location_name', $cfg['location_name'] ?? 'United States') }}">
         </div>
     </div>
 
@@ -80,16 +72,6 @@
                 @endforeach
             </select>
         </div>
-        <div class="admin-field" data-provider-only="dataforseo">
-            <label class="admin-label" for="dataforseo_login">{{ __('admin.keyword_trends.field.dataforseo_login') }}</label>
-            <input class="admin-input" type="text" id="dataforseo_login" name="dataforseo_login" value="{{ old('dataforseo_login', $cfg['login'] ?? '') }}">
-        </div>
-    </div>
-
-    <div class="admin-field">
-        <label class="admin-label" for="api_key">{{ __('admin.keyword_trends.field.api_key') }}</label>
-        <input class="admin-input" type="password" id="api_key" name="api_key" autocomplete="new-password" placeholder="{{ $isEdit ? '••••••••' : '' }}">
-        <p class="mt-1 text-xs text-gray-500">{{ __('admin.keyword_trends.help.api_key') }}</p>
     </div>
 
     <label class="flex items-center gap-2 text-sm text-gray-700">
@@ -115,21 +97,3 @@
         </button>
     </div>
 </form>
-
-<script>
-    (function () {
-        var providerSelect = document.getElementById('provider');
-        if (! providerSelect) {
-            return;
-        }
-        function syncProviderFields() {
-            var current = providerSelect.value;
-            document.querySelectorAll('[data-provider-only]').forEach(function (el) {
-                var allowed = (el.getAttribute('data-provider-only') || '').split(',');
-                el.classList.toggle('hidden', allowed.indexOf(current) === -1);
-            });
-        }
-        providerSelect.addEventListener('change', syncProviderFields);
-        syncProviderFields();
-    })();
-</script>
