@@ -28,7 +28,8 @@
         ->values()
         ->filter(static fn (array $kb, int $index): bool => $index >= $visibleKnowledgeBaseLimit && ! in_array((string) ($kb['id'] ?? ''), $selectedKnowledgeBaseIds, true))
         ->count();
-    $publishScope = (string) old('publish_scope', (string) ($taskForm['publish_scope'] ?? 'local_and_distribution'));
+    // 本站发布已停用：默认发布范围改为 distribution_only（原默认 local_and_distribution）
+    $publishScope = (string) old('publish_scope', (string) ($taskForm['publish_scope'] ?? 'distribution_only'));
     $distributionStrategy = (string) old('distribution_strategy', (string) ($taskForm['distribution_strategy'] ?? 'broadcast'));
     $distributionChannelsDisabled = $publishScope === 'local_only';
 @endphp
@@ -297,6 +298,7 @@
                             <legend class="text-sm font-medium text-gray-900">{{ $t('task_create.distribution.scope_title') }}</legend>
                             <p class="mt-1 text-sm text-gray-500">{{ $t('task_create.distribution.scope_help') }}</p>
                             <div class="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+                                {{-- 本站发布已停用：隐藏「本地和渠道站点同时发布」选项（保留代码便于恢复）
                                 <label class="flex cursor-pointer gap-3 rounded-md border border-gray-200 px-4 py-3 text-sm hover:border-blue-300 hover:bg-blue-50">
                                     <input type="radio" name="publish_scope" value="local_and_distribution" @checked($publishScope === 'local_and_distribution') data-publish-scope-option class="mt-1 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
                                     <span>
@@ -304,6 +306,7 @@
                                         <span class="block text-gray-500">{{ $t('task_create.distribution.scope_local_and_distribution_desc') }}</span>
                                     </span>
                                 </label>
+                                --}}
                                 <label class="flex cursor-pointer gap-3 rounded-md border border-gray-200 px-4 py-3 text-sm hover:border-blue-300 hover:bg-blue-50">
                                     <input type="radio" name="publish_scope" value="distribution_only" @checked($publishScope === 'distribution_only') data-publish-scope-option class="mt-1 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
                                     <span>
@@ -311,6 +314,7 @@
                                         <span class="block text-gray-500">{{ $t('task_create.distribution.scope_distribution_only_desc') }}</span>
                                     </span>
                                 </label>
+                                {{-- 本站发布已停用：隐藏「仅发布到本站」选项（保留代码便于恢复）
                                 <label class="flex cursor-pointer gap-3 rounded-md border border-gray-200 px-4 py-3 text-sm hover:border-blue-300 hover:bg-blue-50">
                                     <input type="radio" name="publish_scope" value="local_only" @checked($publishScope === 'local_only') data-publish-scope-option class="mt-1 h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
                                     <span>
@@ -318,6 +322,7 @@
                                         <span class="block text-gray-500">{{ $t('task_create.distribution.scope_local_only_desc') }}</span>
                                     </span>
                                 </label>
+                                --}}
                             </div>
                         </fieldset>
 

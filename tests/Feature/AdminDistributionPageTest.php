@@ -3387,9 +3387,11 @@ class AdminDistributionPageTest extends TestCase
             ->assertOk()
             ->assertSee('官网主站')
             ->assertSee('example.com')
-            ->assertSee('本地和渠道站点同时发布')
+            // 本站发布已停用：仅保留「仅发布到渠道站点」单选，本站相关单选已注释隐藏
             ->assertSee('仅发布到渠道站点')
-            ->assertSee('仅发布到本站')
+            ->assertSee('value="distribution_only"', false)
+            ->assertDontSee('value="local_and_distribution"', false)
+            ->assertDontSee('value="local_only"', false)
             ->assertSee(__('admin.task_create.distribution.strategy_broadcast'))
             ->assertSee(__('admin.task_create.distribution.strategy_round_robin'))
             ->assertSee(__('admin.task_create.distribution.strategy_random_balanced'))

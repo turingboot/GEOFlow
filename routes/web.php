@@ -56,6 +56,8 @@ use Illuminate\Support\Facades\Route;
 // 原路由整段保留（仅不注册），改用同名占位路由让 route('site.*') 仍可生成 URL。
 // 停用时根路由 / 直接重定向到后台登录页，其余前台路径 404。
 // 通过环境变量 GEOFLOW_PUBLIC_SITE_ENABLED 控制，默认开启；不删除任何代码，随时可恢复。
+// 本站发布已停用：前台文章站由 GEOFLOW_PUBLIC_SITE_ENABLED=false 关闭（.env 本地/生产均已设为 false，
+// / 走落地页、其余前台路径 404）。此处保留 config 开关而非硬编码，避免破坏前台测试且随时可恢复。
 if ((bool) config('geoflow.public_site_enabled', true)) {
     Route::middleware(['site.tenant_context', 'site.locale', 'site.view_log'])->group(function (): void {
         Route::get('/', [HomeController::class, 'index'])->name('site.home');
