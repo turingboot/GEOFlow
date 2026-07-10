@@ -121,8 +121,10 @@
                         <div>
                             <label class="mb-1 block text-sm font-medium text-gray-700">{{ __('admin.topic_plans.field.publish_scope') }}</label>
                             <select name="publish_scope" class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                {{-- 本站发布已停用：隐藏本站相关选项（保留代码便于恢复）
                                 <option value="local_only">{{ __('admin.topic_plans.publish_scope.local_only') }}</option>
                                 <option value="local_and_distribution">{{ __('admin.topic_plans.publish_scope.local_and_distribution') }}</option>
+                                --}}
                                 <option value="distribution_only">{{ __('admin.topic_plans.publish_scope.distribution_only') }}</option>
                             </select>
                         </div>
