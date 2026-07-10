@@ -7,6 +7,7 @@ use App\Models\ArticleImage;
 use App\Models\Image;
 use App\Models\ImageLibrary;
 use App\Models\Task;
+use App\Services\Admin\MembershipService;
 use App\Support\AdminWeb;
 use App\Support\Tenancy\TenantStoragePath;
 use Illuminate\Http\RedirectResponse;
@@ -25,6 +26,8 @@ use Illuminate\View\View;
 class ImageLibraryController extends Controller
 {
     private const DETAIL_PER_PAGE = 24;
+
+    public function __construct(private readonly MembershipService $membershipService) {}
 
     /**
      * 列表页。
@@ -111,6 +114,11 @@ class ImageLibraryController extends Controller
         if ($uploadedFiles === []) {
             return back()->withErrors(__('admin.image_detail.error.select_images'));
         }
+
+        $this->membershipService->ensureCanStoreImages(
+            (int) ($library->tenant_id ?? 0),
+            array_sum(array_map(static fn (UploadedFile $file): int => (int) ($file->getSize() ?? 0), $uploadedFiles))
+        );
 
         $uploadedCount = 0;
         $skippedCount = 0;

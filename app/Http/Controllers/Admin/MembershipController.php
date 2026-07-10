@@ -69,13 +69,14 @@ class MembershipController extends Controller
     }
 
     /**
-     * @return array{name:string,article_monthly_limit:int,knowledge_base_limit:int,price:float,is_custom:bool,is_active:bool,sort_order:int}
+     * @return array{name:string,article_monthly_limit:int,knowledge_base_limit:int,image_storage_limit_bytes:int,price:float,is_custom:bool,is_active:bool,sort_order:int}
      */
     private function validatePlan(Request $request): array
     {
         $this->normalizeIntegerFields($request, [
             'article_monthly_limit',
             'knowledge_base_limit',
+            'image_storage_limit_mb',
             'sort_order',
         ]);
 
@@ -83,6 +84,7 @@ class MembershipController extends Controller
             'name' => ['required', 'string', 'max:80'],
             'article_monthly_limit' => ['required', 'integer', 'min:0', 'max:1000000'],
             'knowledge_base_limit' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'image_storage_limit_mb' => ['required', 'integer', 'min:0', 'max:10485760'],
             'price' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'is_custom' => ['nullable', 'boolean'],
             'is_active' => ['required', Rule::in(['0', '1'])],
@@ -93,6 +95,7 @@ class MembershipController extends Controller
             'name' => trim((string) $payload['name']),
             'article_monthly_limit' => (int) $payload['article_monthly_limit'],
             'knowledge_base_limit' => (int) $payload['knowledge_base_limit'],
+            'image_storage_limit_bytes' => (int) $payload['image_storage_limit_mb'] * 1024 * 1024,
             'price' => (float) ($payload['price'] ?? 0),
             'is_custom' => (bool) ($payload['is_custom'] ?? false),
             'is_active' => (bool) ((int) $payload['is_active']),

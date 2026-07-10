@@ -167,6 +167,10 @@
                             <span class="min-w-0 truncate text-right font-semibold text-gray-800">{{ $membershipSummary['knowledge_used'] }} / {{ $membershipSummary['knowledge_limit'] > 0 ? $membershipSummary['knowledge_limit'] : '不限量' }}</span>
                         </div>
                         <div class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                            <span class="shrink-0 text-gray-500">图片容量：</span>
+                            <span class="min-w-0 truncate text-right font-semibold text-gray-800" title="{{ $membershipSummary['image_storage_used_label'] }} / {{ $membershipSummary['image_storage_limit_label'] }}">{{ $membershipSummary['image_storage_used_label'] }} / {{ $membershipSummary['image_storage_limit_label'] }}</span>
+                        </div>
+                        <div class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2">
                             <span class="shrink-0 text-gray-500">剩余：</span>
                             <span class="min-w-0 truncate text-right font-semibold text-gray-800">{{ $membershipSummary['remaining_days'] !== null ? $membershipSummary['remaining_days'].' 天' : '-' }}</span>
                         </div>

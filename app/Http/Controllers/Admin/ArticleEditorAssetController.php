@@ -7,6 +7,7 @@ use App\Models\Article;
 use App\Models\ArticleImage;
 use App\Models\Image;
 use App\Models\ImageLibrary;
+use App\Services\Admin\MembershipService;
 use App\Support\Admin\WeChatArticleHtmlExporter;
 use App\Support\Tenancy\TenantStoragePath;
 use Illuminate\Http\JsonResponse;
@@ -15,10 +16,13 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\File;
+use Illuminate\Validation\ValidationException;
 
 class ArticleEditorAssetController extends Controller
 {
     private const EDITOR_LIBRARY_NAME = '文章编辑器图片';
+
+    public function __construct(private readonly MembershipService $membershipService) {}
 
     public function exportWeChatHtml(Request $request, WeChatArticleHtmlExporter $exporter): JsonResponse
     {
@@ -66,6 +70,8 @@ class ArticleEditorAssetController extends Controller
         $storedDiskPath = null;
 
         try {
+            $this->membershipService->ensureCanStoreImages((int) ($article->tenant_id ?? 0), (int) ($uploadedFile->getSize() ?? 0));
+
             $result = DB::transaction(function () use ($article, $uploadedFile, $alt, $position, &$storedDiskPath): array {
                 $library = $this->editorImageLibrary();
                 $stored = $this->storeUploadedImageFile($uploadedFile);
@@ -106,6 +112,11 @@ class ArticleEditorAssetController extends Controller
                     'height' => (int) $stored['height'],
                 ];
             });
+        } catch (ValidationException $exception) {
+            return response()->json([
+                'message' => (string) collect($exception->errors())->flatten()->first(),
+                'errors' => $exception->errors(),
+            ], 422);
         } catch (\Throwable $exception) {
             if (is_string($storedDiskPath) && $storedDiskPath !== '') {
                 Storage::disk('public')->delete($storedDiskPath);

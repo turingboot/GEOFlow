@@ -5,7 +5,7 @@
         <div class="admin-hero">
             <div>
                 <h1 class="admin-hero-title">会员管理</h1>
-                <p class="admin-hero-sub">设置不同会员等级对应的每月发布文章数和知识库总数。</p>
+                <p class="admin-hero-sub">设置不同会员等级对应的文章、知识库和图片容量额度。</p>
             </div>
             <div class="admin-hero-actions">
                 <button type="button" onclick="showMembershipPlanModal(null)" class="admin-btn admin-btn-primary">
@@ -27,6 +27,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">每月文章数</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">知识库总数</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">图片容量</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                         </tr>
@@ -43,6 +44,7 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $plan->article_monthly_limit > 0 ? $plan->article_monthly_limit.' 篇' : '不限量' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $plan->knowledge_base_limit > 0 ? $plan->knowledge_base_limit.' 个' : '不限量' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">￥{{ number_format((float) $plan->price, 2) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ \App\Services\Admin\MembershipService::formatLimitBytes((int) $plan->image_storage_limit_bytes) }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium {{ $plan->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700' }}">
                                         {{ $plan->is_active ? '启用' : '停用' }}
@@ -55,6 +57,7 @@
                                             'name' => (string) $plan->name,
                                             'article_monthly_limit' => (int) $plan->article_monthly_limit,
                                             'knowledge_base_limit' => (int) $plan->knowledge_base_limit,
+                                            'image_storage_limit_mb' => (int) ceil(((int) $plan->image_storage_limit_bytes) / 1024 / 1024),
                                             'price' => (float) $plan->price,
                                             'is_custom' => (bool) $plan->is_custom,
                                             'is_active' => (bool) $plan->is_active,
@@ -76,7 +79,7 @@
 
     <div id="membership-plan-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
         <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
                 <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                     <h3 id="membership-plan-modal-title" class="text-lg font-medium text-gray-900">新增会员等级</h3>
                     <button type="button" onclick="hideMembershipPlanModal()" class="text-gray-400 hover:text-gray-600">
@@ -89,7 +92,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1" for="plan_name">等级名称</label>
                         <input id="plan_name" name="name" type="text" required class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1" for="plan_article_limit_value">每月文章数</label>
                             <input id="plan_article_limit" name="article_monthly_limit" type="hidden" value="0">
@@ -110,6 +113,17 @@
                                     不限量
                                 </label>
                                 <input id="plan_knowledge_limit_value" type="number" min="1" placeholder="输入知识库总数" class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" oninput="syncMembershipLimitControl('knowledge')">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1" for="plan_image_storage_limit_value">图片容量（MB）</label>
+                            <input id="plan_image_storage_limit" name="image_storage_limit_mb" type="hidden" value="0">
+                            <div class="space-y-2 rounded-md border border-gray-200 p-3">
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                    <input id="plan_image_storage_limit_unlimited" type="checkbox" class="rounded border-gray-300 text-indigo-600" onchange="syncMembershipLimitControl('imageStorage')">
+                                    不限量
+                                </label>
+                                <input id="plan_image_storage_limit_value" type="number" min="1" placeholder="输入图片容量 MB" class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" oninput="syncMembershipLimitControl('imageStorage')">
                             </div>
                         </div>
                     </div>
@@ -159,6 +173,11 @@
                 value: 'plan_knowledge_limit_value',
                 unlimited: 'plan_knowledge_limit_unlimited',
             },
+            imageStorage: {
+                hidden: 'plan_image_storage_limit',
+                value: 'plan_image_storage_limit_value',
+                unlimited: 'plan_image_storage_limit_unlimited',
+            },
         };
 
         function showMembershipPlanModal(plan) {
@@ -168,6 +187,7 @@
             document.getElementById('plan_name').value = plan?.name || '';
             setMembershipLimitControl('article', plan?.article_monthly_limit ?? 0);
             setMembershipLimitControl('knowledge', plan?.knowledge_base_limit ?? 0);
+            setMembershipLimitControl('imageStorage', plan?.image_storage_limit_mb ?? 0);
             document.getElementById('plan_price').value = plan?.price ?? 0;
             document.getElementById('plan_is_custom').checked = Boolean(plan?.is_custom);
             document.getElementById('plan_is_active').value = plan && !plan.is_active ? '0' : '1';

@@ -11,6 +11,7 @@ class MembershipPlan extends Model
         'name',
         'article_monthly_limit',
         'knowledge_base_limit',
+        'image_storage_limit_bytes',
         'price',
         'is_custom',
         'is_active',
@@ -22,6 +23,7 @@ class MembershipPlan extends Model
         return [
             'article_monthly_limit' => 'integer',
             'knowledge_base_limit' => 'integer',
+            'image_storage_limit_bytes' => 'integer',
             'price' => 'decimal:2',
             'is_custom' => 'boolean',
             'is_active' => 'boolean',

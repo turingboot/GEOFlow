@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Models\Article;
+use App\Models\Image;
 use App\Models\KnowledgeBase;
 use App\Models\MembershipPlan;
 use App\Models\MembershipUsagePeriod;
@@ -28,8 +29,13 @@ class MembershipService
      *     article_limit:int,
      *     knowledge_used:int,
      *     knowledge_limit:int,
+     *     image_storage_used:int,
+     *     image_storage_limit:int,
+     *     image_storage_used_label:string,
+     *     image_storage_limit_label:string,
      *     article_over_limit:bool,
      *     knowledge_over_limit:bool,
+     *     image_storage_over_limit:bool,
      *     message:string
      * }
      */
@@ -41,12 +47,15 @@ class MembershipService
         $status = $this->status($membership);
         $articleLimit = $plan ? (int) $plan->article_monthly_limit : 0;
         $knowledgeLimit = $plan ? (int) $plan->knowledge_base_limit : 0;
+        $imageStorageLimit = $plan ? (int) $plan->image_storage_limit_bytes : 0;
         $endsAt = $membership?->ends_at;
         $remainingDays = $endsAt instanceof Carbon ? (int) max(0, Carbon::now()->diffInDays($endsAt, false)) : null;
         $articleUsed = $this->articlePublishedThisMonth($tenantId);
         $knowledgeUsed = $this->knowledgeBaseCount($tenantId);
+        $imageStorageUsed = $this->imageStorageUsedBytes($tenantId);
         $articleOverLimit = $articleLimit > 0 && $articleUsed > $articleLimit;
         $knowledgeOverLimit = $knowledgeLimit > 0 && $knowledgeUsed > $knowledgeLimit;
+        $imageStorageOverLimit = $imageStorageLimit > 0 && $imageStorageUsed > $imageStorageLimit;
 
         return [
             'tenant_id' => $tenantId,
@@ -60,9 +69,14 @@ class MembershipService
             'article_limit' => $articleLimit,
             'knowledge_used' => $knowledgeUsed,
             'knowledge_limit' => $knowledgeLimit,
+            'image_storage_used' => $imageStorageUsed,
+            'image_storage_limit' => $imageStorageLimit,
+            'image_storage_used_label' => self::formatBytes($imageStorageUsed),
+            'image_storage_limit_label' => self::formatLimitBytes($imageStorageLimit),
             'article_over_limit' => $articleOverLimit,
             'knowledge_over_limit' => $knowledgeOverLimit,
-            'message' => $this->statusMessage($status, $plan ? (string) $plan->name : '', $remainingDays, $articleOverLimit, $knowledgeOverLimit),
+            'image_storage_over_limit' => $imageStorageOverLimit,
+            'message' => $this->statusMessage($status, $plan ? (string) $plan->name : '', $remainingDays, $articleOverLimit, $knowledgeOverLimit, $imageStorageOverLimit),
         ];
     }
 
@@ -204,6 +218,23 @@ class MembershipService
         }
     }
 
+    public function ensureCanStoreImages(int $tenantId, int $additionalBytes): void
+    {
+        $summary = $this->summaryForTenant($tenantId);
+        if (! in_array($summary['status'], ['active', 'expiring'], true)) {
+            throw ValidationException::withMessages([
+                'membership' => $this->unavailableMessage((string) $summary['status'], '上传图片'),
+            ]);
+        }
+
+        $additionalBytes = max(0, $additionalBytes);
+        if ($summary['image_storage_limit'] > 0 && $summary['image_storage_limit'] < $summary['image_storage_used'] + $additionalBytes) {
+            throw ValidationException::withMessages([
+                'membership' => '当前会员图片容量已用完，请删除部分图片或升级套餐后再上传。',
+            ]);
+        }
+    }
+
     public function recordPublishedArticle(int $tenantId, ?int $membershipId = null): void
     {
         if ($tenantId <= 0) {
@@ -252,6 +283,31 @@ class MembershipService
             ->get();
     }
 
+    public static function formatBytes(int $bytes): string
+    {
+        $bytes = max(0, $bytes);
+        if ($bytes < 1024) {
+            return $bytes.' B';
+        }
+
+        $kilobytes = $bytes / 1024;
+        if ($kilobytes < 1024) {
+            return self::formatDecimal($kilobytes).' KB';
+        }
+
+        $megabytes = $kilobytes / 1024;
+        if ($megabytes < 1024) {
+            return self::formatDecimal($megabytes).' MB';
+        }
+
+        return self::formatDecimal($megabytes / 1024).' GB';
+    }
+
+    public static function formatLimitBytes(int $bytes): string
+    {
+        return $bytes > 0 ? self::formatBytes($bytes) : '不限量';
+    }
+
     private function calculateEndsAt(Carbon $startsAt, string $period, ?Carbon $customEndsAt): Carbon
     {
         return match ($period) {
@@ -292,7 +348,7 @@ class MembershipService
         };
     }
 
-    private function statusMessage(string $status, string $planName, ?int $remainingDays, bool $articleOverLimit, bool $knowledgeOverLimit): string
+    private function statusMessage(string $status, string $planName, ?int $remainingDays, bool $articleOverLimit, bool $knowledgeOverLimit, bool $imageStorageOverLimit): string
     {
         if ($status === 'disabled') {
             return '当前会员已停用，发布文章、创建知识库和 URL 智能采集暂不可用，请联系管理员处理。';
@@ -308,6 +364,10 @@ class MembershipService
 
         if ($knowledgeOverLimit) {
             return '知识库数量已超过当前会员额度，请升级套餐或联系管理员调整额度。';
+        }
+
+        if ($imageStorageOverLimit) {
+            return '当前图片容量已超过当前会员额度，请删除部分图片、升级套餐或联系管理员调整额度。';
         }
 
         return match ($status) {
@@ -350,5 +410,23 @@ class MembershipService
         return (int) KnowledgeBase::withoutGlobalScope(TenantScope::class)
             ->where('tenant_id', $tenantId)
             ->count();
+    }
+
+    private function imageStorageUsedBytes(int $tenantId): int
+    {
+        if ($tenantId <= 0) {
+            return 0;
+        }
+
+        return (int) (Image::withoutGlobalScope(TenantScope::class)
+            ->where('tenant_id', $tenantId)
+            ->sum('file_size') ?? 0);
+    }
+
+    private static function formatDecimal(float $value): string
+    {
+        $formatted = number_format($value, $value >= 10 ? 1 : 2);
+
+        return rtrim(rtrim($formatted, '0'), '.');
     }
 }

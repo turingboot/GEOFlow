@@ -302,7 +302,7 @@
                         <label for="membership_plan_id" class="block text-sm font-medium text-gray-700 mb-1">会员等级</label>
                         <select id="membership_plan_id" name="membership_plan_id" required class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                             @foreach ($membershipPlans as $plan)
-                                <option value="{{ $plan->id }}">{{ $plan->name }}（文章 {{ $plan->article_monthly_limit > 0 ? $plan->article_monthly_limit : '不限量' }} / 知识库 {{ $plan->knowledge_base_limit > 0 ? $plan->knowledge_base_limit : '不限量' }}）</option>
+                                <option value="{{ $plan->id }}">{{ $plan->name }}（文章 {{ $plan->article_monthly_limit > 0 ? $plan->article_monthly_limit : '不限量' }} / 知识库 {{ $plan->knowledge_base_limit > 0 ? $plan->knowledge_base_limit : '不限量' }} / 图片 {{ \App\Services\Admin\MembershipService::formatLimitBytes((int) $plan->image_storage_limit_bytes) }}）</option>
                             @endforeach
                         </select>
                     </div>

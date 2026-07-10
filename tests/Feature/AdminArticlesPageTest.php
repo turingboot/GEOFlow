@@ -11,10 +11,13 @@ use App\Models\Category;
 use App\Models\DistributionChannel;
 use App\Models\Image;
 use App\Models\ImageLibrary;
+use App\Models\MembershipPlan;
 use App\Models\SiteSetting;
 use App\Models\Task;
+use App\Services\Admin\MembershipService;
 use App\Support\AdminWeb;
 use App\Support\Tenancy\TenantContext;
+use App\Support\Tenancy\TenantProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -265,6 +268,7 @@ class AdminArticlesPageTest extends TestCase
             'role' => 'admin',
             'status' => 'active',
         ]);
+        $this->grantTestingMembership();
         $category = Category::query()->create([
             'name' => '图片分类',
             'slug' => 'image-category',
@@ -305,6 +309,59 @@ class AdminArticlesPageTest extends TestCase
         $this->assertSame(1, ArticleImage::query()->where('article_id', (int) $article->id)->count());
 
         Storage::disk('public')->assertExists(ltrim(substr($url, strlen('/storage/')), '/'));
+    }
+
+    public function test_article_editor_image_upload_is_blocked_when_membership_image_storage_quota_is_exceeded(): void
+    {
+        Storage::fake('public');
+
+        $admin = Admin::query()->create([
+            'username' => 'articles_image_quota_admin',
+            'password' => 'secret-123',
+            'email' => 'articles-image-quota@example.com',
+            'display_name' => 'Articles Image Quota Admin',
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+        app(TenantProvisioner::class)->ensureForAdmin($admin);
+        $admin->refresh();
+        $plan = MembershipPlan::query()->create([
+            'name' => '文章图片容量测试套餐',
+            'article_monthly_limit' => 10,
+            'knowledge_base_limit' => 10,
+            'image_storage_limit_bytes' => 1,
+            'is_active' => true,
+            'sort_order' => 100,
+        ]);
+        app(MembershipService::class)->assignMembership((int) $admin->tenant_id, (int) $plan->id, 'month', 'reopen', null, '', null);
+
+        $category = Category::query()->create([
+            'name' => '图片容量分类',
+            'slug' => 'article-image-quota-category',
+        ]);
+        $author = Author::query()->create([
+            'name' => 'GEOFlow',
+        ]);
+        $article = Article::query()->create([
+            'title' => '文章图片容量上传测试',
+            'slug' => 'article-editor-image-quota',
+            'excerpt' => '摘要',
+            'content' => '正文',
+            'category_id' => $category->id,
+            'author_id' => $author->id,
+            'status' => 'draft',
+            'review_status' => 'pending',
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->postJson(route('admin.articles.editor.images.upload', ['articleId' => (int) $article->id]), [
+                'image' => UploadedFile::fake()->image('quota.png', 100, 100),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', '当前会员图片容量已用完，请删除部分图片或升级套餐后再上传。');
+
+        $this->assertSame(0, Image::query()->count());
+        $this->assertSame(0, ArticleImage::query()->where('article_id', (int) $article->id)->count());
     }
 
     public function test_article_editor_image_upload_rejects_non_images(): void

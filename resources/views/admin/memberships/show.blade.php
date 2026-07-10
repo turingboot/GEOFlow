@@ -3,6 +3,7 @@
 @php
     $articleStatus = $membership['article_over_limit'] ? '异常' : '正常';
     $knowledgeStatus = $membership['knowledge_over_limit'] ? '异常' : '正常';
+    $imageStorageStatus = $membership['image_storage_over_limit'] ? '异常' : '正常';
     $statusClass = static fn (bool $isOverLimit): string => $isOverLimit
         ? 'inline-flex rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-600'
         : 'inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700';
@@ -17,7 +18,7 @@
                 </a>
                 <div>
                     <h1 class="admin-hero-title">会员详情</h1>
-                    <p class="admin-hero-sub">查看当前会员状态、到期时间和核心资源额度。</p>
+                    <p class="admin-hero-sub">查看当前会员状态、到期时间，以及文章、知识库、图片容量等核心资源额度。</p>
                 </div>
             </div>
             <div class="admin-hero-actions">
@@ -52,7 +53,7 @@
                 </div>
                 <div class="px-6 py-5">
                     <h3 class="text-base font-semibold text-gray-900">额度使用</h3>
-                    <p class="mt-1 text-sm text-gray-500">文章额度按月统计，知识库按当前总数统计。</p>
+                    <p class="mt-1 text-sm text-gray-500">文章额度按月统计，知识库按当前总数统计，图片容量按当前租户已上传图片总大小统计。</p>
                     <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
@@ -80,6 +81,14 @@
                                         <span class="{{ $statusClass($membership['knowledge_over_limit']) }}">{{ $knowledgeStatus }}</span>
                                     </td>
                                 </tr>
+                                <tr>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">图片容量</td>
+                                    <td class="px-6 py-4 text-sm text-gray-700">{{ $membership['image_storage_used_label'] }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-700">{{ $membership['image_storage_limit_label'] }}</td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <span class="{{ $statusClass($membership['image_storage_over_limit']) }}">{{ $imageStorageStatus }}</span>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -89,7 +98,7 @@
             <aside class="admin-card p-5">
                 <h3 class="text-base font-semibold text-gray-900">说明</h3>
                 <p class="mt-3 text-sm leading-6 text-gray-600">
-                    {{ $membership['message'] !== '' ? $membership['message'] : '当前会员可正常使用发布文章和创建知识库功能。' }}
+                    {{ $membership['message'] !== '' ? $membership['message'] : '当前会员可正常使用发布文章、创建知识库和上传图片功能。' }}
                 </p>
             </aside>
         </section>

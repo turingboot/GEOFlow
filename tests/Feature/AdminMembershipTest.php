@@ -112,6 +112,7 @@ class AdminMembershipTest extends TestCase
                 'name' => '前导零套餐',
                 'article_monthly_limit' => '01',
                 'knowledge_base_limit' => '001',
+                'image_storage_limit_mb' => '0100',
                 'price' => 199.99,
                 'is_custom' => '1',
                 'is_active' => '1',
@@ -123,6 +124,7 @@ class AdminMembershipTest extends TestCase
         $this->assertSame(1, (int) $plan->article_monthly_limit);
         $this->assertSame(1, (int) $plan->knowledge_base_limit);
         $this->assertSame(7, (int) $plan->sort_order);
+        $this->assertSame(100 * 1024 * 1024, (int) $plan->image_storage_limit_bytes);
         $this->assertSame('199.99', (string) $plan->price);
 
         $this->actingAs($superAdmin, 'admin')
