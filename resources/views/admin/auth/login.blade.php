@@ -41,8 +41,10 @@
 <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md px-4">
     <div class="rounded-2xl p-8 login-form">
         <div class="text-center mb-8">
-            <div class="login-badge w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i data-lucide="shield-check" class="w-8 h-8 text-white"></i>
+            <div class="flex items-center justify-center gap-2.5 mb-4">
+                <img src="{{ asset('assets/brand/tavix-logo.png') }}?v={{ @filemtime(public_path('assets/brand/tavix-logo.png')) ?: '1' }}" alt="Tavix 拓效" class="h-7 w-auto">
+                <span class="h-5 w-px bg-gray-300"></span>
+                <span class="text-lg font-bold text-gray-900">{{ $adminSiteName }}</span>
             </div>
             <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ __('admin.login.title') }}</h1>
             <p class="text-gray-600">{{ __('admin.login.subtitle', ['site_name' => $adminSiteName]) }}</p>

@@ -6,12 +6,14 @@
     <div class="site-container px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
             <div class="flex items-center">
-                <a href="{{ route('site.home') }}" class="flex items-center">
-                    @if(!empty($siteLogo))
-                        <img src="{{ $siteLogo }}" alt="{{ $siteName }}" class="h-9 w-auto max-w-48 object-contain">
-                    @else
-                        <span class="text-lg sm:text-xl font-bold text-gray-900">{{ $siteName }}</span>
-                    @endif
+                <a href="{{ route('site.home') }}" class="flex items-center gap-2 min-w-0" title="{{ $siteName }}">
+                    {{-- 品牌图标 + 分隔线 + 站点名，与后台侧边栏对齐 --}}
+                    <picture>
+                        <source srcset="{{ asset('assets/brand/tavix-logo-light.png') }}?v={{ @filemtime(public_path('assets/brand/tavix-logo-light.png')) ?: '1' }}" media="(prefers-color-scheme: dark)">
+                        <img src="{{ asset('assets/brand/tavix-logo.png') }}?v={{ @filemtime(public_path('assets/brand/tavix-logo.png')) ?: '1' }}" alt="Tavix 拓效" class="h-5 w-auto shrink-0">
+                    </picture>
+                    <span class="h-4 w-px shrink-0 bg-gray-300 dark:bg-gray-600"></span>
+                    <span class="truncate text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">{{ $siteName }}</span>
                 </a>
             </div>
 
