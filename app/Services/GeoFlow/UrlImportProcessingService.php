@@ -967,6 +967,16 @@ final class UrlImportProcessingService
                     $keywordValues = $keywordPayload['keywords'] ?? (array_is_list($keywordPayload) ? $keywordPayload : []);
                     $aiKeywords = array_slice($this->cleanKeywordList($this->stringList($keywordValues)), 0, 10);
                     if ($aiKeywords === []) {
+                        // 过滤器过于严格导致全部剔除时，回退到 AI 原始关键字列表（仅去重和规范化）。
+                        $aiKeywords = array_slice(array_values(array_unique(
+                            $this->stringList($keywordValues)
+                        )), 0, 10);
+                    }
+                    if ($aiKeywords === []) {
+                        // 极端情况：AI 返回的关键词全部为空，用清洗步的实体列表兜底。
+                        $aiKeywords = array_slice($this->stringList($cleaned['entities'] ?? []), 0, 10);
+                    }
+                    if ($aiKeywords === []) {
                         throw new \RuntimeException(__('admin.url_import.error.ai_keywords_missing'));
                     }
                     $this->log($job, 'info', __('admin.url_import.log.keywords_done', ['count' => count($aiKeywords)]));
@@ -1599,18 +1609,13 @@ PROMPT;
             '更多精彩内容', '查看', '分享', '收藏', '导航', '菜单', '按钮', '新闻', '资讯',
         ];
 
-        return Collection::make($keywords)
+        // 第一步：先以宽松条件过滤，至少保留一些结果。
+        $lenient = Collection::make($keywords)
             ->map(fn (string $keyword): string => $this->normalizeText($keyword))
             ->map(static fn (string $keyword): string => preg_replace('/^[\s,，。.!！?？:：;；|｜\/\\\\()（）\[\]【】{}「」\'"“”‘’]+|[\s,，。.!！?？:：;；|｜\/\\\\()（）\[\]【】{}「」\'"“”‘’]+$/u', '', $keyword) ?? $keyword)
             ->filter(function (string $keyword) use ($stopWords): bool {
                 $length = mb_strlen($keyword, 'UTF-8');
-                if ($length < 2 || $length > 12) {
-                    return false;
-                }
-
-                $isMostlyChinese = preg_match('/^[\p{Han}A-Za-z0-9\-\+\. ]+$/u', $keyword) === 1
-                    && preg_match('/\p{Han}/u', $keyword) === 1;
-                if ($isMostlyChinese && $length > 8) {
+                if ($length < 2 || $length > 40) {
                     return false;
                 }
 
@@ -1633,6 +1638,27 @@ PROMPT;
                 }
 
                 return true;
+            })
+            ->unique()
+            ->values();
+
+        // 宽松条件下有结果就直接返回（最多 10 个）。
+        if ($lenient->isNotEmpty()) {
+            return $lenient->take(10)->all();
+        }
+
+        // 第二步：宽松过滤也无结果时，用最低限度过滤（仅去停用词 + 去标点），
+        // 确保不因过滤器过于严格而让整个任务失败。
+        return Collection::make($keywords)
+            ->map(fn (string $keyword): string => $this->normalizeText($keyword))
+            ->map(static fn (string $keyword): string => preg_replace('/^[\s,，。.!！?？:：;；|｜\/\\\\()（）\[\]【】{}「」\'"“”‘’]+|[\s,，。.!！?？:：;；|｜\/\\\\()（）\[\]【】{}「」\'"“”‘’]+$/u', '', $keyword) ?? $keyword)
+            ->filter(function (string $keyword) use ($stopWords): bool {
+                $lower = mb_strtolower($keyword, 'UTF-8');
+                if (in_array($lower, $stopWords, true)) {
+                    return false;
+                }
+
+                return mb_strlen($keyword, 'UTF-8') >= 2 && mb_strlen($keyword, 'UTF-8') <= 60;
             })
             ->unique()
             ->take(10)
@@ -1740,7 +1766,24 @@ PROMPT;
         }
 
         return Collection::make($value)
-            ->map(fn (mixed $item): string => $this->aiResponseTextToString($item))
+            ->map(function (mixed $item): string {
+                if (is_string($item)) {
+                    return $this->normalizeText($item);
+                }
+                if (is_object($item) || (is_array($item) && ! array_is_list($item))) {
+                    // 支持对象数组：提取 keyword/name/label/tag 等常见名称字段
+                    foreach (['keyword', 'keywords', 'name', 'label', 'tag', 'title', 'value'] as $key) {
+                        $val = is_array($item) ? ($item[$key] ?? null) : ($item->$key ?? null);
+                        if ($val !== null && $val !== '') {
+                            return $this->normalizeText((string) $val);
+                        }
+                    }
+
+                    return '';
+                }
+
+                return $this->normalizeText((string) $item);
+            })
             ->filter(static fn (string $item): bool => $item !== '')
             ->unique()
             ->values()
