@@ -4,6 +4,7 @@ namespace App\Support\Tenancy;
 
 use App\Models\Admin;
 use App\Models\Tenant;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Session;
 
@@ -17,6 +18,12 @@ use Illuminate\Support\Facades\Session;
 class AdminTenantContext
 {
     public const SESSION_KEY = 'admin.active_tenant_id';
+
+    public const RECENT_SESSION_KEY = 'admin.recent_tenant_ids';
+
+    public const RECENT_LIMIT = 5;
+
+    public const SEARCH_LIMIT = 20;
 
     /**
      * session 中选中的租户 id；未选择或选择「全部租户」时为 null。
@@ -82,25 +89,93 @@ class AdminTenantContext
             return false;
         }
 
-        return Tenant::query()
-            ->whereKey($tenantId)
-            ->where('status', 'active')
-            ->where(function ($query): void {
-                $query->where('slug', 'default')
-                    ->orWhereHas('admins', function ($adminQuery): void {
-                        $adminQuery->where('status', 'active')
-                            ->whereNotIn('role', ['super_admin', 'superadmin']);
-                    });
-            })
-            ->exists();
+        return self::selectableQuery()->whereKey($tenantId)->exists();
     }
 
     /**
-     * 供切换器展示的可选租户列表。
+     * 当前进入的租户（供顶栏状态条展示）；全部租户模式下为 null。
+     */
+    public static function activeTenant(): ?Tenant
+    {
+        $activeId = self::activeTenantId();
+        if ($activeId === null) {
+            return null;
+        }
+
+        return Tenant::query()->whereKey($activeId)->first(['id', 'name', 'slug']);
+    }
+
+    /**
+     * 按关键字搜索可进入的租户（匹配租户名 / 名下管理员用户名 / 邮箱），供切换面板按需加载。
      *
      * @return Collection<int, Tenant>
      */
-    public static function selectableTenants(): Collection
+    public static function searchTenants(string $keyword, int $limit = self::SEARCH_LIMIT): Collection
+    {
+        $query = self::selectableQuery()->with('owner:id,username,email');
+
+        $keyword = trim($keyword);
+        if ($keyword !== '') {
+            $like = '%'.mb_strtolower($keyword).'%';
+            $query->where(function ($outer) use ($like): void {
+                $outer->whereRaw('LOWER(name) LIKE ?', [$like])
+                    ->orWhereHas('admins', function ($adminQuery) use ($like): void {
+                        $adminQuery->whereRaw('LOWER(username) LIKE ?', [$like])
+                            ->orWhereRaw('LOWER(COALESCE(email, \'\')) LIKE ?', [$like]);
+                    });
+            });
+        }
+
+        return $query->orderBy('id')->limit(max(1, $limit))->get(['id', 'name', 'slug', 'owner_admin_id']);
+    }
+
+    /**
+     * 最近进入过的租户（按进入时间倒序，存于 session）。
+     *
+     * @return Collection<int, Tenant>
+     */
+    public static function recentTenants(): Collection
+    {
+        $ids = array_values(array_filter(array_map(
+            static fn ($id): int => is_numeric($id) ? (int) $id : 0,
+            (array) Session::get(self::RECENT_SESSION_KEY, [])
+        ), static fn (int $id): bool => $id > 0));
+
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        $order = array_flip($ids);
+
+        return self::selectableQuery()
+            ->with('owner:id,username,email')
+            ->whereIn('id', $ids)
+            ->get(['id', 'name', 'slug', 'owner_admin_id'])
+            ->sortBy(static fn (Tenant $tenant): int => $order[(int) $tenant->id] ?? PHP_INT_MAX)
+            ->values();
+    }
+
+    public static function rememberRecentTenant(int $tenantId): void
+    {
+        if ($tenantId <= 0) {
+            return;
+        }
+
+        $ids = array_values(array_filter(array_map(
+            static fn ($id): int => is_numeric($id) ? (int) $id : 0,
+            (array) Session::get(self::RECENT_SESSION_KEY, [])
+        ), static fn (int $id): bool => $id > 0 && $id !== $tenantId));
+
+        array_unshift($ids, $tenantId);
+        Session::put(self::RECENT_SESSION_KEY, array_slice($ids, 0, self::RECENT_LIMIT));
+    }
+
+    /**
+     * 可进入租户的基础约束：活跃，且是默认租户或名下存在活跃的普通管理员。
+     *
+     * @return Builder<Tenant>
+     */
+    private static function selectableQuery()
     {
         return Tenant::query()
             ->where('status', 'active')
@@ -110,8 +185,6 @@ class AdminTenantContext
                         $adminQuery->where('status', 'active')
                             ->whereNotIn('role', ['super_admin', 'superadmin']);
                     });
-            })
-            ->orderBy('id')
-            ->get(['id', 'name', 'slug']);
+            });
     }
 }

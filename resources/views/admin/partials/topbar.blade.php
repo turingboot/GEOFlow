@@ -97,25 +97,48 @@
         @if ($isSuperAdmin && !empty($adminTenantSwitcher))
             @php
                 $activeTenantId = $adminTenantSwitcher['activeTenantId'] ?? null;
-                $tenantOptions = $adminTenantSwitcher['tenants'] ?? collect();
+                $activeTenantName = (string) ($adminTenantSwitcher['activeTenantName'] ?? '');
             @endphp
-            <form method="POST" action="{{ route('admin.tenant.switch') }}" class="hidden md:flex items-center rounded-lg border border-gray-200 bg-white px-2 py-1 shadow-sm" title="{{ __('admin.tenant_switch.label') }}">
-                @csrf
-                <i data-lucide="building-2" class="w-4 h-4 mr-1.5 {{ $activeTenantId ? 'text-blue-500' : 'text-amber-500' }}"></i>
-                <select
-                    name="tenant_id"
-                    class="admin-tenant-select appearance-none bg-transparent pr-5 text-sm font-medium text-gray-700 outline-none cursor-pointer"
-                    aria-label="{{ __('admin.tenant_switch.label') }}"
-                    onchange="this.form.submit()"
-                >
-                    <option value="0" @selected($activeTenantId === null)>{{ __('admin.tenant_switch.all') }}</option>
-                    @foreach ($tenantOptions as $tenantOption)
-                        <option value="{{ $tenantOption->id }}" @selected((int) $activeTenantId === (int) $tenantOption->id)>
-                            {{ $tenantOption->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </form>
+            {{-- 租户状态条：显示当前操作租户；点击展开搜索面板按需选择，✕ 退出回到全部租户（只读） --}}
+            <div id="admin-tenant-switcher" class="relative hidden md:block" data-search-url="{{ route('admin.tenant.search') }}">
+                <div class="flex items-center rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <button type="button" onclick="toggleTenantPanel()" class="flex items-center gap-1.5 rounded-l-lg px-2.5 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 {{ $activeTenantId ? '' : 'rounded-r-lg' }}" title="{{ __('admin.tenant_switch.label') }}">
+                        <i data-lucide="building-2" class="h-4 w-4 {{ $activeTenantId ? 'text-blue-500' : 'text-amber-500' }}"></i>
+                        <span class="max-w-[11rem] truncate">
+                            {{ $activeTenantId ? __('admin.tenant_switch.active', ['name' => $activeTenantName]) : __('admin.tenant_switch.all') }}
+                        </span>
+                        <i data-lucide="chevron-down" class="h-3.5 w-3.5 text-gray-400"></i>
+                    </button>
+                    @if ($activeTenantId)
+                        <form method="POST" action="{{ route('admin.tenant.switch') }}" class="flex border-l border-gray-200">
+                            @csrf
+                            <input type="hidden" name="tenant_id" value="0">
+                            <button type="submit" class="rounded-r-lg px-2 py-1.5 text-gray-400 hover:bg-gray-50 hover:text-gray-600" title="{{ __('admin.tenant_switch.exit') }}" aria-label="{{ __('admin.tenant_switch.exit') }}">
+                                <i data-lucide="x" class="h-4 w-4"></i>
+                            </button>
+                        </form>
+                    @endif
+                </div>
+
+                <div id="admin-tenant-panel" class="hidden absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
+                    <div class="border-b border-gray-100 p-3">
+                        <input
+                            type="search"
+                            id="admin-tenant-search-input"
+                            class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            placeholder="{{ __('admin.tenant_switch.search_placeholder') }}"
+                            autocomplete="off"
+                            oninput="onTenantSearchInput()"
+                        >
+                    </div>
+                    <div id="admin-tenant-results" class="max-h-72 overflow-y-auto py-1 text-sm"></div>
+                </div>
+
+                <form id="admin-tenant-switch-form" method="POST" action="{{ route('admin.tenant.switch') }}" class="hidden">
+                    @csrf
+                    <input type="hidden" name="tenant_id" id="admin-tenant-switch-id" value="0">
+                </form>
+            </div>
         @endif
         <div class="hidden md:flex items-center rounded-lg border border-gray-200 bg-white px-2 py-1 shadow-sm">
             <i data-lucide="languages" class="w-4 h-4 text-gray-400 mr-1.5"></i>
@@ -217,8 +240,7 @@
 </header>
 
 <style>
-    .admin-locale-select,
-    .admin-tenant-select {
+    .admin-locale-select {
         background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%);
         background-position: calc(100% - 8px) 52%, calc(100% - 4px) 52%;
         background-size: 4px 4px, 4px 4px;
@@ -263,3 +285,115 @@
         }
     });
 </script>
+
+@if ($isSuperAdmin && !empty($adminTenantSwitcher))
+<script>
+    (function () {
+        const searchUrl = document.getElementById('admin-tenant-switcher').dataset.searchUrl;
+        const i18n = {
+            recent: @json(__('admin.tenant_switch.recent')),
+            noResults: @json(__('admin.tenant_switch.no_results')),
+            emptyHint: @json(__('admin.tenant_switch.empty_hint')),
+            loading: @json(__('admin.tenant_switch.loading')),
+            loadFailed: @json(__('admin.tenant_switch.load_failed')),
+        };
+        let debounceTimer = null;
+
+        window.toggleTenantPanel = function () {
+            const panel = document.getElementById('admin-tenant-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                const input = document.getElementById('admin-tenant-search-input');
+                input.focus();
+                loadTenants(input.value);
+            }
+        };
+
+        window.onTenantSearchInput = function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function () {
+                loadTenants(document.getElementById('admin-tenant-search-input').value);
+            }, 250);
+        };
+
+        function renderMessage(text) {
+            const box = document.getElementById('admin-tenant-results');
+            box.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'px-4 py-3 text-gray-400';
+            div.textContent = text;
+            box.appendChild(div);
+        }
+
+        function loadTenants(keyword) {
+            keyword = (keyword || '').trim();
+            renderMessage(i18n.loading);
+            fetch(searchUrl + '?q=' + encodeURIComponent(keyword), { headers: { Accept: 'application/json' } })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('tenant search failed');
+                    }
+                    return response.json();
+                })
+                .then(function (data) {
+                    renderTenants(data, keyword);
+                })
+                .catch(function () {
+                    renderMessage(i18n.loadFailed);
+                });
+        }
+
+        function renderTenants(data, keyword) {
+            const box = document.getElementById('admin-tenant-results');
+            const groups = [];
+            if (Array.isArray(data.recent) && data.recent.length) {
+                groups.push({ label: i18n.recent, items: data.recent });
+            }
+            if (Array.isArray(data.results) && data.results.length) {
+                groups.push({ label: null, items: data.results });
+            }
+            if (!groups.length) {
+                renderMessage(keyword === '' ? i18n.emptyHint : i18n.noResults);
+                return;
+            }
+            box.innerHTML = '';
+            groups.forEach(function (group) {
+                if (group.label) {
+                    const label = document.createElement('div');
+                    label.className = 'px-4 pt-2 pb-1 text-xs font-medium text-gray-400';
+                    label.textContent = group.label;
+                    box.appendChild(label);
+                }
+                group.items.forEach(function (tenant) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'block w-full px-4 py-2 text-left hover:bg-gray-50';
+                    const name = document.createElement('div');
+                    name.className = 'truncate font-medium text-gray-800';
+                    name.textContent = tenant.name;
+                    btn.appendChild(name);
+                    if (tenant.owner) {
+                        const owner = document.createElement('div');
+                        owner.className = 'truncate text-xs text-gray-400';
+                        owner.textContent = tenant.owner;
+                        btn.appendChild(owner);
+                    }
+                    btn.addEventListener('click', function () {
+                        document.getElementById('admin-tenant-switch-id').value = tenant.id;
+                        document.getElementById('admin-tenant-switch-form').submit();
+                    });
+                    box.appendChild(btn);
+                });
+            });
+        }
+
+        document.addEventListener('click', function (event) {
+            const wrap = document.getElementById('admin-tenant-switcher');
+            const panel = document.getElementById('admin-tenant-panel');
+            if (wrap && panel && !wrap.contains(event.target)) {
+                panel.classList.add('hidden');
+            }
+        });
+    })();
+</script>
+@endif

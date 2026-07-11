@@ -3,6 +3,23 @@
 $base = require __DIR__.'/../en/admin.php';
 
 return array_replace_recursive($base, [
+    'tenant_switch' => [
+        'label' => 'Locatário atual',
+        'all' => 'Todos os locatários (somente leitura)',
+        'active' => 'Locatário: :name',
+        'exit' => 'Sair do locatário e voltar para todos (somente leitura)',
+        'enter' => 'Entrar no locatário',
+        'search_placeholder' => 'Pesquisar locatário / usuário / e-mail',
+        'recent' => 'Acessados recentemente',
+        'no_results' => 'Nenhum locatário correspondente encontrado',
+        'empty_hint' => 'Nenhum locatário recente — digite uma palavra-chave para pesquisar',
+        'loading' => 'Carregando…',
+        'load_failed' => 'Falha ao carregar, tente novamente',
+        'switched' => 'Locatário atual alterado.',
+        'switched_all' => 'Alterado para todos os locatários (visão somente leitura).',
+        'invalid' => 'O locatário selecionado não existe ou está inativo.',
+        'required' => 'Selecione um locatário específico no canto superior direito antes de criar ou editar dados.',
+    ],
     'nav' => [
         'dashboard' => 'Painel',
         'tasks' => 'Tarefas',
@@ -1979,6 +1996,10 @@ return array_replace_recursive($base, [
         'super_admins' => 'Superadministradores',
         'permission_notice' => 'Usuários padrão têm permissões operacionais. Apenas superadministradores podem ver usuários e logs.',
         'list_title' => 'Lista de Usuários',
+        'search_placeholder' => 'Pesquisar usuário / e-mail / nome de exibição',
+        'search_submit' => 'Pesquisar',
+        'search_clear' => 'Limpar',
+        'empty_list' => 'Nenhum usuário correspondente encontrado',
         'column_account' => 'Conta',
         'column_role' => 'Função',
         'column_status' => 'Status',

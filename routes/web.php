@@ -121,6 +121,10 @@ Route::prefix($adminPrefix)->name('admin.')->middleware(['admin.locale'])->group
         Route::post('tenant/switch', [TenantSwitchController::class, 'switch'])
             ->middleware('admin.super')
             ->name('tenant.switch');
+        // 切换面板的按需租户搜索（空关键字返回最近进入）
+        Route::get('tenant/search', [TenantSwitchController::class, 'search'])
+            ->middleware('admin.super')
+            ->name('tenant.search');
 
         Route::prefix('system-updates')->name('system-updates.')->middleware('admin.super')->group(function () {
             Route::get('/', [SystemUpdateController::class, 'index'])->name('index');

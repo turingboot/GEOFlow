@@ -51,11 +51,12 @@ class AppServiceProvider extends ServiceProvider
                 $admin instanceof Admin ? app(AdminUpdateMetadataService::class)->buildNotificationPayload() : null
             );
 
-            // 超管租户切换器数据（普通管理员不展示）。
+            // 超管租户状态条数据（普通管理员不展示）。只解析当前租户，候选列表由切换面板按需搜索。
             $isSuperAdmin = $admin instanceof Admin && $admin->isSuperAdmin();
+            $activeTenant = $isSuperAdmin ? AdminTenantContext::activeTenant() : null;
             $view->with('adminTenantSwitcher', $isSuperAdmin ? [
-                'tenants' => AdminTenantContext::selectableTenants(),
-                'activeTenantId' => AdminTenantContext::activeTenantId(),
+                'activeTenantId' => $activeTenant?->id,
+                'activeTenantName' => $activeTenant?->name,
             ] : null);
         });
     }
