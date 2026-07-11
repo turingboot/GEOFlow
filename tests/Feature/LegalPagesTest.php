@@ -24,7 +24,10 @@ class LegalPagesTest extends TestCase
             // 仅声明只读范围
             ->assertSee('webmasters.readonly')
             ->assertSee('Acme GEO Ltd')
-            ->assertSee('privacy@acme.example');
+            ->assertSee('privacy@acme.example')
+            // 左上角品牌图标与后台侧边栏对齐（明暗双版本 logo）
+            ->assertSee('assets/brand/tavix-logo.png', false)
+            ->assertSee('assets/brand/tavix-logo-light.png', false);
     }
 
     public function test_terms_page_is_public_and_links_privacy(): void

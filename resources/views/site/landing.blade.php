@@ -31,6 +31,10 @@
         .container { max-width:1080px; margin:0 auto; padding:0 24px; }
         .brand { font-weight:800; font-size:20px; letter-spacing:.2px; color:var(--fg); }
         .brand .dot { color:var(--brand); }
+        /* 头部品牌区：与后台侧边栏对齐（Tavix 图标 + 分隔线 + 站点名） */
+        .brand-lockup { display:flex; align-items:center; gap:8px; min-width:0; }
+        .brand-lockup .brand-logo { height:20px; width:auto; display:block; }
+        .brand-lockup .brand-divider { width:1px; height:16px; background:var(--line); }
 
         .btn { display:inline-block; border-radius:10px; padding:11px 22px; font-size:15px; font-weight:600; }
         .btn-primary { background:var(--brand); color:var(--brand-fg); }
@@ -105,7 +109,14 @@
 <body>
     <header class="site-header">
         <div class="container header-inner">
-            <div class="brand">{{ $companyName }}<span class="dot">.</span></div>
+            <div class="brand brand-lockup">
+                <picture>
+                    <source srcset="{{ asset('assets/brand/tavix-logo-light.png') }}?v={{ @filemtime(public_path('assets/brand/tavix-logo-light.png')) ?: '1' }}" media="(prefers-color-scheme: dark)">
+                    <img src="{{ asset('assets/brand/tavix-logo.png') }}?v={{ @filemtime(public_path('assets/brand/tavix-logo.png')) ?: '1' }}" alt="Tavix 拓效" class="brand-logo">
+                </picture>
+                <span class="brand-divider"></span>
+                <span>{{ $companyName }}</span>
+            </div>
             <nav class="nav">
                 <a class="link" href="#about">What it does</a>
                 <a class="link" href="#data">Data use</a>

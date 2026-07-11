@@ -18,8 +18,10 @@ class LandingPageTest extends TestCase
 
         $html = app(LandingController::class)->index()->render();
 
-        // 品牌与卖点
+        // 品牌与卖点（头部品牌图标与后台侧边栏对齐：明暗双版本 logo）
         $this->assertStringContainsString('TavixGEO', $html);
+        $this->assertStringContainsString('assets/brand/tavix-logo.png', $html);
+        $this->assertStringContainsString('assets/brand/tavix-logo-light.png', $html);
         $this->assertStringContainsString('GEO', $html);
         $this->assertStringContainsString('Search Console', $html);
         $this->assertStringContainsString('webmasters.readonly', $html);

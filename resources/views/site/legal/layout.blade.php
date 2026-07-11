@@ -26,6 +26,14 @@
         .legal-top { margin-bottom: 28px; }
         .legal-top a { color: #2563eb; text-decoration: none; font-size: 14px; }
         .legal-top a:hover { text-decoration: underline; }
+        /* 左上角品牌区：与后台侧边栏对齐（Tavix 图标 + 分隔线 + 站点名） */
+        .legal-top a.legal-brand {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: #1f2329; font-weight: 600; font-size: 14px;
+        }
+        .legal-top a.legal-brand:hover { text-decoration: none; opacity: .85; }
+        .legal-brand img { height: 18px; width: auto; display: block; }
+        .legal-brand-divider { width: 1px; height: 14px; background: #d1d5db; }
         .legal-card {
             background: #fff;
             border: 1px solid #e5e7eb;
@@ -55,6 +63,8 @@
         @media (max-width: 640px) { .legal-card { padding: 26px 20px; } h1 { font-size: 23px; } }
         @media (prefers-color-scheme: dark) {
             body { background: #0f1115; color: #e5e7eb; }
+            .legal-top a.legal-brand { color: #e5e7eb; }
+            .legal-brand-divider { background: #3a4150; }
             .legal-card { background: #171a21; border-color: #2a2f3a; box-shadow: none; }
             h3 { color: #cbd5e1; }
             .legal-meta, .en, .legal-footer { color: #9aa4b2; }
@@ -67,7 +77,14 @@
 <body>
     <div class="legal-wrap">
         <div class="legal-top">
-            <a href="{{ $siteUrl !== '' ? $siteUrl : url('/') }}">← {{ $companyName }}</a>
+            <a class="legal-brand" href="{{ $siteUrl !== '' ? $siteUrl : url('/') }}" title="{{ $companyName }}">
+                <picture>
+                    <source srcset="{{ asset('assets/brand/tavix-logo-light.png') }}?v={{ @filemtime(public_path('assets/brand/tavix-logo-light.png')) ?: '1' }}" media="(prefers-color-scheme: dark)">
+                    <img src="{{ asset('assets/brand/tavix-logo.png') }}?v={{ @filemtime(public_path('assets/brand/tavix-logo.png')) ?: '1' }}" alt="Tavix 拓效">
+                </picture>
+                <span class="legal-brand-divider"></span>
+                <span>{{ $companyName }}</span>
+            </a>
         </div>
         <article class="legal-card">
             @yield('content')
