@@ -15,9 +15,10 @@
         'ai_config' => ['route' => 'admin.ai.configurator', 'name' => __('admin.nav.ai_config')],
     ];
     if ($isSuperAdmin) {
-        $menu = array_slice($menu, 0, 1, true)
-            + ['analytics' => ['route' => 'admin.analytics', 'name' => __('admin.nav.analytics')]]
-            + array_slice($menu, 1, null, true);
+        // 增长中心入口暂时隐藏（如需恢复取消注释即可）
+        // $menu = array_slice($menu, 0, 1, true)
+        //     + ['analytics' => ['route' => 'admin.analytics', 'name' => __('admin.nav.analytics')]]
+        //     + array_slice($menu, 1, null, true);
         // 本站设置 / 用户管理 仅超级管理员可见
         $menu['site_settings'] = ['route' => 'admin.site-settings.index', 'name' => __('admin.nav.site_settings')];
         $menu['memberships'] = ['route' => 'admin.memberships.index', 'name' => '会员管理'];

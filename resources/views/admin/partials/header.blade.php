@@ -20,7 +20,8 @@
     $notificationStatus = (string) ($updateState['status'] ?? 'disabled');
     $menu = [
         'dashboard' => ['route' => 'admin.dashboard', 'name' => __('admin.nav.dashboard')],
-        'analytics' => ['route' => 'admin.analytics', 'name' => __('admin.nav.analytics')],
+        // 增长中心入口暂时隐藏（如需恢复取消注释即可）
+        // 'analytics' => ['route' => 'admin.analytics', 'name' => __('admin.nav.analytics')],
         'tasks' => ['route' => 'admin.tasks.index', 'name' => __('admin.nav.tasks')],
         'distribution' => ['route' => 'admin.distribution.index', 'name' => __('admin.nav.distribution')],
         'articles' => ['route' => 'admin.articles.index', 'name' => __('admin.nav.articles')],

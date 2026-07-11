@@ -44,11 +44,17 @@ class AdminShellLayoutTest extends TestCase
 
     public function test_super_admin_only_entries_are_gated(): void
     {
-        $this->actingAs($this->admin('super_admin'), 'admin')
+        $superContent = $this->actingAs($this->admin('super_admin'), 'admin')
             ->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee(route('admin.admin-users.index'), false)
-            ->assertSee(route('admin.api-tokens.index'), false);
+            ->assertSee(route('admin.api-tokens.index'), false)
+            ->getContent();
+
+        // 增长中心入口暂时隐藏:超级管理员侧边栏同样不渲染
+        $superSidebar = $this->sidebarHtml($superContent);
+        $this->assertStringNotContainsString(route('admin.analytics'), $superSidebar);
+        $this->assertStringNotContainsString(__('admin.nav.analytics'), $superSidebar);
 
         $standardContent = $this->actingAs($this->admin('admin', 'standard_admin'), 'admin')
             ->get(route('admin.dashboard'))
@@ -79,7 +85,8 @@ class AdminShellLayoutTest extends TestCase
         // 期望顺序:概览 → 调研/选题 → 备料/生产/分发 → 配置 →(超管)网站/会员/用户
         $expectedOrder = [
             'admin.dashboard',
-            'admin.analytics',
+            // 增长中心入口暂时隐藏(如需恢复取消注释即可)
+            // 'admin.analytics',
             'admin.keyword-trends.index',
             'admin.google-search-console.index',
             'admin.topic-plans.index',
