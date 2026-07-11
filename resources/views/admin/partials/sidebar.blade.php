@@ -19,10 +19,10 @@
         // $menu = array_slice($menu, 0, 1, true)
         //     + ['analytics' => ['route' => 'admin.analytics', 'name' => __('admin.nav.analytics')]]
         //     + array_slice($menu, 1, null, true);
-        // 本站设置 / 用户管理 仅超级管理员可见
-        $menu['site_settings'] = ['route' => 'admin.site-settings.index', 'name' => __('admin.nav.site_settings')];
+        // 本站设置 / 用户管理 仅超级管理员可见；网站设置放在最后
         $menu['memberships'] = ['route' => 'admin.memberships.index', 'name' => '会员管理'];
         $menu['admin_users'] = ['route' => 'admin.admin-users.index', 'name' => __('admin.nav.admin_users')];
+        $menu['site_settings'] = ['route' => 'admin.site-settings.index', 'name' => __('admin.nav.site_settings')];
     }
     $menuIcons = [
         'dashboard' => 'layout-dashboard',

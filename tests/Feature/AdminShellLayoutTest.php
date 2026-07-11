@@ -82,7 +82,7 @@ class AdminShellLayoutTest extends TestCase
         $this->assertNotFalse($end, '侧边栏未正确闭合');
         $sidebar = substr($content, $start, $end - $start);
 
-        // 期望顺序:概览 → 调研/选题 → 备料/生产/分发 → 配置 →(超管)网站/会员/用户
+        // 期望顺序:概览 → 调研/选题 → 备料/生产/分发 → 配置 →(超管)会员/用户/网站
         $expectedOrder = [
             'admin.dashboard',
             // 增长中心入口暂时隐藏(如需恢复取消注释即可)
@@ -95,9 +95,9 @@ class AdminShellLayoutTest extends TestCase
             'admin.articles.index',
             'admin.distribution.index',
             'admin.ai.configurator',
-            'admin.site-settings.index',
             'admin.memberships.index',
             'admin.admin-users.index',
+            'admin.site-settings.index',
         ];
 
         $lastPos = -1;

@@ -29,9 +29,9 @@
         'ai_config' => ['route' => 'admin.ai.configurator', 'name' => __('admin.nav.ai_config')],
     ];
     if ($isSuperAdmin) {
-        // 本站设置 / 用户管理 仅超级管理员可见
-        $menu['site_settings'] = ['route' => 'admin.site-settings.index', 'name' => __('admin.nav.site_settings')];
+        // 本站设置 / 用户管理 仅超级管理员可见；网站设置放在最后，与侧边栏保持一致
         $menu['admin_users'] = ['route' => 'admin.admin-users.index', 'name' => __('admin.nav.admin_users')];
+        $menu['site_settings'] = ['route' => 'admin.site-settings.index', 'name' => __('admin.nav.site_settings')];
     }
     $subMap = [
         'admin.analytics' => 'analytics',
