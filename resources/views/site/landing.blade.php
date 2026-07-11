@@ -12,6 +12,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $companyName }} · GEO Optimization Platform</title>
     <meta name="description" content="{{ $companyName }} is a GEO (Generative Engine Optimization) content-engineering and search-monitoring platform. It produces content at scale with AI and feeds real Google Search Console keyword signals back into your content strategy.">
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <style>
         :root { color-scheme: light dark;
             --bg:#ffffff; --bg-alt:#f7f8fa; --fg:#1f2329; --muted:#6b7280; --card:#ffffff; --line:#e5e7eb;
