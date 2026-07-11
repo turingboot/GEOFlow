@@ -136,6 +136,75 @@ class AdminUsersManagementTest extends TestCase
         ]);
     }
 
+    public function test_user_list_shows_enter_tenant_action_for_standard_admin_with_tenant(): void
+    {
+        $superAdmin = $this->createAdmin('root_admin', 'super_admin');
+        $standardAdmin = $this->createAdmin('editor_admin', 'admin');
+        $tenant = Tenant::query()->create([
+            'name' => 'Editor Tenant',
+            'slug' => 'editor-tenant',
+            'owner_admin_id' => (int) $standardAdmin->id,
+            'status' => 'active',
+        ]);
+        $standardAdmin->forceFill(['tenant_id' => (int) $tenant->id])->save();
+
+        $this->actingAs($superAdmin, 'admin')
+            ->get(route('admin.admin-users.index'))
+            ->assertOk()
+            ->assertSee(__('admin.tenant_switch.enter'))
+            ->assertSee('name="tenant_id" value="'.$tenant->id.'"', false)
+            ->assertSee('name="redirect" value="dashboard"', false);
+    }
+
+    public function test_user_list_supports_keyword_search(): void
+    {
+        $superAdmin = $this->createAdmin('root_admin', 'super_admin');
+        $this->createAdmin('editor_admin', 'admin');
+        $this->createAdmin('writer_admin', 'admin');
+
+        $this->actingAs($superAdmin, 'admin')
+            ->get(route('admin.admin-users.index', ['q' => 'editor']))
+            ->assertOk()
+            ->assertSee('editor_admin')
+            ->assertDontSee('writer_admin');
+
+        // 按邮箱也能搜到
+        $this->actingAs($superAdmin, 'admin')
+            ->get(route('admin.admin-users.index', ['q' => 'writer_admin@example.com']))
+            ->assertOk()
+            ->assertSee('writer_admin')
+            ->assertDontSee('editor_admin');
+
+        // 无匹配时展示空态；统计仍是全量口径
+        $totalAdmins = Admin::query()->count();
+        $this->actingAs($superAdmin, 'admin')
+            ->get(route('admin.admin-users.index', ['q' => 'no-such-user']))
+            ->assertOk()
+            ->assertSee(__('admin.admin_users.empty_list'))
+            ->assertViewHas('stats', fn (array $stats): bool => $stats['total_admins'] === $totalAdmins);
+    }
+
+    public function test_user_list_is_paginated(): void
+    {
+        $superAdmin = $this->createAdmin('root_admin', 'super_admin');
+        for ($i = 1; $i <= 25; $i++) {
+            $this->createAdmin(sprintf('bulk_admin_%02d', $i), 'admin');
+        }
+
+        $response = $this->actingAs($superAdmin, 'admin')
+            ->get(route('admin.admin-users.index'))
+            ->assertOk();
+
+        $this->assertSame(20, $response->viewData('admins')->count());
+        $this->assertSame(Admin::query()->count(), $response->viewData('admins')->total());
+
+        // 第二页能看到剩余用户，且保留搜索参数的分页链接由 withQueryString 生成
+        $this->actingAs($superAdmin, 'admin')
+            ->get(route('admin.admin-users.index', ['page' => 2]))
+            ->assertOk()
+            ->assertSee('bulk_admin_25');
+    }
+
     private function createAdmin(string $username, string $role): Admin
     {
         return Admin::query()->create([

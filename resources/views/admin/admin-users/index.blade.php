@@ -58,8 +58,21 @@
         </div>
 
         <div class="admin-card overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
                 <h3 class="text-lg font-medium text-gray-900">{{ __('admin.admin_users.list_title') }}</h3>
+                <form method="GET" action="{{ route('admin.admin-users.index') }}" class="flex items-center gap-2">
+                    <input
+                        type="search"
+                        name="q"
+                        value="{{ $searchKeyword ?? '' }}"
+                        placeholder="{{ __('admin.admin_users.search_placeholder') }}"
+                        class="block w-64 rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    >
+                    <button type="submit" class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">{{ __('admin.admin_users.search_submit') }}</button>
+                    @if (($searchKeyword ?? '') !== '')
+                        <a href="{{ route('admin.admin-users.index') }}" class="text-sm text-gray-500 hover:text-gray-700">{{ __('admin.admin_users.search_clear') }}</a>
+                    @endif
+                </form>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -75,6 +88,11 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
+                        @if ($admins->isEmpty())
+                            <tr>
+                                <td colspan="7" class="px-6 py-10 text-center text-sm text-gray-400">{{ __('admin.admin_users.empty_list') }}</td>
+                            </tr>
+                        @endif
                         @foreach ($admins as $admin)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -133,6 +151,17 @@
                                         </button>
                                     @elseif (! $admin['is_super_admin'])
                                         <div class="inline-flex items-center justify-end gap-3">
+                                            @if ($admin['tenant_id'] > 0)
+                                                {{-- 直接进入该用户的租户（读写），替代旧的右上角全量下拉切换 --}}
+                                                <form method="POST" action="{{ route('admin.tenant.switch') }}" class="inline">
+                                                    @csrf
+                                                    <input type="hidden" name="tenant_id" value="{{ $admin['tenant_id'] }}">
+                                                    <input type="hidden" name="redirect" value="dashboard">
+                                                    <button type="submit" class="text-indigo-600 hover:text-indigo-800">
+                                                        {{ __('admin.tenant_switch.enter') }}
+                                                    </button>
+                                                </form>
+                                            @endif
                                             <button
                                                 type="button"
                                                 onclick="showEditAdminModal({{ \Illuminate\Support\Js::from($admin) }})"
@@ -170,6 +199,11 @@
                     </tbody>
                 </table>
             </div>
+            @if ($admins->hasPages())
+                <div class="border-t border-gray-200 px-6 py-4">
+                    {{ $admins->links() }}
+                </div>
+            @endif
         </div>
     </div>
 

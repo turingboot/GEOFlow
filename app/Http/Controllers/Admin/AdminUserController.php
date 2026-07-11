@@ -8,6 +8,7 @@ use App\Services\Admin\MembershipService;
 use App\Support\AdminWeb;
 use App\Support\Tenancy\AdminTenantContext;
 use App\Support\Tenancy\TenantProvisioner;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -33,22 +34,24 @@ class AdminUserController extends Controller
     ) {}
 
     /**
-     * 管理员管理首页。
+     * 管理员管理首页（支持按用户名/邮箱/显示名称搜索，分页展示）。
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $admins = $this->loadAdmins();
+        $keyword = trim((string) $request->query('q', ''));
 
         return view('admin.admin-users.index', [
             'pageTitle' => __('admin.admin_users.page_title'),
             'activeMenu' => 'admin_users',
             'adminSiteName' => AdminWeb::siteName(),
-            'admins' => $admins,
+            'admins' => $this->loadAdmins($keyword),
+            'searchKeyword' => $keyword,
             'membershipPlans' => $this->membershipService->activePlans(),
+            // 统计始终针对全量用户，不受搜索关键字影响。
             'stats' => [
-                'total_admins' => count($admins),
-                'active_admins' => count(array_filter($admins, static fn (array $admin): bool => $admin['status'] === 'active')),
-                'super_admins' => count(array_filter($admins, static fn (array $admin): bool => $admin['is_super_admin'])),
+                'total_admins' => Admin::query()->count(),
+                'active_admins' => Admin::query()->where('status', 'active')->count(),
+                'super_admins' => Admin::query()->whereRaw("LOWER(COALESCE(role, '')) IN ('super_admin', 'superadmin')")->count(),
             ],
             'currentAdminId' => (int) (auth('admin')->id() ?? 0),
         ]);
@@ -311,21 +314,11 @@ class AdminUserController extends Controller
     }
 
     /**
-     * @return array<int, array{
-     *   id:int,
-     *   username:string,
-     *   email:string,
-     *   display_name:string,
-     *   role:string,
-     *   status:string,
-     *   is_super_admin:bool,
-     *   last_login:string,
-     *   created_at:string,
-     *   creator_username:string,
-     *   activity_count:int
-     * }>
+     * 加载管理员列表：可选关键字过滤（用户名/邮箱/显示名称），分页返回。
+     *
+     * @return LengthAwarePaginator<int, array<string, mixed>>
      */
-    private function loadAdmins(): array
+    private function loadAdmins(string $keyword = '')
     {
         $query = Admin::query()
             ->select([
@@ -346,13 +339,20 @@ class AdminUserController extends Controller
             ->orderBy('created_at')
             ->orderBy('id');
 
+        if ($keyword !== '') {
+            $like = '%'.mb_strtolower($keyword).'%';
+            $query->where(function ($outer) use ($like): void {
+                $outer->whereRaw('LOWER(username) LIKE ?', [$like])
+                    ->orWhereRaw("LOWER(COALESCE(email, '')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(COALESCE(display_name, '')) LIKE ?", [$like]);
+            });
+        }
+
         if (Schema::hasTable('admin_activity_logs')) {
             $query->withCount('activityLogs as activity_count');
         }
 
-        $admins = $query->get();
-
-        return $admins->map(function (Admin $admin): array {
+        return $query->paginate(20)->withQueryString()->through(function (Admin $admin): array {
             $membership = $this->membershipService->summaryForTenant((int) ($admin->tenant_id ?? 0));
 
             return [
@@ -375,6 +375,6 @@ class AdminUserController extends Controller
                 'membership_ends_at' => $membership['ends_at']?->format('Y-m-d') ?? '',
                 'membership_remaining_days' => $membership['remaining_days'],
             ];
-        })->all();
+        });
     }
 }
